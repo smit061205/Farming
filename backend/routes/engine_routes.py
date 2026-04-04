@@ -474,30 +474,20 @@ async def clear_cache(user: dict = Depends(get_current_user)):
 # ── OCR Soil Lab Report ──────────────────────────────────────────────────────
 
 def _pdf_to_images_b64(file_bytes: bytes, max_pages: int = 3) -> list[tuple[str, str]]:
-    """Convert PDF pages to base64 PNG using pypdfium2. No gcc required."""
+    """Convert PDF pages to base64 PNG using PyMuPDF. No poppler required."""
     try:
-        import pypdfium2 as pdfium
+        import fitz  # PyMuPDF
     except ImportError:
-        raise HTTPException(status_code=500, detail="pypdfium2 not installed. Run: pip install pypdfium2")
-    
-    doc = pdfium.PdfDocument(file_bytes)
+        raise HTTPException(status_code=500, detail="PyMuPDF not installed. Run: pip install pymupdf")
+    doc = fitz.open(stream=file_bytes, filetype="pdf")
     results = []
-    
     for i in range(min(len(doc), max_pages)):
         page = doc[i]
-        # scale=2.0 is roughly equivalent to 144 DPI
-        bitmap = page.render(scale=2.0)
-        # convert to PIL Image
-        pil_image = bitmap.to_pil()
-        
-        # save to bytes memory
-        import io
-        img_byte_arr = io.BytesIO()
-        pil_image.save(img_byte_arr, format='PNG')
-        
-        b64 = base64.standard_b64encode(img_byte_arr.getvalue()).decode("utf-8")
+        mat = fitz.Matrix(2.0, 2.0)  # 2× scale ≈ 200 DPI
+        pix = page.get_pixmap(matrix=mat)
+        b64 = base64.standard_b64encode(pix.tobytes("png")).decode("utf-8")
         results.append((b64, "image/png"))
-        
+    doc.close()
     return results
 
 
