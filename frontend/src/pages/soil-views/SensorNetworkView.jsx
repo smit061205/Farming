@@ -226,7 +226,7 @@ export default function SensorNetworkView() {
           </div>
 
           {/* Map Viewer */}
-          <div ref={mapContainerRef} className="w-full lg:w-2/3 min-h-[400px] lg:h-full bg-white rounded-[2rem] overflow-hidden relative border border-white/50">
+          <div className="w-full lg:w-2/3 min-h-[400px] lg:h-full bg-white rounded-[2rem] overflow-hidden relative border border-white/50">
             <div className="absolute top-4 right-4 z-[500] flex items-center gap-2">
               <button 
                 onClick={handleDownloadScreenshot}
