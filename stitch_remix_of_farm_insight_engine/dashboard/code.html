@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Technological Terroir | Digital Agrarian Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300..700&amp;family=Manrope:wght@200..800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "secondary-container": "#fd876f",
+                        "outline": "#73796d",
+                        "surface-container-lowest": "#ffffff",
+                        "on-tertiary-fixed-variant": "#6f3800",
+                        "on-error": "#ffffff",
+                        "primary-fixed-dim": "#a9d293",
+                        "on-tertiary-container": "#fb9f54",
+                        "tertiary-container": "#6f3800",
+                        "surface-container-low": "#f8f4db",
+                        "on-secondary-fixed-variant": "#802918",
+                        "on-background": "#1d1c0d",
+                        "inverse-primary": "#a9d293",
+                        "on-primary": "#ffffff",
+                        "primary": "#173809",
+                        "secondary": "#9f402d",
+                        "on-secondary-container": "#732010",
+                        "background": "#fefae0",
+                        "secondary-fixed": "#ffdad3",
+                        "on-error-container": "#93000a",
+                        "surface-tint": "#446733",
+                        "surface-container-highest": "#e7e3ca",
+                        "surface-container": "#f2efd5",
+                        "on-primary-container": "#98c083",
+                        "on-surface": "#1d1c0d",
+                        "on-tertiary": "#ffffff",
+                        "inverse-on-surface": "#f5f1d8",
+                        "primary-container": "#2d4f1e",
+                        "error": "#ba1a1a",
+                        "on-surface-variant": "#43493e",
+                        "tertiary": "#4e2500",
+                        "primary-fixed": "#c5efad",
+                        "surface-dim": "#dedbc2",
+                        "on-secondary": "#ffffff",
+                        "tertiary-fixed": "#ffdcc4",
+                        "tertiary-fixed-dim": "#ffb781",
+                        "surface-variant": "#e7e3ca",
+                        "on-primary-fixed-variant": "#2d4f1e",
+                        "surface-container-high": "#ede9cf",
+                        "inverse-surface": "#323120",
+                        "error-container": "#ffdad6",
+                        "surface": "#fefae0",
+                        "on-primary-fixed": "#062100",
+                        "surface-bright": "#fefae0",
+                        "outline-variant": "#c3c8bb",
+                        "on-secondary-fixed": "#3e0500",
+                        "on-tertiary-fixed": "#2f1400",
+                        "secondary-fixed-dim": "#ffb4a5"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "1rem",
+                        "lg": "2rem",
+                        "xl": "3rem",
+                        "full": "9999px"
+                    },
+                    "fontFamily": {
+                        "headline": ["Space Grotesk"],
+                        "body": ["Manrope"],
+                        "label": ["Manrope"]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .glow-primary { box-shadow: 0 0 15px 2px rgba(169, 210, 147, 0.6); }
+        .glow-secondary { box-shadow: 0 0 15px 2px rgba(159, 64, 45, 0.6); }
+        .glow-tertiary { box-shadow: 0 0 15px 2px rgba(251, 159, 84, 0.6); }
+        .soil-shadow { box-shadow: 0 20px 40px rgba(29, 28, 13, 0.06); }
+        body { background-color: #fefae0; color: #1d1c0d; }
+    </style>
+</head>
+<body class="font-body selection:bg-secondary-container selection:text-on-secondary-container">
+<!-- TopNavBar Shell -->
+<nav class="fixed top-0 left-0 right-0 z-50 bg-[#fefae0]/70 dark:bg-stone-950/70 backdrop-blur-xl rounded-b-[3rem] shadow-[0_10px_30px_rgba(23,56,9,0.04)]">
+<div class="flex justify-between items-center w-full px-12 py-6 max-w-[1920px] mx-auto">
+<div class="text-2xl font-black text-[#173809] dark:text-emerald-500 uppercase tracking-tighter font-headline">
+                Technological Terroir
+            </div>
+<div class="hidden md:flex items-center space-x-12">
+<a class="text-[#173809] dark:text-emerald-400 border-b-4 border-[#9f402d] pb-1 font-headline font-bold tracking-tight transition-colors duration-300" href="#">Dashboard</a>
+<a class="text-[#173809]/60 dark:text-stone-400 font-medium font-headline hover:text-[#9f402d] transition-colors duration-300" href="#">Reports</a>
+<a class="text-[#173809]/60 dark:text-stone-400 font-medium font-headline hover:text-[#9f402d] transition-colors duration-300" href="#">Alerts</a>
+<a class="text-[#173809]/60 dark:text-stone-400 font-medium font-headline hover:text-[#9f402d] transition-colors duration-300" href="#">Map</a>
+</div>
+<div class="flex items-center gap-6">
+<span class="material-symbols-outlined text-[#173809] text-3xl cursor-pointer" data-icon="account_circle">account_circle</span>
+</div>
+</div>
+</nav>
+<main class="pt-32 pb-20 px-12 max-w-[1920px] mx-auto">
+<!-- Hero Section: Asymmetric Editorial Layout -->
+<header class="mb-20 grid grid-cols-12 gap-8 items-end">
+<div class="col-span-12 lg:col-span-7">
+<p class="font-headline font-bold text-secondary uppercase tracking-[0.2em] mb-4">Field Journal No. 42</p>
+<h1 class="font-headline text-7xl md:text-8xl font-bold text-primary tracking-tighter leading-none mb-8">
+                    The Digital <br/><span class="italic font-light">Agrarian</span>
+</h1>
+<p class="text-xl text-on-surface-variant max-w-xl leading-relaxed">
+                    Analyzing subsurface nitrogen cycles and satellite vegetation indices to optimize the upcoming harvest cycle. Your terroir is speaking; we are translating.
+                </p>
+</div>
+<div class="col-span-12 lg:col-span-4 lg:col-start-9 relative">
+<div class="absolute -top-12 -left-12 text-[10rem] font-headline font-black text-primary/5 select-none pointer-events-none">01</div>
+<div class="bg-surface-container-high rounded-xl p-8 soil-shadow relative overflow-hidden">
+<div class="flex items-center gap-4 mb-6">
+<div class="w-4 h-4 rounded-full bg-primary-fixed glow-primary"></div>
+<span class="font-headline font-bold text-primary uppercase tracking-widest text-sm">System Health: Optimal</span>
+</div>
+<p class="text-on-surface text-lg font-medium leading-tight mb-2">Last Sync</p>
+<p class="text-primary text-3xl font-headline font-bold">Today, 06:14 AM</p>
+</div>
+</div>
+</header>
+<!-- Main Dashboard Content -->
+<div class="grid grid-cols-12 gap-12">
+<!-- Crop Recommendation: Overlapping Cards -->
+<section class="col-span-12 lg:col-span-8">
+<div class="mb-10 flex justify-between items-end">
+<h2 class="font-headline text-4xl font-bold text-primary tracking-tight">Crop Recommendations</h2>
+<button class="px-8 py-3 bg-primary text-on-primary rounded-full font-headline font-bold tracking-tight hover:opacity-90 transition-all soil-shadow">Request Analysis</button>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+<!-- Recommendation Card 1 -->
+<div class="group bg-surface-container rounded-xl p-8 soil-shadow hover:scale-[1.02] transition-transform duration-500">
+<div class="mb-12 h-48 rounded-lg overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="close-up of vibrant green wine grapes growing on a vine in a sun-drenched vineyard with soft morning light" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDuwtf48pQW6rZd89ikyxo1T434KwA1wXh8clUxfUiV0VoQaDr9xk0xw0kPmMgDwxdLtTllI5o8re2daX6m4J2O0CKYoHIjLokrsFiGtm5fXXVd6mulyPvGiNeh7I0K82UWKX6NLMWxHr8VlcFa_w3d9M7sEcqa0jdZjQmF8vCp3dStzj6aI-PsvK7AGGeSdbyNRrCyrvT7wFiX-2mS73ka4U4yNqYWAmT8Inq_Wwa5FGZ7ufKB3WLWOw2YGqm8S5NLLjGGq5l5PGoE"/>
+</div>
+<p class="font-headline font-bold text-secondary text-sm tracking-widest uppercase mb-2">Primary Match</p>
+<h3 class="font-headline text-3xl font-bold text-primary mb-4">Cabernet Sauvignon</h3>
+<div class="flex items-end gap-2">
+<span class="text-5xl font-headline font-black text-primary">98</span>
+<span class="text-xl font-bold text-primary-container pb-1">% Suitability</span>
+</div>
+</div>
+<!-- Recommendation Card 2 (Offset) -->
+<div class="group bg-surface-container-highest rounded-xl p-8 soil-shadow md:mt-12 hover:scale-[1.02] transition-transform duration-500">
+<div class="mb-12 h-48 rounded-lg overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="organic heirloom carrots with fresh green tops arranged on a rustic wooden surface in warm natural light" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDVt5F2YcbcCRf-755_DI1sYkQ-8N-zDe-Rwu6d05VvcuZPdfSobpY4-Otf1J5TG2Skq2vMnPdnNVyS39xGzQVSpl-ADr6ACXgW6n1gkq9-9MWOCFZahM3MyxNM9fBXn_H1PKKH9ZoDT7tSv_Sfy8pEZT102kuG7V14Leujq-a26dQTeQptXy2fIgfHicVD0jsGCnKZGs6llx0qY3k5nvvP2Pzcn7jqpWqwVlhLtFpTGq7Y0IHvw-xVwnQ1VJAvSx4f8PhxszxsJagM"/>
+</div>
+<p class="font-headline font-bold text-secondary text-sm tracking-widest uppercase mb-2">Soil Rotation</p>
+<h3 class="font-headline text-3xl font-bold text-primary mb-4">Heirloom Carrots</h3>
+<div class="flex items-end gap-2">
+<span class="text-5xl font-headline font-black text-primary">84</span>
+<span class="text-xl font-bold text-primary-container pb-1">% Suitability</span>
+</div>
+</div>
+<!-- Recommendation Card 3 -->
+<div class="group bg-surface-container rounded-xl p-8 soil-shadow hover:scale-[1.02] transition-transform duration-500">
+<div class="mb-12 h-48 rounded-lg overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="close up of purple lavender fields at sunset with hazy golden light and soft purple tones" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAadf40CYraF-SP5_8JXFJCOnRD7QuYbbMxNf-n2db-6PMSVVzPz-DIHd0tIRBl8fh5qkWCUZDQXWCqt-tPQgRSCollytU005Di_WJEdLXVte5aOX4S-lK_12AvPB7SdCD3t06AUIIX663rzaoVz4DWElV4rQqYgkpipc1Q8nyy3_US4a6HgbbbPYqFwWHm_48Tm2XVZSlIWKyN5RgPjHhx5qDqvTYKU-TpovGW-WIc7XJqTdzQeXxGwpbzU1jEwQxP-ECpJdBUDH84"/>
+</div>
+<p class="font-headline font-bold text-secondary text-sm tracking-widest uppercase mb-2">Alternative</p>
+<h3 class="font-headline text-3xl font-bold text-primary mb-4">Provence Lavender</h3>
+<div class="flex items-end gap-2">
+<span class="text-5xl font-headline font-black text-primary">72</span>
+<span class="text-xl font-bold text-primary-container pb-1">% Suitability</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Sidebar: Smart Insights -->
+<aside class="col-span-12 lg:col-span-4 space-y-12">
+<!-- Soil Health Score -->
+<div class="bg-primary text-on-primary rounded-xl p-10 soil-shadow relative overflow-hidden">
+<div class="absolute top-0 right-0 p-12 opacity-10">
+<span class="material-symbols-outlined text-[8rem]" data-icon="eco">eco</span>
+</div>
+<h3 class="font-headline text-2xl font-bold mb-10 tracking-tight uppercase tracking-widest">Soil Health Score</h3>
+<div class="relative flex items-center justify-center mb-8">
+<!-- Custom Gauge Look -->
+<div class="w-48 h-48 rounded-full border-[12px] border-primary-container flex flex-col items-center justify-center">
+<span class="text-6xl font-headline font-black">92</span>
+<span class="text-xs uppercase tracking-widest opacity-60">Excellent</span>
+</div>
+<!-- Glow Indicator -->
+<div class="absolute bottom-2 right-12 w-6 h-6 rounded-full bg-primary-fixed glow-primary"></div>
+</div>
+<p class="text-center text-on-primary-container font-medium leading-relaxed">
+                        Microbial activity is 12% higher than last season. Organic matter levels are optimal for rooting.
+                    </p>
+</div>
+<!-- Smart Alerts -->
+<div class="bg-surface-container-low rounded-xl p-10 soil-shadow">
+<h3 class="font-headline text-2xl font-bold text-primary mb-8 tracking-tight">Active Intelligence</h3>
+<div class="space-y-6">
+<!-- Alert 1 -->
+<div class="flex gap-6 items-start">
+<div class="mt-1 w-4 h-4 flex-shrink-0 rounded-full bg-secondary glow-secondary"></div>
+<div>
+<h4 class="font-bold text-primary text-lg leading-tight mb-1">Low Nitrogen Cluster</h4>
+<p class="text-on-surface-variant text-sm">Zone B-14 requires localized fertilization. Estimated yield drop: 4%.</p>
+</div>
+</div>
+<!-- Alert 2 -->
+<div class="flex gap-6 items-start">
+<div class="mt-1 w-4 h-4 flex-shrink-0 rounded-full bg-on-tertiary-container glow-tertiary"></div>
+<div>
+<h4 class="font-bold text-primary text-lg leading-tight mb-1">Irrigation Threshold</h4>
+<p class="text-on-surface-variant text-sm">Evapotranspiration rates rising in South Slope. Schedule watering for 10:00 PM.</p>
+</div>
+</div>
+</div>
+</div>
+</aside>
+<!-- Satellite Insight Section: Wide Content -->
+<section class="col-span-12">
+<div class="bg-surface-container-highest rounded-xl overflow-hidden soil-shadow grid grid-cols-12">
+<div class="col-span-12 md:col-span-5 p-12 flex flex-col justify-center">
+<div class="inline-flex items-center gap-3 mb-6 bg-primary/10 px-4 py-2 rounded-full w-fit">
+<span class="material-symbols-outlined text-primary text-sm" data-icon="satellite_alt">satellite_alt</span>
+<span class="text-primary font-bold text-xs uppercase tracking-widest">Multi-Spectral Analysis</span>
+</div>
+<h2 class="font-headline text-5xl font-bold text-primary tracking-tighter mb-6 leading-tight">NDVI Satellite Imagery</h2>
+<p class="text-on-surface-variant text-lg leading-relaxed mb-10">
+                            Our proprietary AI processes infrared data from the Sentinel-2 constellation every 48 hours, providing a high-fidelity map of vegetative vigor across your entire holdings.
+                        </p>
+<div class="space-y-4">
+<div class="flex justify-between items-center py-4 border-b border-outline-variant/15">
+<span class="font-bold text-primary uppercase text-sm tracking-widest">Moisture Index</span>
+<span class="font-headline font-bold text-xl">High (0.82)</span>
+</div>
+<div class="flex justify-between items-center py-4 border-b border-outline-variant/15">
+<span class="font-bold text-primary uppercase text-sm tracking-widest">Biomass Density</span>
+<span class="font-headline font-bold text-xl">Increasing</span>
+</div>
+</div>
+</div>
+<div class="col-span-12 md:col-span-7 h-[500px] relative">
+<img class="w-full h-full object-cover" data-alt="high-altitude aerial photograph of geometrically shaped farm fields with varying shades of green and brown earth textures" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAtSZNgMOs6krJZt7_gZfR_g9hTfEbNR8uTrkZAAU-o24AcfJWvBSLmxcBRufDV5vaB7XcwqbszjJ8Dx58BuBQ_Nrx-QfJlPVF1oCGmD1rhwuwp_BB_xNFbcgsCm4sZ2m66TOp18veiVaMTtNQOcieuZ6YV3VsV0ucqBpVBihjr4kTsPSKARDPVGp-whtIi1C-wXeTWGjPI41-YusVFhf8ZaUC5zkrief7DbzP1pkAKjJTUPu4HEHtTxGXfVYR9Ke2y-vSPbq9eeF_M"/>
+<div class="absolute inset-0 bg-primary/20 mix-blend-overlay"></div>
+<!-- UI Overlay on Map -->
+<div class="absolute top-8 right-8 bg-surface/90 backdrop-blur-md p-6 rounded-lg soil-shadow">
+<div class="flex items-center gap-4">
+<div class="w-4 h-4 rounded-full bg-primary-fixed glow-primary"></div>
+<span class="font-bold text-primary text-sm uppercase tracking-widest">Active Scan Area</span>
+</div>
+</div>
+</div>
+</div>
+</section>
+</div>
+</main>
+<!-- Footer Shell -->
+<footer class="w-full px-12 py-16 flex flex-col md:flex-row justify-between items-center bg-[#4e2500] dark:bg-stone-900 text-[#fefae0] dark:text-stone-300 mt-20">
+<div class="flex flex-col items-center md:items-start mb-8 md:mb-0">
+<div class="font-headline font-bold text-[#fefae0] text-2xl mb-2 tracking-tighter uppercase">Technological Terroir</div>
+<p class="font-['Manrope'] text-sm uppercase tracking-widest opacity-50">© 2024 Technological Terroir. The Digital Agrarian.</p>
+</div>
+<div class="flex gap-12 font-['Manrope'] text-sm uppercase tracking-widest">
+<a class="text-[#fefae0]/50 hover:text-[#fefae0] transition-opacity" href="#">Privacy</a>
+<a class="text-[#fefae0]/50 hover:text-[#fefae0] transition-opacity" href="#">Terms</a>
+<a class="text-[#fefae0]/50 hover:text-[#fefae0] transition-opacity" href="#">Sustainability</a>
+<a class="text-[#fefae0]/50 hover:text-[#fefae0] transition-opacity" href="#">Contact</a>
+</div>
+</footer>
+<!-- FAB: Contextual to Dashboard -->
+<button class="fixed bottom-12 right-12 w-20 h-20 bg-secondary text-on-secondary rounded-full soil-shadow flex items-center justify-center hover:scale-110 transition-transform z-50">
+<span class="material-symbols-outlined text-4xl" data-icon="add_task">add_task</span>
+</button>
+</body></html>

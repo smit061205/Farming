@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;family=Manrope:wght@300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "primary-fixed-dim": "#a9d293",
+                        "outline": "#73796d",
+                        "inverse-on-surface": "#f5f1d8",
+                        "surface": "#fefae0",
+                        "surface-container-highest": "#e7e3ca",
+                        "on-tertiary": "#ffffff",
+                        "inverse-primary": "#a9d293",
+                        "surface-tint": "#446733",
+                        "on-primary": "#ffffff",
+                        "on-error": "#ffffff",
+                        "background": "#fefae0",
+                        "primary-fixed": "#c5efad",
+                        "on-primary-fixed-variant": "#2d4f1e",
+                        "secondary-fixed": "#ffdad3",
+                        "error": "#ba1a1a",
+                        "on-primary-fixed": "#062100",
+                        "on-secondary-fixed-variant": "#802918",
+                        "surface-variant": "#e7e3ca",
+                        "secondary": "#9f402d",
+                        "tertiary-container": "#6f3800",
+                        "tertiary-fixed": "#ffdcc4",
+                        "on-secondary": "#ffffff",
+                        "secondary-container": "#fd876f",
+                        "on-secondary-fixed": "#3e0500",
+                        "on-tertiary-fixed-variant": "#6f3800",
+                        "surface-bright": "#fefae0",
+                        "on-surface-variant": "#43493e",
+                        "error-container": "#ffdad6",
+                        "on-secondary-container": "#732010",
+                        "tertiary-fixed-dim": "#ffb781",
+                        "on-background": "#1d1c0d",
+                        "surface-container-lowest": "#ffffff",
+                        "primary-container": "#2d4f1e",
+                        "secondary-fixed-dim": "#ffb4a5",
+                        "outline-variant": "#c3c8bb",
+                        "on-error-container": "#93000a",
+                        "surface-container-low": "#f8f4db",
+                        "on-tertiary-container": "#fb9f54",
+                        "tertiary": "#4e2500",
+                        "surface-dim": "#dedbc2",
+                        "on-surface": "#1d1c0d",
+                        "primary": "#173809",
+                        "on-tertiary-fixed": "#2f1400",
+                        "on-primary-container": "#98c083",
+                        "surface-container-high": "#ede9cf",
+                        "inverse-surface": "#323120",
+                        "surface-container": "#f2efd5"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "1rem",
+                        "lg": "2rem",
+                        "xl": "3rem",
+                        "full": "9999px"
+                    },
+                    "fontFamily": {
+                        "headline": ["Space Grotesk"],
+                        "body": ["Manrope"],
+                        "label": ["Manrope"]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .bg-glass {
+            backdrop-filter: blur(24px);
+        }
+        .glow-active {
+            box-shadow: 0 0 12px 2px rgba(68, 103, 51, 0.4);
+        }
+        .glow-offline {
+            box-shadow: 0 0 12px 2px rgba(186, 26, 26, 0.4);
+        }
+    </style>
+</head>
+<body class="bg-background text-on-surface font-body selection:bg-primary-fixed-dim">
+<!-- Top Navigation Shell -->
+<nav class="fixed top-0 w-full z-50 bg-[#fefae0]/70 dark:bg-stone-900/70 backdrop-blur-xl shadow-[0_20px_40px_rgba(29,28,13,0.06)] flex justify-between items-center px-8 py-4 max-w-[1440px] mx-auto left-0 right-0">
+<div class="text-2xl font-bold text-[#173809] dark:text-[#d1e8c4] font-headline tracking-tight">
+            Technological Terroir
+        </div>
+<div class="hidden md:flex gap-8 items-center font-headline font-medium">
+<a class="text-[#4e2500]/60 hover:bg-[#173809]/5 px-4 py-2 rounded-full transition-colors" href="#">Field Journal</a>
+<a class="text-[#173809] font-bold px-4 py-2 rounded-full transition-colors" href="#">Soil Health</a>
+<a class="text-[#4e2500]/60 hover:bg-[#173809]/5 px-4 py-2 rounded-full transition-colors" href="#">Irrigation</a>
+</div>
+<div class="flex items-center gap-4">
+<button class="p-2 text-[#173809] hover:bg-[#173809]/5 rounded-full transition-transform active:scale-90">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="p-2 text-[#173809] hover:bg-[#173809]/5 rounded-full transition-transform active:scale-90">
+<span class="material-symbols-outlined">account_circle</span>
+</button>
+</div>
+</nav>
+<!-- Side Navigation Shell (Hidden on Mobile) -->
+<aside class="hidden lg:flex flex-col py-8 gap-6 h-screen w-72 fixed left-0 top-0 bg-[#fefae0] z-40 mt-20 px-6">
+<div class="mb-10">
+<h2 class="text-xl font-bold font-headline text-[#173809]">Agrarian Dashboard</h2>
+<p class="text-sm text-[#4e2500]/70">Precision Farming</p>
+</div>
+<div class="space-y-4">
+<a class="flex items-center gap-4 py-3 px-4 text-[#4e2500]/70 hover:translate-x-1 transition-transform font-medium" href="#">
+<span class="material-symbols-outlined">menu_book</span> Field Journal
+            </a>
+<a class="flex items-center gap-4 py-3 px-4 text-[#173809] font-bold border-r-4 border-[#173809] hover:translate-x-1 transition-transform" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">agriculture</span> Soil Health
+            </a>
+<a class="flex items-center gap-4 py-3 px-4 text-[#4e2500]/70 hover:translate-x-1 transition-transform" href="#">
+<span class="material-symbols-outlined">water_drop</span> Irrigation
+            </a>
+<a class="flex items-center gap-4 py-3 px-4 text-[#4e2500]/70 hover:translate-x-1 transition-transform" href="#">
+<span class="material-symbols-outlined">psychology</span> Yield AI
+            </a>
+<a class="flex items-center gap-4 py-3 px-4 text-[#4e2500]/70 hover:translate-x-1 transition-transform" href="#">
+<span class="material-symbols-outlined">settings</span> Settings
+            </a>
+</div>
+<div class="mt-auto">
+<button class="w-full bg-primary text-white rounded-full py-4 font-headline font-bold flex items-center justify-center gap-2 shadow-[0_8px_15px_rgba(23,56,9,0.3)] active:scale-95 transition-transform">
+<span class="material-symbols-outlined">add</span> New Analysis
+            </button>
+</div>
+</aside>
+<!-- Main Canvas -->
+<main class="pt-24 pb-32 px-6 lg:ml-72 max-w-[1440px] mx-auto min-h-screen">
+<!-- Header & Lead Section -->
+<header class="mb-16 mt-8 flex flex-col md:flex-row md:items-end justify-between gap-8">
+<div class="max-w-2xl">
+<span class="text-secondary font-headline font-bold uppercase tracking-[0.2em] text-sm block mb-4">Network Management</span>
+<h1 class="text-5xl md:text-7xl font-headline font-bold text-primary tracking-tight leading-[1.1] mb-6">Sensorial Terroir Mapping</h1>
+<p class="text-title-lg text-tertiary leading-relaxed font-light opacity-80">
+                    A panoramic oversight of your sub-soil intelligence network. Monitor NPK equilibrium and hydrological nodes with botanical precision.
+                </p>
+</div>
+<button class="bg-primary text-on-primary px-8 py-5 rounded-full font-headline font-bold flex items-center gap-3 self-start md:self-end shadow-xl hover:scale-105 active:scale-95 transition-all">
+<span class="material-symbols-outlined">sensors</span>
+                Add New Sensor
+            </button>
+</header>
+<!-- Bento Grid Layout -->
+<div class="grid grid-cols-12 gap-8">
+<!-- Active Node List (Asymmetric Column) -->
+<section class="col-span-12 lg:col-span-4 space-y-6">
+<h3 class="font-headline text-2xl font-bold text-primary px-2 mb-8 flex items-center gap-3">
+<span class="material-symbols-outlined text-secondary">grid_view</span>
+                    Active Nodes
+                </h3>
+<!-- Sensor Card 1 -->
+<div class="bg-surface-container-highest p-8 rounded-xl shadow-[0_20px_40px_rgba(29,28,13,0.06)] hover:-translate-y-1 transition-transform cursor-pointer relative group">
+<div class="flex justify-between items-start mb-6">
+<div class="flex items-center gap-3">
+<div class="w-3 h-3 rounded-full bg-surface-tint glow-active"></div>
+<span class="font-headline font-bold text-primary">Node 08-North</span>
+</div>
+<span class="text-xs font-bold text-on-surface-variant uppercase tracking-widest">NPK + Hydro</span>
+</div>
+<div class="space-y-4">
+<div class="flex justify-between items-center text-sm">
+<span class="text-on-surface-variant">Battery</span>
+<div class="flex items-center gap-2">
+<div class="w-16 h-1.5 bg-surface-container rounded-full overflow-hidden">
+<div class="bg-surface-tint h-full w-[88%]"></div>
+</div>
+<span class="font-bold text-primary">88%</span>
+</div>
+</div>
+<div class="flex justify-between items-center text-sm">
+<span class="text-on-surface-variant">Signal Strength</span>
+<span class="material-symbols-outlined text-surface-tint">signal_cellular_4_bar</span>
+</div>
+</div>
+<div class="absolute right-4 bottom-4 opacity-0 group-hover:opacity-100 transition-opacity">
+<span class="material-symbols-outlined text-secondary">arrow_forward_ios</span>
+</div>
+</div>
+<!-- Sensor Card 2 -->
+<div class="bg-surface-container p-8 rounded-xl opacity-80 hover:opacity-100 transition-opacity cursor-pointer">
+<div class="flex justify-between items-start mb-6">
+<div class="flex items-center gap-3">
+<div class="w-3 h-3 rounded-full bg-surface-tint glow-active"></div>
+<span class="font-headline font-bold text-primary">Node 12-Crest</span>
+</div>
+<span class="text-xs font-bold text-on-surface-variant uppercase tracking-widest">Moisture</span>
+</div>
+<div class="flex justify-between items-center text-sm">
+<span class="text-on-surface-variant">Battery</span>
+<div class="flex items-center gap-2">
+<div class="w-16 h-1.5 bg-surface-container rounded-full overflow-hidden">
+<div class="bg-secondary-container h-full w-[14%]"></div>
+</div>
+<span class="font-bold text-secondary">14%</span>
+</div>
+</div>
+</div>
+<!-- Sensor Card 3 (Offline) -->
+<div class="bg-surface-container-low p-8 rounded-xl opacity-60">
+<div class="flex justify-between items-start mb-6">
+<div class="flex items-center gap-3">
+<div class="w-3 h-3 rounded-full bg-error glow-offline"></div>
+<span class="font-headline font-bold text-tertiary">Node 03-Basin</span>
+</div>
+<span class="text-xs font-bold text-on-surface-variant uppercase tracking-widest">Temp + pH</span>
+</div>
+<div class="flex items-center gap-2 text-sm text-error font-bold">
+<span class="material-symbols-outlined text-sm">error</span>
+                        Last sync: 14 hours ago
+                    </div>
+</div>
+</section>
+<!-- Real-time Telemetry (Main Detail Area) -->
+<section class="col-span-12 lg:col-span-8 space-y-8">
+<div class="bg-surface-container-lowest rounded-xl p-10 shadow-[0_20px_40px_rgba(29,28,13,0.06)] relative overflow-hidden">
+<div class="flex flex-col md:flex-row justify-between items-start gap-6 mb-12">
+<div>
+<h2 class="text-3xl font-headline font-bold text-primary mb-2">Live Telemetry: Node 08-North</h2>
+<p class="text-on-surface-variant">Real-time data streaming from Vineyard Block 4A</p>
+</div>
+<div class="flex gap-4">
+<div class="bg-surface-container px-4 py-2 rounded-full text-sm font-bold text-primary flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-surface-tint"></span>
+                                Synchronized
+                            </div>
+</div>
+</div>
+<!-- Telemetry Data Grid -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+<div class="bg-surface p-6 rounded-lg">
+<span class="text-xs uppercase tracking-widest text-on-surface-variant font-bold">Nitrogen (N)</span>
+<div class="text-4xl font-headline font-bold text-primary mt-2">42 <span class="text-lg opacity-40">mg/kg</span></div>
+<div class="mt-4 h-1 bg-surface-container-highest rounded-full overflow-hidden">
+<div class="bg-primary h-full w-[65%]"></div>
+</div>
+</div>
+<div class="bg-surface p-6 rounded-lg">
+<span class="text-xs uppercase tracking-widest text-on-surface-variant font-bold">Moisture</span>
+<div class="text-4xl font-headline font-bold text-primary mt-2">18.4 <span class="text-lg opacity-40">%</span></div>
+<div class="mt-4 h-1 bg-surface-container-highest rounded-full overflow-hidden">
+<div class="bg-surface-tint h-full w-[40%]"></div>
+</div>
+</div>
+<div class="bg-surface p-6 rounded-lg">
+<span class="text-xs uppercase tracking-widest text-on-surface-variant font-bold">Soil Temp</span>
+<div class="text-4xl font-headline font-bold text-primary mt-2">22 <span class="text-lg opacity-40">°C</span></div>
+<div class="mt-4 h-1 bg-surface-container-highest rounded-full overflow-hidden">
+<div class="bg-secondary-container h-full w-[55%]"></div>
+</div>
+</div>
+</div>
+<!-- Asymmetric Graph Placeholder -->
+<div class="h-80 w-full relative">
+<div class="absolute inset-0 bg-surface-container-low rounded-lg flex items-center justify-center">
+<img alt="Data Flow" class="w-full h-full object-cover rounded-lg mix-blend-multiply opacity-20 grayscale" data-alt="abstract data visualization with flowing lines and organic patterns resembling topography maps in subtle earth tones" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDgBU_1jUIJgUDFqezTfCnKQWPew2y6IIFhosEFjUlwPjj-WIp5O39c_VnblzgaCFHO71Smi6H5rsd0EDjs-EgJyiJpsZED18xyLg2zeH2DUlJCtNnFcm5kX-7arknlboIaLrMuxrhDOMKf4NqttUhdp1EvVEi2JLtZpb5Fo2HkbvFbnVCQXrz103cxWqQLHGZh4iQ-tu-qYsGD_aS6mRt1VQMNDRQuv8owicWUMjWR_R1NrJAGIYtXZAcoyj6MH6q_ARFCocMSr_gj"/>
+<div class="absolute inset-0 flex flex-col items-center justify-center">
+<span class="material-symbols-outlined text-6xl text-primary/20 mb-4">insights</span>
+<span class="font-headline font-medium text-primary/40 uppercase tracking-widest text-sm">Visualizing Seasonal Cycle</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Maintenance Logs -->
+<div class="bg-surface-container-low rounded-xl p-10 overflow-hidden relative">
+<h3 class="font-headline text-2xl font-bold text-primary mb-8">Maintenance Logs</h3>
+<div class="space-y-8">
+<div class="flex gap-6 items-start relative pb-8 border-l-2 border-outline-variant/30 pl-8">
+<div class="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-secondary"></div>
+<div class="flex-1">
+<div class="flex justify-between items-start mb-2">
+<h4 class="font-headline font-bold text-tertiary">Battery Swapped - Node 12</h4>
+<span class="text-xs font-bold text-on-surface-variant">24 OCT 2023</span>
+</div>
+<p class="text-sm text-on-surface-variant leading-relaxed">System alert triggered low power state. Field tech replaced lithium pack and verified waterproof seal integrity.</p>
+</div>
+</div>
+<div class="flex gap-6 items-start relative pb-8 border-l-2 border-outline-variant/30 pl-8">
+<div class="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-primary-fixed-dim"></div>
+<div class="flex-1">
+<div class="flex justify-between items-start mb-2">
+<h4 class="font-headline font-bold text-tertiary">Calibration Protocol</h4>
+<span class="text-xs font-bold text-on-surface-variant">18 OCT 2023</span>
+</div>
+<p class="text-sm text-on-surface-variant leading-relaxed">Routine NPK drift calibration performed on all North-facing sensors. Variance within 0.02% of baseline.</p>
+</div>
+</div>
+</div>
+</div>
+</section>
+</div>
+<!-- Editorial Breakout Card -->
+<section class="mt-20">
+<div class="bg-primary p-12 lg:p-20 rounded-xl flex flex-col lg:flex-row items-center gap-16 overflow-hidden relative">
+<div class="absolute top-0 right-0 opacity-10 pointer-events-none transform translate-x-1/4 -translate-y-1/4">
+<span class="text-[30rem] font-headline font-black text-white leading-none">01</span>
+</div>
+<div class="w-full lg:w-1/2 relative z-10">
+<h2 class="text-white text-5xl font-headline font-bold mb-8 leading-tight">The Future of Soil Intelligence</h2>
+<p class="text-on-primary-container text-lg mb-12 font-light leading-relaxed">
+                        Our new autonomous probes use bio-mimetic insertion patterns to minimize root disruption while providing 4D soil profiles every 60 seconds.
+                    </p>
+<button class="bg-surface-container-lowest text-primary px-10 py-4 rounded-full font-headline font-bold hover:bg-secondary-fixed transition-colors">
+                        Explore Sensor Tech
+                    </button>
+</div>
+<div class="w-full lg:w-1/2 relative">
+<div class="bg-surface-container-highest p-4 rounded-xl rotate-3 shadow-2xl overflow-hidden">
+<img alt="Sensor Technology" class="w-full h-[400px] object-cover rounded-lg" data-alt="Close up of a high-tech agricultural sensor probe inserted into moist rich dark soil with small green sprouts nearby and sunlight filtering through leaves" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDvsdUq2l-gbv27OEjINE383Cwfq0sdUZu8DQnjRz3v2tj1uy3Gszz7SMUW0i5lcT3l2_Nn9Uox9jFWVe4lLeM4D6ImoR025B0WimoGst2YXBafWz_w4NYDSCVG8BY8bYpIb8a1XaD5Q5NWw-aC-MTuu_r4pNep91mLUbwCFQ2OWfECbOv52U20t3vqN-rflds163kjUF9kgewK8sjNp0aldqcNd5sPWBjOcqX0hSQjqOi6wYPzIv8g3bMSt4-79jLFNfNUheCfvw_Z"/>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- Bottom Navigation (Mobile Only) -->
+<nav class="md:hidden fixed bottom-0 left-0 w-full bg-[#fefae0]/80 backdrop-blur-lg flex justify-around items-center px-6 pb-8 pt-4 z-50 shadow-[0_-10px_30px_rgba(29,28,13,0.04)] rounded-t-[3rem]">
+<button class="flex flex-col items-center justify-center text-[#4e2500]/50 p-4">
+<span class="material-symbols-outlined">home</span>
+<span class="text-[11px] font-headline font-bold uppercase tracking-widest mt-1">Home</span>
+</button>
+<button class="bg-[#173809] text-white rounded-full px-6 py-2 flex items-center gap-2 shadow-[0_8px_15px_rgba(23,56,9,0.3)] active:scale-95 duration-200">
+<span class="material-symbols-outlined">potted_plant</span>
+<span class="text-[11px] font-headline font-bold uppercase tracking-widest">Crops</span>
+</button>
+<button class="flex flex-col items-center justify-center text-[#4e2500]/50 p-4">
+<span class="material-symbols-outlined">sensors</span>
+<span class="text-[11px] font-headline font-bold uppercase tracking-widest mt-1">Alerts</span>
+</button>
+<button class="flex flex-col items-center justify-center text-[#4e2500]/50 p-4">
+<span class="material-symbols-outlined">analytics</span>
+<span class="text-[11px] font-headline font-bold uppercase tracking-widest mt-1">Data</span>
+</button>
+</nav>
+</body></html>

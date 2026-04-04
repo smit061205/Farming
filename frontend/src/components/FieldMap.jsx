@@ -1,0 +1,109 @@
+import { useEffect, useRef } from 'react'
+import L from 'leaflet'
+import 'leaflet/dist/leaflet.css'
+
+// Custom green pin icon
+const greenIcon = L.divIcon({
+  html: `
+    <div style="
+      width: 22px; height: 22px;
+      background: #173809;
+      border: 3px solid #c5efad;
+      border-radius: 50% 50% 50% 0;
+      transform: rotate(-45deg);
+      box-shadow: 0 4px 14px rgba(23,56,9,0.55);
+    "></div>
+  `,
+  className: '',
+  iconSize: [22, 22],
+  iconAnchor: [11, 22],
+})
+
+/**
+ * A read-only Leaflet map that shows a pinned user location.
+ * Accepts `coordinates` as: { lat, lng, label } or null.
+ * `zoom` defaults to 12.
+ * `height` controls the map box height (CSS string, default '100%').
+ */
+export default function FieldMap({ coordinates, zoom = 12, height = '100%', showLabel = true, geeUrlTemplate = null }) {
+  const containerRef = useRef(null)
+  const mapRef = useRef(null)
+
+  const lat = coordinates?.lat ?? 20.5937
+  const lng = coordinates?.lng ?? 78.9629
+  const label = coordinates?.label ?? null
+  const hasPin = !!coordinates?.lat
+
+  useEffect(() => {
+    if (mapRef.current || !containerRef.current) return
+
+    const map = L.map(containerRef.current, {
+      center: [lat, lng],
+      zoom: hasPin ? zoom : 4,
+      zoomControl: false,
+      attributionControl: false,
+      scrollWheelZoom: false,
+      dragging: false,
+      doubleClickZoom: false,
+    })
+
+    // Standard base map (greyscale or muted looks better with Sentinel overlays usually, but default OSM for now)
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+      maxZoom: 18,
+    }).addTo(map)
+
+    if (hasPin) {
+      if (geeUrlTemplate) {
+        L.tileLayer(geeUrlTemplate, { maxZoom: 18, opacity: 0.85 }).addTo(map)
+      } else {
+        L.marker([lat, lng], { icon: greenIcon }).addTo(map)
+  
+        // Subtle pulsing ring
+        const ring = L.circleMarker([lat, lng], {
+          radius: 22,
+          color: '#c5efad',
+          weight: 2,
+          opacity: 0.5,
+          fill: false,
+        }).addTo(map)
+        ring.getElement()?.style.setProperty('animation', 'pulse 2s infinite')
+      }
+    }
+
+    mapRef.current = map
+
+    return () => {
+      map.remove()
+      mapRef.current = null
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  return (
+    <div className="relative w-full overflow-hidden" style={{ height }}>
+      <div ref={containerRef} style={{ height: '100%', width: '100%' }} />
+
+      {/* Location label overlay */}
+      {showLabel && label && (
+        <div
+          className="absolute bottom-3 left-3 right-3 flex items-center gap-2 px-4 py-2 rounded-full z-[9999] pointer-events-none"
+          style={{ background: 'rgba(23,56,9,0.85)', backdropFilter: 'blur(8px)' }}
+        >
+          <span className="material-symbols-outlined text-[#c5efad] text-sm flex-shrink-0" style={{ fontVariationSettings: "'FILL' 1" }}>
+            location_on
+          </span>
+          <span className="text-white text-xs font-label uppercase tracking-widest truncate">{label}</span>
+        </div>
+      )}
+
+      {/* No location message */}
+      {!hasPin && (
+        <div className="absolute inset-0 flex items-center justify-center bg-[#173809]/10 z-[9999] pointer-events-none">
+          <div className="bg-white/80 backdrop-blur-sm px-4 py-2 rounded-full text-xs font-label uppercase tracking-widest text-[#173809]">
+            No location anchored yet
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}

@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;family=Manrope:wght@300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "surface-variant": "#e7e3ca",
+                    "surface": "#fefae0",
+                    "on-secondary-fixed": "#3e0500",
+                    "on-surface-variant": "#43493e",
+                    "surface-container-lowest": "#ffffff",
+                    "on-secondary-fixed-variant": "#802918",
+                    "secondary-container": "#fd876f",
+                    "on-error-container": "#93000a",
+                    "on-error": "#ffffff",
+                    "error-container": "#ffdad6",
+                    "primary-fixed": "#c5efad",
+                    "primary-container": "#2d4f1e",
+                    "on-tertiary-fixed-variant": "#6f3800",
+                    "on-tertiary-fixed": "#2f1400",
+                    "on-surface": "#1d1c0d",
+                    "secondary": "#9f402d",
+                    "on-secondary-container": "#732010",
+                    "on-primary": "#ffffff",
+                    "on-background": "#1d1c0d",
+                    "inverse-on-surface": "#f5f1d8",
+                    "on-secondary": "#ffffff",
+                    "tertiary-fixed-dim": "#ffb781",
+                    "tertiary": "#4e2500",
+                    "primary-fixed-dim": "#a9d293",
+                    "inverse-primary": "#a9d293",
+                    "tertiary-fixed": "#ffdcc4",
+                    "on-primary-fixed": "#062100",
+                    "secondary-fixed-dim": "#ffb4a5",
+                    "secondary-fixed": "#ffdad3",
+                    "inverse-surface": "#323120",
+                    "tertiary-container": "#6f3800",
+                    "surface-bright": "#fefae0",
+                    "on-tertiary": "#ffffff",
+                    "outline": "#73796d",
+                    "surface-container-high": "#ede9cf",
+                    "on-primary-fixed-variant": "#2d4f1e",
+                    "surface-container-low": "#f8f4db",
+                    "primary": "#173809",
+                    "surface-tint": "#446733",
+                    "surface-container-highest": "#e7e3ca",
+                    "surface-container": "#f2efd5",
+                    "on-tertiary-container": "#fb9f54",
+                    "outline-variant": "#c3c8bb",
+                    "surface-dim": "#dedbc2",
+                    "background": "#fefae0",
+                    "error": "#ba1a1a",
+                    "on-primary-container": "#98c083"
+            },
+            "borderRadius": {
+                    "DEFAULT": "1rem",
+                    "lg": "2rem",
+                    "xl": "3rem",
+                    "full": "9999px"
+            },
+            "fontFamily": {
+                    "headline": ["Space Grotesk"],
+                    "body": ["Manrope"],
+                    "label": ["Manrope"]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+      .material-symbols-outlined {
+        font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      }
+      .glowing-indicator {
+        box-shadow: 0 0 12px currentColor;
+      }
+      body {
+        background-color: #fefae0;
+        color: #1d1c0d;
+        overflow-x: hidden;
+      }
+      .soil-gradient-1 { background: linear-gradient(180deg, #c5efad 0%, #98c083 100%); }
+      .soil-gradient-2 { background: linear-gradient(180deg, #98c083 0%, #446733 100%); }
+      .soil-gradient-3 { background: linear-gradient(180deg, #446733 0%, #2d4f1e 100%); }
+      .soil-gradient-4 { background: linear-gradient(180deg, #2d4f1e 0%, #173809 100%); }
+      .soil-gradient-5 { background: linear-gradient(180deg, #173809 0%, #2f1400 100%); }
+    </style>
+</head>
+<body class="font-body selection:bg-primary-fixed selection:text-on-primary-fixed">
+<!-- TopNavBar -->
+<nav class="fixed top-0 w-full z-50 bg-stone-50/70 dark:bg-stone-950/70 backdrop-blur-xl flex justify-between items-center px-12 py-6 w-full shadow-[0_20px_40px_rgba(29,28,13,0.06)]">
+<div class="text-2xl font-bold text-emerald-950 dark:text-emerald-100 font-['Space_Grotesk'] tracking-tight">
+            Technological Terroir
+        </div>
+<div class="hidden md:flex items-center gap-8 font-['Space_Grotesk'] tracking-tight">
+<a class="text-stone-600 dark:text-stone-400 hover:text-emerald-800 dark:hover:text-emerald-300 transition-colors scale-95 duration-200 ease-in-out" href="#">Dashboard</a>
+<a class="text-emerald-900 dark:text-emerald-400 border-b-2 border-emerald-900 dark:border-emerald-400 pb-1 hover:text-emerald-800 transition-colors" href="#">Fields</a>
+<a class="text-stone-600 dark:text-stone-400 hover:text-emerald-800 transition-colors" href="#">Analytics</a>
+<a class="text-stone-600 dark:text-stone-400 hover:text-emerald-800 transition-colors" href="#">Reports</a>
+</div>
+<div class="flex items-center gap-6">
+<span class="material-symbols-outlined text-stone-600 cursor-pointer hover:text-primary transition-colors" data-icon="notifications">notifications</span>
+<span class="material-symbols-outlined text-stone-600 cursor-pointer hover:text-primary transition-colors" data-icon="settings">settings</span>
+<div class="w-10 h-10 rounded-full overflow-hidden shadow-sm">
+<img alt="User profile" data-alt="Close-up portrait of a professional agronomist in a sunlit field wearing a modern outdoor jacket and smiling subtly" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAlnq9zVJQwYTx6pvwxaCKyPQca6MkkfLyXJxBxBzIXEYAdrmcpZWI51PgcoB9aEN5LGhn8reXK-ErAI0RwLJpBkykaFmPC6rws7h5HGnj2vMVzYAyEwWeQCEnfmXSRS0F-ic0X91Rmf2fU7z-vJO655cadMdi6_iImHWDPuiXDAmn1ANnwrDMAnq9fArZUdHRMLWoo4A8P1xxZMrFUHicu5uL9OqUZsIECkm0tO_Hxht2x4Ny4FNfeKmKuXbuBhFENp1HVADhEYu2f"/>
+</div>
+</div>
+</nav>
+<!-- SideNavBar (Right) -->
+<aside class="fixed right-0 top-0 h-full w-96 z-40 bg-stone-100/80 dark:bg-stone-900/80 backdrop-blur-2xl flex flex-col p-10 pt-32 h-full gap-8 shadow-[-20px_0_40px_rgba(29,28,13,0.04)] font-['Manrope'] font-medium">
+<div class="flex flex-col gap-2">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-lg bg-surface-container-highest overflow-hidden">
+<img alt="Field satellite view" data-alt="High-resolution satellite top-down view of a rectangular green agricultural field surrounded by dark forest edges" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC_F7vh7deKe-hLRNJc6v85WcijfbeYUqe3nDaq67QFZdj3vULwZjVc3VVg5uVqIQDnvPZFcEkZqaflyMPAMvLHqqy92a5aXrS2AJLrlgi2Z_SGatQjKfOulJO4ywUeduj3liiWocHWqmDCMwdlhwR_gAXmksXg_RUf0ZkizFaAccSYq1E_gyjXdp8ibqxrhzWXMX2MOLBuADzQi1qLcJC3150USPOaxkoMfC0I12dD8FrMvwUiZsOnnylGO7A2PWi0MrtFd0gitvz2"/>
+</div>
+<div>
+<h3 class="text-emerald-950 font-black text-lg">North Sector A1</h3>
+<p class="text-stone-500 text-sm">Organic Loam - 42.5 Ha</p>
+</div>
+</div>
+</div>
+<nav class="flex flex-col gap-1">
+<a class="text-stone-500 flex items-center gap-3 py-3 hover:translate-x-1 transition-transform duration-300" href="#">
+<span class="material-symbols-outlined" data-icon="map">map</span>
+                Field Overview
+            </a>
+<a class="text-emerald-900 font-bold flex items-center gap-3 py-3 hover:translate-x-1 transition-transform duration-300" href="#">
+<span class="material-symbols-outlined" data-icon="layers">layers</span>
+                Subterranean Network
+            </a>
+<a class="text-stone-500 flex items-center gap-3 py-3 hover:translate-x-1 transition-transform duration-300" href="#">
+<span class="material-symbols-outlined" data-icon="water_drop">water_drop</span>
+                Hydration
+            </a>
+<a class="text-stone-500 flex items-center gap-3 py-3 hover:translate-x-1 transition-transform duration-300" href="#">
+<span class="material-symbols-outlined" data-icon="eco">eco</span>
+                Crop Health
+            </a>
+<a class="text-stone-500 flex items-center gap-3 py-3 hover:translate-x-1 transition-transform duration-300" href="#">
+<span class="material-symbols-outlined" data-icon="history">history</span>
+                History
+            </a>
+</nav>
+<div class="mt-auto">
+<div class="bg-surface-container-low p-6 rounded-xl flex flex-col gap-4">
+<h4 class="font-headline font-bold text-primary">Real-time Telemetry</h4>
+<div class="flex flex-col gap-3">
+<div class="flex justify-between items-center py-2 bg-surface-container/50 px-3 rounded-lg">
+<span class="text-xs text-stone-500">Node SNR-08</span>
+<span class="text-xs font-bold text-primary">Active</span>
+</div>
+<div class="flex justify-between items-center py-2 bg-surface-container px-3 rounded-lg">
+<span class="text-xs text-stone-500">Depth</span>
+<span class="text-xs font-bold text-primary">-45.2cm</span>
+</div>
+<div class="flex justify-between items-center py-2 bg-surface-container/50 px-3 rounded-lg">
+<span class="text-xs text-stone-500">Conductivity</span>
+<span class="text-xs font-bold text-primary">1.2 dS/m</span>
+</div>
+<div class="flex justify-between items-center py-2 bg-surface-container px-3 rounded-lg">
+<span class="text-xs text-stone-500">O2 Levels</span>
+<span class="text-xs font-bold text-secondary">14.1%</span>
+</div>
+</div>
+</div>
+<button class="mt-6 w-full py-4 bg-primary text-on-primary rounded-full font-bold shadow-lg shadow-primary/20 hover:scale-[0.98] transition-transform">
+                Generate Report
+            </button>
+</div>
+</aside>
+<!-- Main Content Canvas -->
+<main class="pt-32 pr-96 pl-12 pb-20 min-h-screen">
+<!-- Header Section -->
+<header class="mb-16 max-w-4xl">
+<h1 class="text-6xl font-headline font-bold text-primary leading-tight tracking-tight mb-4">
+                Subterranean <br/>Sensor Network
+            </h1>
+<p class="text-xl text-stone-600 font-body leading-relaxed max-w-2xl">
+                A high-fidelity cross-section of the North Sector A1 rhizosphere, mapping autonomous sensor data across five distinct sediment layers.
+            </p>
+</header>
+<!-- Asymmetric Layered Visualization Area -->
+<div class="relative w-full h-[800px] flex gap-8">
+<!-- Left Editorial Card (Overlapping) -->
+<div class="absolute left-[-2rem] top-20 z-30 w-72 p-8 bg-surface-container-highest/90 backdrop-blur-xl rounded-xl shadow-[0_20px_40px_rgba(29,28,13,0.06)] border-outline-variant/10">
+<span class="text-tertiary-fixed-dim text-4xl font-headline font-bold opacity-30 mb-4 block">01</span>
+<h3 class="text-xl font-headline font-bold text-primary mb-3">Microbial Activity</h3>
+<p class="text-sm text-stone-600 leading-relaxed mb-4">
+                    Detection of anaerobic metabolic pathways at the transition layer. Organic decomposition rates have increased by 14% since the last irrigation cycle.
+                </p>
+<div class="flex items-center gap-2 text-primary-fixed-dim">
+<span class="w-2 h-2 rounded-full bg-primary-fixed glowing-indicator"></span>
+<span class="text-xs font-bold uppercase tracking-widest">Optimized Zone</span>
+</div>
+</div>
+<!-- Central Soil Cross-Section (The Core Viz) -->
+<div class="flex-grow flex flex-col rounded-xl overflow-hidden shadow-2xl">
+<!-- Topsoil Layer -->
+<div class="h-[15%] soil-gradient-1 relative group cursor-pointer">
+<div class="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+<div class="p-6 flex justify-between items-start">
+<div>
+<span class="text-[10px] font-bold uppercase tracking-tighter text-on-primary-fixed-variant">Horizon A</span>
+<h4 class="text-lg font-headline font-bold text-primary-container">Topsoil Humus</h4>
+</div>
+<!-- Sensor Node -->
+<div class="relative">
+<div class="w-4 h-4 bg-primary-fixed rounded-full glowing-indicator ring-4 ring-white/20"></div>
+<div class="absolute -top-10 -right-2 bg-surface-container-lowest px-2 py-1 rounded text-[10px] font-bold shadow-sm">SNR-01</div>
+</div>
+</div>
+</div>
+<!-- Transition Layer -->
+<div class="h-[12%] soil-gradient-2 relative group cursor-pointer">
+<div class="p-6">
+<span class="text-[10px] font-bold uppercase tracking-tighter text-white/60">Horizon E</span>
+<h4 class="text-lg font-headline font-bold text-white">Eluviated Zone</h4>
+</div>
+<!-- Scattered Sensor Nodes -->
+<div class="absolute left-1/3 top-1/2 w-3 h-3 bg-primary-fixed rounded-full glowing-indicator ring-2 ring-white/10"></div>
+<div class="absolute right-1/4 top-1/3 w-3 h-3 bg-secondary rounded-full glowing-indicator ring-2 ring-white/10" style="color: #9f402d"></div>
+</div>
+<!-- Subsoil Layer -->
+<div class="h-[25%] soil-gradient-3 relative group cursor-pointer">
+<div class="p-6">
+<span class="text-[10px] font-bold uppercase tracking-tighter text-white/50">Horizon B</span>
+<h4 class="text-lg font-headline font-bold text-white/90">Subsoil Clay</h4>
+</div>
+<!-- Cluster of data visualization -->
+<div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+<svg class="w-full h-full opacity-20" viewbox="0 0 400 100">
+<path d="M0,50 Q100,20 200,50 T400,50" fill="none" stroke="white" stroke-width="0.5"></path>
+<path d="M0,60 Q120,30 220,60 T400,60" fill="none" stroke="white" stroke-width="0.3"></path>
+</svg>
+</div>
+<div class="absolute left-1/2 top-1/2 w-4 h-4 bg-primary-fixed rounded-full glowing-indicator"></div>
+</div>
+<!-- Parent Material -->
+<div class="h-[23%] soil-gradient-4 relative group cursor-pointer">
+<div class="p-6">
+<span class="text-[10px] font-bold uppercase tracking-tighter text-white/40">Horizon C</span>
+<h4 class="text-lg font-headline font-bold text-white/70">Weathered Bedrock</h4>
+</div>
+<div class="absolute right-1/3 bottom-1/4 w-3 h-3 bg-tertiary-fixed rounded-full glowing-indicator" style="color: #ffdcc4"></div>
+</div>
+<!-- Bedrock -->
+<div class="flex-grow soil-gradient-5 relative">
+<div class="p-6">
+<span class="text-[10px] font-bold uppercase tracking-tighter text-white/30">Horizon R</span>
+<h4 class="text-lg font-headline font-bold text-white/50">Solid Substrate</h4>
+</div>
+</div>
+</div>
+<!-- Right Floating Elements -->
+<div class="w-80 flex flex-col gap-8 self-end mb-20">
+<!-- Editorial Card 2 -->
+<div class="p-8 bg-surface-container-low rounded-xl shadow-lg hover:translate-y-[-4px] transition-transform duration-500">
+<span class="text-secondary text-4xl font-headline font-bold opacity-30 mb-4 block">02</span>
+<h3 class="text-xl font-headline font-bold text-primary mb-3">Root Zone Hydration</h3>
+<div class="w-full h-40 rounded-lg overflow-hidden mb-4">
+<img alt="Close-up roots" class="w-full h-full object-cover" data-alt="Macro photography of fine white plant roots networking through dark rich moist soil with visible water droplets" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAwP9GiRMyGrA5rf3vx8SFVXq2__kHPZQjGaNYEaXCQu47poUNZ4bG330AuBHrZ1M6wc6l26b0GKSbkU6K5P2J9HSzqf0pi6yThSQhRyxUnmDFtT0NUSr69EuhQslUVGLzxuYJJ6vEWgiX0_g_6lfXXIVln3FcX3_KUERPAR6ZGpJCJD0hQ71-b-ENuFI4H_wO2gEx5yqJnW6PewQaNKHd5EoTjvE9LOZduiM3iRW2T3NmA9LcMqc292wck311DyMbPiSuz5Ze1fgwn"/>
+</div>
+<p class="text-sm text-stone-600 leading-relaxed">
+                        Capillary action remains consistent at 2.4cm/hr. No leaching detected in the deep clay strata.
+                    </p>
+</div>
+<!-- Data Metric Snippet -->
+<div class="p-6 bg-primary-container text-on-primary-container rounded-xl flex items-center justify-between">
+<div>
+<p class="text-[10px] uppercase font-bold tracking-widest opacity-70">Deep Water Table</p>
+<p class="text-2xl font-headline font-bold">12.4m</p>
+</div>
+<span class="material-symbols-outlined text-4xl opacity-50" data-icon="waves">waves</span>
+</div>
+</div>
+</div>
+<!-- Bottom Narrative Section -->
+<section class="mt-24 grid grid-cols-12 gap-12">
+<div class="col-span-1 text-8xl font-headline font-black text-surface-container-highest select-none">3</div>
+<div class="col-span-6">
+<h2 class="text-3xl font-headline font-bold text-primary mb-6">Autonomous Diagnostics</h2>
+<p class="text-lg text-stone-600 leading-relaxed mb-8">
+                    The subterranean sensor network operates on a mesh architecture, where each node communicates through the terrestrial conductive medium. This allows for real-time monitoring of nitrate mobility and the precise moment of field saturation.
+                </p>
+<div class="flex gap-4">
+<div class="p-4 bg-surface-container rounded-lg flex-1">
+<p class="text-[10px] font-black uppercase text-stone-400 mb-1">Last Sync</p>
+<p class="font-headline font-bold text-primary">0.02s ago</p>
+</div>
+<div class="p-4 bg-surface-container rounded-lg flex-1">
+<p class="text-[10px] font-black uppercase text-stone-400 mb-1">Signal Strength</p>
+<p class="font-headline font-bold text-primary">98.4%</p>
+</div>
+</div>
+</div>
+<div class="col-span-5 relative">
+<div class="w-full h-64 rounded-xl overflow-hidden shadow-xl rotate-2">
+<img alt="Sensors" class="w-full h-full object-cover" data-alt="Close-up of a high-tech agricultural sensor probe being placed into fertile dark soil by a gloved hand" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC-dtISt9HUQjvLbUEzsqtt5DkN9Hb61OTVR1BOtzx5FoTA3IFkjg9YfCOj_XnswrjrCsBZ8joZZ7tZMJsdAstgkZ4fVM_No1uRuvt_CFKtoNwW6EkGpwiUp0TRqnfpmTV50I1FoRBEwtA3vy-MbJhd_kwjShJqxt8JzfauX_2yYeHDVaa-QVf_05lI8yzFzl2pet0c8R2HMZ3X85AHBguLgE-juZNiGP80yDpX1wF_ko8CHHRlWp-lQHKfRgB_2QWGwBbaWVFfb2Tg"/>
+</div>
+</div>
+</section>
+</main>
+<!-- Floating Action Button (FAB) - Suppression Logic Applied (Suppressed for Details Page) -->
+<footer class="mt-20 border-t border-outline-variant/10 py-12 px-12 flex justify-between items-center text-stone-400 text-sm">
+<p>© 2024 Technological Terroir. All rights reserved.</p>
+<div class="flex gap-8">
+<a class="hover:text-primary transition-colors" href="#">Security Protocol</a>
+<a class="hover:text-primary transition-colors" href="#">API Documentation</a>
+</div>
+</footer>
+</body></html>

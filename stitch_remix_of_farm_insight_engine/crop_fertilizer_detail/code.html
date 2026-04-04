@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Crop &amp; Fertilizer Detail | Technological Terroir</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;family=Manrope:wght@200;300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .glow-primary { box-shadow: 0 0 15px 2px rgba(169, 210, 147, 0.4); }
+        .glow-secondary { box-shadow: 0 0 15px 2px rgba(159, 64, 45, 0.4); }
+        .glow-tertiary { box-shadow: 0 0 15px 2px rgba(251, 159, 84, 0.4); }
+        body { cursor: default; }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "secondary-container": "#fd876f",
+                      "outline": "#73796d",
+                      "surface-container-lowest": "#ffffff",
+                      "on-tertiary-fixed-variant": "#6f3800",
+                      "on-error": "#ffffff",
+                      "primary-fixed-dim": "#a9d293",
+                      "on-tertiary-container": "#fb9f54",
+                      "tertiary-container": "#6f3800",
+                      "surface-container-low": "#f8f4db",
+                      "on-secondary-fixed-variant": "#802918",
+                      "on-background": "#1d1c0d",
+                      "inverse-primary": "#a9d293",
+                      "on-primary": "#ffffff",
+                      "primary": "#173809",
+                      "secondary": "#9f402d",
+                      "on-secondary-container": "#732010",
+                      "background": "#fefae0",
+                      "secondary-fixed": "#ffdad3",
+                      "on-error-container": "#93000a",
+                      "surface-tint": "#446733",
+                      "surface-container-highest": "#e7e3ca",
+                      "surface-container": "#f2efd5",
+                      "on-primary-container": "#98c083",
+                      "on-surface": "#1d1c0d",
+                      "on-tertiary": "#ffffff",
+                      "inverse-on-surface": "#f5f1d8",
+                      "primary-container": "#2d4f1e",
+                      "error": "#ba1a1a",
+                      "on-surface-variant": "#43493e",
+                      "tertiary": "#4e2500",
+                      "primary-fixed": "#c5efad",
+                      "surface-dim": "#dedbc2",
+                      "on-secondary": "#ffffff",
+                      "tertiary-fixed": "#ffdcc4",
+                      "tertiary-fixed-dim": "#ffb781",
+                      "surface-variant": "#e7e3ca",
+                      "on-primary-fixed-variant": "#2d4f1e",
+                      "surface-container-high": "#ede9cf",
+                      "inverse-surface": "#323120",
+                      "error-container": "#ffdad6",
+                      "surface": "#fefae0",
+                      "on-primary-fixed": "#062100",
+                      "surface-bright": "#fefae0",
+                      "outline-variant": "#c3c8bb",
+                      "on-secondary-fixed": "#3e0500",
+                      "on-tertiary-fixed": "#2f1400",
+                      "secondary-fixed-dim": "#ffb4a5"
+              },
+              "borderRadius": {
+                      "DEFAULT": "1rem",
+                      "lg": "2rem",
+                      "xl": "3rem",
+                      "full": "9999px"
+              },
+              "fontFamily": {
+                      "headline": ["Space Grotesk"],
+                      "body": ["Manrope"],
+                      "label": ["Manrope"]
+              }
+            },
+          }
+        }
+    </script>
+</head>
+<body class="bg-background text-on-surface font-body selection:bg-secondary-fixed selection:text-on-secondary-fixed overflow-x-hidden">
+<!-- Top Navigation -->
+<nav class="bg-[#fefae0] dark:bg-stone-950 shadow-sm bg-opacity-70 backdrop-blur-xl fixed top-0 left-0 right-0 z-50 rounded-b-[3rem] no-border shadow-[0_10px_30px_rgba(23,56,9,0.04)]">
+<div class="flex justify-between items-center w-full px-12 py-6 max-w-[1920px] mx-auto">
+<div class="text-2xl font-black text-[#173809] dark:text-emerald-500 uppercase tracking-tighter font-['Space_Grotesk']">
+                Technological Terroir
+            </div>
+<div class="hidden md:flex items-center gap-12">
+<a class="text-[#173809]/60 dark:text-stone-400 font-medium font-['Space_Grotesk'] hover:text-[#9f402d] transition-colors duration-300" href="#">Dashboard</a>
+<a class="text-[#173809] dark:text-emerald-400 border-b-4 border-[#9f402d] pb-1 font-['Space_Grotesk'] font-bold tracking-tight" href="#">Reports</a>
+<a class="text-[#173809]/60 dark:text-stone-400 font-medium font-['Space_Grotesk'] hover:text-[#9f402d] transition-colors duration-300" href="#">Alerts</a>
+<a class="text-[#173809]/60 dark:text-stone-400 font-medium font-['Space_Grotesk'] hover:text-[#9f402d] transition-colors duration-300" href="#">Map</a>
+</div>
+<div class="flex items-center gap-6">
+<div class="relative hidden lg:block">
+<span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-primary/40">search</span>
+<input class="bg-surface-container-highest border-none rounded-full py-3 pl-12 pr-6 w-64 text-sm focus:ring-2 focus:ring-primary/20 transition-all" placeholder="Search field data..." type="text"/>
+</div>
+<button class="w-12 h-12 rounded-full bg-surface-container-highest flex items-center justify-center text-primary">
+<span class="material-symbols-outlined" data-icon="account_circle">account_circle</span>
+</button>
+</div>
+</div>
+</nav>
+<main class="pt-32 pb-20 px-6 md:px-12 max-w-[1600px] mx-auto">
+<!-- Header Section: Magazine Style -->
+<header class="flex flex-col md:flex-row items-end gap-12 mb-20 relative">
+<div class="flex-1 order-2 md:order-1">
+<span class="text-secondary font-headline font-bold tracking-[0.2em] uppercase text-sm mb-4 block">Seasonal Selection 04</span>
+<h1 class="text-7xl md:text-8xl font-headline font-bold text-primary tracking-tighter leading-[0.9] mb-8">
+                    Heirloom <br/> <span class="text-tertiary">Winter Wheat</span>
+</h1>
+<p class="title-lg text-on-surface-variant max-w-xl text-xl font-light leading-relaxed">
+                    Our AI models have synthesized soil composition, historical micro-climate data, and moisture retention to determine the optimal crop for the North Ridge quadrant.
+                </p>
+</div>
+<div class="w-full md:w-1/3 order-1 md:order-2">
+<div class="relative aspect-[4/5] rounded-xl overflow-hidden shadow-2xl rotate-2 hover:rotate-0 transition-transform duration-700">
+<img class="w-full h-full object-cover" data-alt="Close-up of golden wheat stalks swaying in soft morning sunlight with a blurred agrarian background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAsD7ePFZhktVYccz6OfJG6gp5vaoZeCCjFQ8Qr98UvTYPqdnV8vZl1Gi1R7cU43bOyw9-UL-4oyFHazm2NkoSn_i2c2zu12q_3l6Fey2r4YfXusbPOoZ6iV1db7ByTfKVq7JWVSw-Du5Fx-8WoN_tzfG9XjDqYW8ChTbk2RBCH9J7jhZ5MreVxpJoLHLGYzKQx7O3bzH5OPMI8uisR5QyrHzHP-VserVCj1oEcZ5RQ8mS3y0qRq7DPffkg1fx-9Np2KqVaZbI4h5Gn"/>
+<div class="absolute inset-0 bg-gradient-to-t from-primary/40 to-transparent"></div>
+<div class="absolute bottom-8 left-8">
+<div class="bg-white/90 backdrop-blur-md rounded-full px-6 py-4 flex items-center gap-4">
+<span class="text-3xl font-headline font-bold text-primary">92%</span>
+<span class="text-xs font-bold uppercase tracking-widest text-primary/60 leading-tight">AI Confidence<br/>Score</span>
+</div>
+</div>
+</div>
+</div>
+</header>
+<!-- Asymmetric Bento Grid -->
+<div class="grid grid-cols-12 gap-8 items-start">
+<!-- Column 1: Why This Crop? -->
+<section class="col-span-12 md:col-span-7 space-y-8">
+<div class="bg-surface-container-low p-12 rounded-xl relative overflow-hidden">
+<div class="absolute -top-10 -right-10 text-[12rem] font-headline font-black text-primary/5 select-none pointer-events-none">01</div>
+<h2 class="text-3xl font-headline font-bold text-primary mb-6">Why this crop?</h2>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+<div class="space-y-4">
+<h3 class="font-headline font-bold text-lg text-tertiary flex items-center gap-2">
+<span class="material-symbols-outlined text-secondary">water_drop</span>
+                                Hydrological Alignment
+                            </h3>
+<p class="text-on-surface-variant">The North Ridge's current moisture saturation of 24% perfectly matches the seminal hydration requirements for the Triticum aestivum species.</p>
+</div>
+<div class="space-y-4">
+<h3 class="font-headline font-bold text-lg text-tertiary flex items-center gap-2">
+<span class="material-symbols-outlined text-secondary">thermostat</span>
+                                Thermal Resilience
+                            </h3>
+<p class="text-on-surface-variant">Projected frost cycles are within the tolerance threshold of this specific heirloom variety, ensuring minimal yield loss during winter months.</p>
+</div>
+</div>
+</div>
+<!-- Fertilizer Advisory Card -->
+<div class="bg-surface-container-highest p-12 rounded-xl">
+<div class="flex justify-between items-start mb-10">
+<div>
+<h2 class="text-3xl font-headline font-bold text-primary mb-2">Fertilizer Advisory</h2>
+<p class="text-on-surface-variant">Machine-guided nutrient distribution protocol</p>
+</div>
+<span class="bg-secondary-container text-on-secondary-container px-6 py-2 rounded-full font-bold text-sm tracking-widest uppercase">Immediate Action</span>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+<div class="bg-surface p-6 rounded-lg shadow-sm">
+<p class="text-xs font-bold uppercase tracking-tighter text-primary/40 mb-2">Nitrogen Type</p>
+<p class="text-xl font-headline font-bold text-primary">Slow-Release Urea</p>
+</div>
+<div class="bg-surface p-6 rounded-lg shadow-sm">
+<p class="text-xs font-bold uppercase tracking-tighter text-primary/40 mb-2">Quantity</p>
+<p class="text-xl font-headline font-bold text-primary">140 kg / Hectare</p>
+</div>
+<div class="bg-surface p-6 rounded-lg shadow-sm">
+<p class="text-xs font-bold uppercase tracking-tighter text-primary/40 mb-2">Optimal Timing</p>
+<p class="text-xl font-headline font-bold text-primary">Pre-Sunrise (4-6 AM)</p>
+</div>
+</div>
+<div class="bg-primary text-white p-8 rounded-lg flex items-center gap-8 shadow-xl">
+<div class="w-16 h-16 rounded-full bg-primary-container flex items-center justify-center flex-shrink-0">
+<span class="material-symbols-outlined text-on-primary-container text-3xl">info</span>
+</div>
+<div>
+<p class="font-bold text-lg mb-1">AI Logic</p>
+<p class="text-white/70 text-sm font-light leading-relaxed">Early morning application minimizes evaporation and leverages the natural dew cycle for maximum soil penetration without runoff.</p>
+</div>
+</div>
+</div>
+</section>
+<!-- Column 2: Soil Health & Action -->
+<aside class="col-span-12 md:col-span-5 space-y-8">
+<!-- Soil Health Profile -->
+<div class="bg-surface-container p-12 rounded-xl shadow-lg border-l-8 border-primary">
+<h2 class="text-3xl font-headline font-bold text-primary mb-8">Soil Health Profile</h2>
+<div class="space-y-8">
+<!-- PH Balance -->
+<div class="flex items-start gap-4">
+<div class="w-4 h-4 rounded-full bg-primary-fixed-dim glow-primary mt-2"></div>
+<div class="flex-1">
+<div class="flex justify-between items-center mb-1">
+<span class="font-headline font-bold text-primary">pH Balance</span>
+<span class="text-primary font-bold">Good (6.8)</span>
+</div>
+<p class="text-sm text-on-surface-variant">Optimal range achieved through organic lime treatment last season.</p>
+</div>
+</div>
+<!-- Mineral Density -->
+<div class="flex items-start gap-4">
+<div class="w-4 h-4 rounded-full bg-on-tertiary-container glow-tertiary mt-2"></div>
+<div class="flex-1">
+<div class="flex justify-between items-center mb-1">
+<span class="font-headline font-bold text-primary">Mineral Density</span>
+<span class="text-tertiary font-bold">Moderate</span>
+</div>
+<p class="text-sm text-on-surface-variant">Magnesium levels are slightly depleted. Supplement suggested within 15 days.</p>
+</div>
+</div>
+<!-- Microbial Activity -->
+<div class="flex items-start gap-4">
+<div class="w-4 h-4 rounded-full bg-secondary glow-secondary mt-2"></div>
+<div class="flex-1">
+<div class="flex justify-between items-center mb-1">
+<span class="font-headline font-bold text-primary">Microbial Activity</span>
+<span class="text-secondary font-bold">Poor</span>
+</div>
+<p class="text-sm text-on-surface-variant">Fungal network connectivity is fragmented. Immediate inoculants recommended.</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Action Card -->
+<div class="bg-tertiary p-12 rounded-xl text-surface relative overflow-hidden">
+<div class="relative z-10">
+<h3 class="text-3xl font-headline font-bold mb-4">Deploy Protocol?</h3>
+<p class="text-surface/70 mb-8 leading-relaxed">Automate the fertilization and seeding for the North Ridge sector using drone squadron 04.</p>
+<button class="w-full bg-surface text-primary font-headline font-black py-5 rounded-full hover:scale-[1.02] active:scale-[0.98] transition-all shadow-xl uppercase tracking-widest text-sm">
+                            Initiate Field Work
+                        </button>
+</div>
+<!-- Abstract Background Shape -->
+<div class="absolute -bottom-20 -right-20 w-64 h-64 bg-secondary/20 rounded-full blur-3xl"></div>
+</div>
+<!-- Secondary Graphic -->
+<div class="rounded-xl overflow-hidden aspect-video shadow-2xl">
+<img class="w-full h-full object-cover" data-alt="Abstract aerial view of crop fields showing different color patterns representing nutrient density in soil" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDQ1Tt4dk-oBdh1XvtKboze1ua2Q2MW12Q2nIamyo6vDU4V3_RmPQACcvpC_uJWAF5B-jBbc8qkO-dfSNYzeBcKf9sJaJSYToj0b88F7rJnumgodaKL05jU3RQDoHCqmKGvcwAdPn9y4UpmlZ9aGjhxdHslI2GXLRo662YobFrltRYYGixvK_oFy-e7ycP1unxVFQ98uGrZG528-hPj0TongDsYyX359n1FP9cIRW--SR9JQlWboPpmGzyrN5pvJLnqebWHeE5c9sag"/>
+</div>
+</aside>
+</div>
+</main>
+<!-- Footer -->
+<footer class="bg-[#4e2500] dark:bg-stone-900 w-full px-12 py-16 flex flex-col md:flex-row justify-between items-center mt-20 tonal-shift-only">
+<div class="mb-8 md:mb-0">
+<h4 class="font-['Space_Grotesk'] font-bold text-[#fefae0] text-xl mb-2">Technological Terroir</h4>
+<p class="font-['Manrope'] text-sm uppercase tracking-widest text-[#fefae0]/50">© 2024 Technological Terroir. The Digital Agrarian.</p>
+</div>
+<div class="flex gap-10">
+<a class="font-['Manrope'] text-sm uppercase tracking-widest text-[#fefae0]/50 hover:text-[#fefae0] transition-opacity" href="#">Privacy</a>
+<a class="font-['Manrope'] text-sm uppercase tracking-widest text-[#fefae0]/50 hover:text-[#fefae0] transition-opacity" href="#">Terms</a>
+<a class="font-['Manrope'] text-sm uppercase tracking-widest text-[#fefae0]/50 hover:text-[#fefae0] transition-opacity" href="#">Sustainability</a>
+<a class="font-['Manrope'] text-sm uppercase tracking-widest text-[#fefae0]/50 hover:text-[#fefae0] transition-opacity" href="#">Contact</a>
+</div>
+</footer>
+</body></html>

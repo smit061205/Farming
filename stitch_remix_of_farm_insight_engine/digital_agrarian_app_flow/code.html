@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Technological Terroir | The Digital Agrarian</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;family=Manrope:wght@200;300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "secondary-container": "#fd876f",
+                        "outline": "#73796d",
+                        "surface-container-lowest": "#ffffff",
+                        "on-tertiary-fixed-variant": "#6f3800",
+                        "on-error": "#ffffff",
+                        "primary-fixed-dim": "#a9d293",
+                        "on-tertiary-container": "#fb9f54",
+                        "tertiary-container": "#6f3800",
+                        "surface-container-low": "#f8f4db",
+                        "on-secondary-fixed-variant": "#802918",
+                        "on-background": "#1d1c0d",
+                        "inverse-primary": "#a9d293",
+                        "on-primary": "#ffffff",
+                        "primary": "#173809",
+                        "secondary": "#9f402d",
+                        "on-secondary-container": "#732010",
+                        "background": "#fefae0",
+                        "secondary-fixed": "#ffdad3",
+                        "on-error-container": "#93000a",
+                        "surface-tint": "#446733",
+                        "surface-container-highest": "#e7e3ca",
+                        "surface-container": "#f2efd5",
+                        "on-primary-container": "#98c083",
+                        "on-surface": "#1d1c0d",
+                        "on-tertiary": "#ffffff",
+                        "inverse-on-surface": "#f5f1d8",
+                        "primary-container": "#2d4f1e",
+                        "error": "#ba1a1a",
+                        "on-surface-variant": "#43493e",
+                        "tertiary": "#4e2500",
+                        "primary-fixed": "#c5efad",
+                        "surface-dim": "#dedbc2",
+                        "on-secondary": "#ffffff",
+                        "tertiary-fixed": "#ffdcc4",
+                        "tertiary-fixed-dim": "#ffb781",
+                        "surface-variant": "#e7e3ca",
+                        "on-primary-fixed-variant": "#2d4f1e",
+                        "surface-container-high": "#ede9cf",
+                        "inverse-surface": "#323120",
+                        "error-container": "#ffdad6",
+                        "surface": "#fefae0",
+                        "on-primary-fixed": "#062100",
+                        "surface-bright": "#fefae0",
+                        "outline-variant": "#c3c8bb",
+                        "on-secondary-fixed": "#3e0500",
+                        "on-tertiary-fixed": "#2f1400",
+                        "secondary-fixed-dim": "#ffb4a5"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "1rem",
+                        "lg": "2rem",
+                        "xl": "3rem",
+                        "full": "9999px"
+                    },
+                    "fontFamily": {
+                        "headline": ["Space Grotesk"],
+                        "body": ["Manrope"],
+                        "label": ["Manrope"]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        body { font-family: 'Manrope', sans-serif; background-color: #fefae0; color: #1d1c0d; }
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+        .glow-primary { box-shadow: 0 0 15px rgba(23, 56, 9, 0.3); }
+        .soil-shadow { box-shadow: 0 20px 40px rgba(29, 28, 13, 0.06); }
+        .headline-accent { font-family: 'Space Grotesk', sans-serif; }
+    </style>
+</head>
+<body class="bg-background text-on-background overflow-x-hidden">
+<!-- Top Navigation Bar -->
+<nav class="fixed top-0 left-0 right-0 z-50 bg-[#fefae0] bg-opacity-70 backdrop-blur-xl shadow-[0_10px_30px_rgba(23,56,9,0.04)] rounded-b-[3rem]">
+<div class="flex justify-between items-center w-full px-12 py-6 max-w-[1920px] mx-auto">
+<div class="text-2xl font-black text-[#173809] uppercase tracking-tighter headline-accent">
+                Technological Terroir
+            </div>
+<div class="hidden md:flex gap-12 items-center">
+<a class="text-[#173809]/60 font-medium hover:text-[#9f402d] transition-colors duration-300 font-['Manrope'] text-sm uppercase tracking-widest" href="#">Dashboard</a>
+<a class="text-[#173809]/60 font-medium hover:text-[#9f402d] transition-colors duration-300 font-['Manrope'] text-sm uppercase tracking-widest" href="#">Reports</a>
+<a class="text-[#173809]/60 font-medium hover:text-[#9f402d] transition-colors duration-300 font-['Manrope'] text-sm uppercase tracking-widest" href="#">Alerts</a>
+<a class="text-[#173809]/60 font-medium hover:text-[#9f402d] transition-colors duration-300 font-['Manrope'] text-sm uppercase tracking-widest" href="#">Map</a>
+</div>
+<div class="flex items-center gap-6">
+<span class="material-symbols-outlined text-primary text-3xl">account_circle</span>
+</div>
+</div>
+</nav>
+<main class="pt-32">
+<!-- Hero Section -->
+<section class="max-w-[1440px] mx-auto px-12 pb-24 grid grid-cols-12 gap-8 items-center">
+<div class="col-span-12 md:col-span-6 z-10">
+<div class="mb-6 inline-flex items-center gap-2 bg-primary-fixed px-4 py-1.5 rounded-full text-primary font-bold text-xs uppercase tracking-widest">
+<span class="relative flex h-2 w-2">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+<span class="relative inline-flex rounded-full h-2 w-2 bg-primary shadow-[0_0_8px_rgba(23,56,9,0.5)]"></span>
+</span>
+                    The Digital Agrarian
+                </div>
+<h1 class="headline-accent text-7xl md:text-8xl font-bold text-primary leading-[0.9] tracking-tighter mb-8">
+                    Ancient Land. <br/> Modern Intelligence.
+                </h1>
+<p class="font-body text-xl text-on-surface-variant max-w-lg mb-10 leading-relaxed">
+                    Marrying ancestral wisdom with generative soil analysis to optimize your yield and nourish the earth.
+                </p>
+<div class="flex gap-4">
+<button class="bg-primary text-white px-10 py-5 rounded-full font-bold text-lg soil-shadow hover:scale-105 transition-transform flex items-center gap-3">
+                        Analyze Your Soil
+                        <span class="material-symbols-outlined">arrow_forward</span>
+</button>
+</div>
+</div>
+<div class="col-span-12 md:col-span-6 relative">
+<div class="relative rounded-xl overflow-hidden soil-shadow">
+<img alt="Indian farmer with digital device" class="w-full h-[700px] object-cover rounded-xl" data-alt="Dignified Indian farmer in a lush sunlit field holding a tablet displaying glowing soil data visualizations with soft warm morning light" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAeqUfhVjR4MXXXEyG8VUb3UpVm9cxR61glQB865Nf_6cYZ6WYnDsIoUBwr0S63t98lPSEEp7tRDTOjGmOcy25Ve2A5q1OAL05rNmEWUBsoktY8qE5aHCGWBXxfdSB8AhwyPfdsGbCEDFUAVw3STO4kiOgokH3_0duq0uJad6BuGVVWfJ4idDz3GN7L2sQw72fct_Thj1GcJ0mvpJ7bOQK0g61TIOchRQebQT2DGsv-_er8_N66Ykicul27Ixi1kHBOQdt2VdWbb2mH"/>
+<div class="absolute inset-0 bg-gradient-to-t from-primary/40 to-transparent"></div>
+<!-- Overlapping Glass Card -->
+<div class="absolute bottom-12 -left-12 bg-surface/70 backdrop-blur-2xl p-8 rounded-xl soil-shadow max-w-xs hidden lg:block">
+<div class="flex items-center gap-4 mb-4">
+<div class="w-12 h-12 rounded-full bg-primary flex items-center justify-center text-white">
+<span class="material-symbols-outlined">analytics</span>
+</div>
+<div>
+<div class="text-xs uppercase tracking-widest text-on-surface-variant font-bold">Real-time Data</div>
+<div class="text-lg font-bold text-primary headline-accent">Soil Health Score</div>
+</div>
+</div>
+<div class="text-4xl font-black text-secondary headline-accent">88%</div>
+<div class="mt-2 h-1.5 w-full bg-surface-container rounded-full overflow-hidden">
+<div class="h-full bg-secondary w-[88%]"></div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Section 1: Problem vs Solution -->
+<section class="bg-surface-container py-32">
+<div class="max-w-[1440px] mx-auto px-12">
+<div class="flex flex-col md:flex-row gap-16 items-center">
+<div class="flex-1 space-y-8">
+<h2 class="headline-accent text-5xl font-bold text-primary tracking-tight">Deciphering the Dirt.</h2>
+<p class="text-lg text-on-surface-variant leading-relaxed">Traditional soil reports are static, complex, and often outdated by the time they reach you. We turn data into clarity.</p>
+</div>
+<div class="flex-1 flex flex-col md:flex-row gap-6 relative">
+<!-- The Messy Report -->
+<div class="bg-surface-container-highest p-8 rounded-xl soil-shadow rotate-[-2deg] opacity-50 blur-[1px] hover:blur-0 transition-all duration-500">
+<div class="text-xs uppercase font-bold text-on-surface-variant mb-4">Paper Report #420</div>
+<div class="h-4 w-48 bg-outline-variant/30 rounded-full mb-2"></div>
+<div class="h-4 w-32 bg-outline-variant/30 rounded-full mb-6"></div>
+<div class="space-y-2">
+<div class="h-2 w-full bg-outline-variant/20 rounded-full"></div>
+<div class="h-2 w-full bg-outline-variant/20 rounded-full"></div>
+<div class="h-2 w-5/6 bg-outline-variant/20 rounded-full"></div>
+</div>
+</div>
+<!-- The Clean UI -->
+<div class="bg-white p-10 rounded-xl soil-shadow z-10 md:-ml-12 md:mt-12 border-l-[12px] border-primary">
+<div class="flex justify-between items-center mb-8">
+<div class="headline-accent font-bold text-primary">Live Field Analysis</div>
+<div class="bg-primary-fixed px-3 py-1 rounded-full text-[10px] font-bold text-primary flex items-center gap-2">
+<span class="w-1.5 h-1.5 bg-primary rounded-full animate-pulse shadow-[0_0_5px_rgba(23,56,9,0.5)]"></span>
+                                    ACTIVE
+                                </div>
+</div>
+<div class="flex gap-8">
+<div>
+<div class="text-3xl font-bold headline-accent text-primary">Nitrogen</div>
+<div class="text-sm text-on-surface-variant">Optimum Range</div>
+</div>
+<div class="w-24 h-24 rounded-full border-[6px] border-secondary flex items-center justify-center">
+<span class="text-xl font-bold text-secondary">High</span>
+</div>
+</div>
+<div class="mt-6 text-on-surface-variant font-medium italic">"Action: Reduce urea application by 12%."</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Section 2: Solution Flow -->
+<section class="py-32 bg-background">
+<div class="max-w-[1440px] mx-auto px-12">
+<div class="text-center mb-24">
+<h3 class="text-sm font-bold uppercase tracking-[0.4em] text-secondary mb-4">The Methodology</h3>
+<h2 class="headline-accent text-6xl font-bold text-primary">From Soil to Action.</h2>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-12 relative">
+<!-- Flow Step 1 -->
+<div class="group">
+<div class="text-[120px] font-black text-surface-container-highest absolute -top-20 -left-4 z-0 opacity-40 select-none headline-accent">01</div>
+<div class="relative z-10 space-y-6">
+<div class="w-20 h-20 bg-surface-container-low rounded-xl flex items-center justify-center soil-shadow group-hover:bg-primary transition-colors duration-500">
+<span class="material-symbols-outlined text-primary text-4xl group-hover:text-white">upload_file</span>
+</div>
+<h4 class="text-2xl font-bold text-primary headline-accent">Upload Soil Data</h4>
+<p class="text-on-surface-variant leading-relaxed">Connect your field sensors or upload your latest chemical lab report. We ingest structured and unstructured data effortlessly.</p>
+</div>
+</div>
+<!-- Flow Step 2 -->
+<div class="group">
+<div class="text-[120px] font-black text-surface-container-highest absolute -top-20 -left-4 z-0 opacity-40 select-none headline-accent">02</div>
+<div class="relative z-10 space-y-6">
+<div class="w-20 h-20 bg-surface-container-low rounded-xl flex items-center justify-center soil-shadow group-hover:bg-primary transition-colors duration-500">
+<span class="material-symbols-outlined text-primary text-4xl group-hover:text-white">satellite_alt</span>
+</div>
+<h4 class="text-2xl font-bold text-primary headline-accent">AI + Satellite Analysis</h4>
+<p class="text-on-surface-variant leading-relaxed">Our proprietary models combine your local data with multi-spectral satellite imagery to create a holistic digital twin of your farm.</p>
+</div>
+</div>
+<!-- Flow Step 3 -->
+<div class="group">
+<div class="text-[120px] font-black text-surface-container-highest absolute -top-20 -left-4 z-0 opacity-40 select-none headline-accent">03</div>
+<div class="relative z-10 space-y-6">
+<div class="w-20 h-20 bg-surface-container-low rounded-xl flex items-center justify-center soil-shadow group-hover:bg-primary transition-colors duration-500">
+<span class="material-symbols-outlined text-primary text-4xl group-hover:text-white">task_alt</span>
+</div>
+<h4 class="text-2xl font-bold text-primary headline-accent">Get Simple Actions</h4>
+<p class="text-on-surface-variant leading-relaxed">No more guesswork. Receive a curated list of recommendations for planting, fertilizing, and irrigation to maximize terroir efficiency.</p>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Section 3: Feature Cards -->
+<section class="py-32 px-12 bg-surface-container-low">
+<div class="max-w-[1440px] mx-auto">
+<div class="grid grid-cols-12 gap-8">
+<!-- Large Feature Card -->
+<div class="col-span-12 lg:col-span-8 bg-background rounded-xl p-12 flex flex-col justify-between min-h-[500px] soil-shadow relative overflow-hidden group">
+<div class="relative z-10">
+<div class="bg-secondary-fixed text-on-secondary-fixed-variant inline-block px-4 py-1 rounded-full text-xs font-bold uppercase tracking-widest mb-6">Expert Engine</div>
+<h3 class="text-5xl font-bold text-primary headline-accent mb-6">Crop Recommendation</h3>
+<p class="text-xl text-on-surface-variant max-w-md leading-relaxed">Using predictive AI to suggest the perfect crop rotation based on historical soil data and upcoming climate cycles.</p>
+</div>
+<div class="relative z-10">
+<button class="bg-tertiary text-white px-8 py-4 rounded-full font-bold flex items-center gap-3">
+                                Explore Varietals
+                                <span class="material-symbols-outlined">clover_spark</span>
+</button>
+</div>
+<!-- Abstract Organic Shape Background -->
+<div class="absolute top-0 right-0 w-1/2 h-full bg-primary-fixed/30 rounded-l-full translate-x-12 translate-y-12 -rotate-12 group-hover:scale-110 transition-transform duration-700"></div>
+<div class="absolute bottom-12 right-24">
+<img alt="Lush green crops" class="w-64 h-64 object-cover rounded-xl soil-shadow rotate-6 group-hover:rotate-0 transition-transform duration-500" data-alt="Lush green organic crops growing in neat rows with healthy vibrant leaves in soft afternoon sunlight" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBgAbm87ZpZeONl8FUN896BdZr_QSpC2uhSJqlJLS5slR8hB-hnnnS2I6MjgCIhLSM2p7jzQYbGTj-wD7ydfFq6nhJXSY5Bp_N5CjivRXiIZcW3EI1WQbrkXsHrzZusB3hSK2dGyySdg3G5a5c1WZNZTfAmLEX_79Vl6jLane4xGi5ZahdjaDD6Fmj8sutm9sQr8rJxKdainfPkt7wdfHQtLJ59Q77-zoTBALXlB2a5rDwJ09qhn6MPyIWjnVr8VFrxhaSSnLWLD2eO"/>
+</div>
+</div>
+<!-- Side Grid -->
+<div class="col-span-12 lg:col-span-4 flex flex-col gap-8">
+<div class="bg-surface-container-highest p-8 rounded-xl soil-shadow flex-1 flex flex-col justify-center gap-4">
+<span class="material-symbols-outlined text-4xl text-secondary">science</span>
+<h4 class="text-2xl font-bold text-primary headline-accent">Fertilizer Advisory</h4>
+<p class="text-on-surface-variant">Precision prescription for soil enrichment.</p>
+</div>
+<div class="bg-primary text-white p-8 rounded-xl soil-shadow flex-1 flex flex-col justify-center gap-4 relative overflow-hidden">
+<div class="relative z-10">
+<span class="material-symbols-outlined text-4xl text-primary-fixed">monitoring</span>
+<h4 class="text-2xl font-bold headline-accent">Soil Health Score</h4>
+<p class="text-primary-fixed/80">Real-time benchmark against global standards.</p>
+</div>
+<div class="absolute -bottom-8 -right-8 opacity-20">
+<span class="material-symbols-outlined text-[160px]">grass</span>
+</div>
+</div>
+</div>
+<!-- Bottom Wide Card -->
+<div class="col-span-12 bg-white p-12 rounded-xl soil-shadow grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+<div>
+<span class="material-symbols-outlined text-5xl text-secondary mb-6">public</span>
+<h3 class="text-4xl font-bold text-primary headline-accent mb-4">Satellite Insights</h3>
+<p class="text-lg text-on-surface-variant leading-relaxed">Harness the power of Earth observation. We provide field-level imagery updates every 72 hours, detecting moisture stress and pest pressure before it becomes visible to the naked eye.</p>
+</div>
+<div class="rounded-xl overflow-hidden h-64 relative bg-surface-container">
+<div class="absolute inset-0 bg-gradient-to-br from-primary/10 to-transparent"></div>
+<img alt="Satellite view of land" class="w-full h-full object-cover" data-alt="Top-down satellite view of diverse agricultural land patterns with green, brown and yellow patches in high resolution" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAZ1leXPnBVhajtEK619W6W2Bu9_Idl_rnWpMymA77xxUougdy9xEbj0HIg4EMGRpHXahkrlOJgKhpkPhK2a4SUa7iEL-aMaDJ1ybEBaSqgfh-XZonvXYyYKQzLexlpALB8rk6sa64lfEN-NwB9s43G1mJZy2kBon0AWhUjZHtjWHHDdo6a524VGA8dhJTfE-lVQpJ14_HgzyyQjNlNWd9xKHPu1g5_-jE0ZINY-geYY9H_DBUmKaAGkU5XwG_Zju_d0pZEeBDcMX-R"/>
+<!-- Floating UI element -->
+<div class="absolute top-4 right-4 bg-white/90 backdrop-blur-md px-4 py-2 rounded-full soil-shadow flex items-center gap-3">
+<div class="w-3 h-3 bg-secondary rounded-full animate-ping"></div>
+<span class="text-xs font-black text-primary uppercase">Syncing Now</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Section 4: Trust Section -->
+<section class="py-24 text-center max-w-[1440px] mx-auto">
+<div class="inline-flex items-center gap-6 px-12 py-8 bg-surface-container-highest rounded-full soil-shadow">
+<span class="text-sm font-bold uppercase tracking-widest text-on-surface-variant">Powered by</span>
+<div class="h-6 w-[2px] bg-outline-variant"></div>
+<div class="flex gap-10 items-center opacity-70">
+<span class="font-headline font-bold text-primary">SATELLITE LABS</span>
+<span class="font-headline font-bold text-primary">BIO-GENESIS</span>
+<span class="font-headline font-bold text-primary">SOIL SCIENCE INST.</span>
+</div>
+</div>
+</section>
+<!-- CTA Section -->
+<section class="px-12 pb-32">
+<div class="bg-primary rounded-[3rem] p-24 text-center text-white soil-shadow relative overflow-hidden">
+<div class="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_50%,rgba(169,210,147,0.1),transparent)]"></div>
+<h2 class="headline-accent text-6xl md:text-8xl font-bold mb-10 relative z-10 leading-tight">Ready to listen <br/> to your land?</h2>
+<div class="flex flex-col md:flex-row justify-center gap-6 relative z-10">
+<button class="bg-secondary text-white px-12 py-6 rounded-full font-bold text-xl soil-shadow hover:scale-105 transition-transform">
+                        Get Started Free
+                    </button>
+<button class="bg-white/10 backdrop-blur-md text-white px-12 py-6 rounded-full font-bold text-xl soil-shadow hover:bg-white/20 transition-all">
+                        Book a Consultation
+                    </button>
+</div>
+</div>
+</section>
+</main>
+<!-- Footer -->
+<footer class="bg-[#4e2500] w-full px-12 py-16 flex flex-col md:flex-row justify-between items-center text-[#fefae0]">
+<div class="flex flex-col items-center md:items-start mb-12 md:mb-0">
+<div class="font-['Space_Grotesk'] font-bold text-[#fefae0] text-2xl mb-4">Technological Terroir</div>
+<p class="font-['Manrope'] text-sm uppercase tracking-widest text-[#fefae0]/50 max-w-xs text-center md:text-left">
+                © 2024 Technological Terroir. The Digital Agrarian.
+            </p>
+</div>
+<div class="flex flex-wrap justify-center gap-12 font-['Manrope'] text-sm uppercase tracking-widest">
+<a class="text-[#fefae0]/50 hover:text-[#fefae0] transition-opacity" href="#">Privacy</a>
+<a class="text-[#fefae0] underline decoration-[#9f402d] underline-offset-8" href="#">Terms</a>
+<a class="text-[#fefae0]/50 hover:text-[#fefae0] transition-opacity" href="#">Sustainability</a>
+<a class="text-[#fefae0]/50 hover:text-[#fefae0] transition-opacity" href="#">Contact</a>
+</div>
+</footer>
+</body></html>

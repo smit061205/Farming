@@ -1,0 +1,20 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.env
+.venv
+venv/
+env/
+*.egg-info/
+.DS_Store
+
+# Credentials (NEVER commit these)
+gee_credentials.json
+*.json.backup
+
+# MongoDB
+*.db
+
+# Logs
+*.log
