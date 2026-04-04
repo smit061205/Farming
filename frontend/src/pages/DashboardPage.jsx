@@ -41,7 +41,7 @@ export default function DashboardPage() {
   const refreshInsights = async () => {
     setInsights({})
     try {
-      await fetch('${API_BASE}/api/engine/cache', {
+      await fetch(`${API_BASE}/api/engine/cache`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` }
       })

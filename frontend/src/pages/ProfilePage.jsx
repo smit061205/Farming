@@ -56,7 +56,7 @@ export default function ProfilePage() {
   // Fetch latest full profile directly from API on mount
   const fetchUserProfile = useCallback(() => {
     if (!token) return
-    fetch('${API_BASE}/api/users/me', {
+    fetch(`${API_BASE}/api/users/me`, {
       headers: { Authorization: `Bearer ${token}` }
     })
       .then(r => r.json())
@@ -95,7 +95,7 @@ export default function ProfilePage() {
     if (!validateSoil()) return
     setSaveLoading(true)
     try {
-      const res = await fetch('${API_BASE}/api/users/me', {
+      const res = await fetch(`${API_BASE}/api/users/me`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -147,7 +147,7 @@ export default function ProfilePage() {
       const formData = new FormData()
       formData.append('file', file)
 
-      const res = await fetch('${API_BASE}/api/users/soil-data/upload', {
+      const res = await fetch(`${API_BASE}/api/users/soil-data/upload`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -300,7 +300,7 @@ export default function ProfilePage() {
                   disabled={testEmailSent}
                   onClick={async () => {
                     try {
-                      await fetch('${API_BASE}/api/notifications/test', {
+                      await fetch(`${API_BASE}/api/notifications/test`, {
                         method: 'POST',
                         headers: { Authorization: `Bearer ${token}` }
                       })

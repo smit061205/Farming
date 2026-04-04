@@ -13,7 +13,7 @@ export default function LenderLandingPage() {
   const handleLenderLogin = async () => {
     setIsLoading(true)
     try {
-      const res = await fetch('${API_BASE}/api/auth/demo-lender', { method: 'POST' })
+      const res = await fetch(`${API_BASE}/api/auth/demo-lender`, { method: 'POST' })
       if (!res.ok) throw new Error("Failed to auth")
       const data = await res.json()
       lenderLogin(data.access_token)

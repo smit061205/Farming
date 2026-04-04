@@ -29,7 +29,7 @@ export default function LenderDashboardPage() {
   useEffect(() => {
     async function loadData() {
       try {
-        const res = await fetch('${API_BASE}/api/engine/verified-farmers')
+        const res = await fetch(`${API_BASE}/api/engine/verified-farmers`)
         const data = await res.json()
         if (data.status === 'success' && data.candidates && data.candidates.length > 0) {
           setFarmers(data.candidates)

@@ -37,7 +37,7 @@ export default function SoilOCRUploader({ onExtracted }) {
     try {
       const form = new FormData()
       form.append('file', file)
-      const res = await fetch('${API_BASE}/api/engine/ocr-soil-report', { method: 'POST', body: form })
+      const res = await fetch(`${API_BASE}/api/engine/ocr-soil-report`, { method: 'POST', body: form })
       if (!res.ok) { const err = await res.json(); throw new Error(err.detail || 'OCR failed') }
       const json = await res.json()
       setExtracted(json.data)

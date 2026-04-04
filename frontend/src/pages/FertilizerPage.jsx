@@ -12,7 +12,7 @@ export default function FertilizerPage() {
 
   useEffect(() => {
     if (!token) return
-    fetch('${API_BASE}/api/engine/insights', {
+    fetch(`${API_BASE}/api/engine/insights`, {
       headers: { Authorization: `Bearer ${token}` }
     })
       .then(res => res.json())

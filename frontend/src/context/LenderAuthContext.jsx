@@ -12,7 +12,7 @@ export function LenderAuthProvider({ children }) {
     try {
       const controller = new AbortController()
       const timeoutId = setTimeout(() => controller.abort(), 5000)
-      const res = await fetch('${API_BASE}/api/users/me', {
+      const res = await fetch(`${API_BASE}/api/users/me`, {
         headers: { Authorization: `Bearer ${t}` },
         signal: controller.signal
       })

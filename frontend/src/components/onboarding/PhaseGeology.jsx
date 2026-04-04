@@ -48,7 +48,7 @@ export default function PhaseGeology({ data, update, prev, submit }) {
       const n  = parseFloat(soilData.nitrogen || 0)
       const p  = soilData.phosphorus ? parseFloat(soilData.phosphorus) : null
       const k  = soilData.potassium  ? parseFloat(soilData.potassium)  : null
-      const res = await fetch('${API_BASE}/api/engine/derive-soil-metrics', {
+      const res = await fetch(`${API_BASE}/api/engine/derive-soil-metrics`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ph, nitrogen: n, phosphorus: p, potassium: k, soil_type: soilData.soil_type || 'loam', lat: data.coordinates?.lat, lng: data.coordinates?.lng }),

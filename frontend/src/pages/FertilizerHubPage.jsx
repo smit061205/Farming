@@ -74,13 +74,13 @@ export default function FertilizerHubPage() {
   useEffect(() => {
     if (!token) return
     setIsLoadingRecs(true)
-    fetch('${API_BASE}/api/engine/fertilizer-top3', { headers: { Authorization: `Bearer ${token}` } })
+    fetch(`${API_BASE}/api/engine/fertilizer-top3`, { headers: { Authorization: `Bearer ${token}` } })
       .then(res => res.json())
       .then(data => { setTop3(data.recommendations || []); setSummary(data.summary || ''); setIsLoadingRecs(false) })
       .catch(() => setIsLoadingRecs(false))
 
     setIsLoadingEncyc(true)
-    fetch('${API_BASE}/api/engine/fertilizer-encyclopedia', { headers: { Authorization: `Bearer ${token}` } })
+    fetch(`${API_BASE}/api/engine/fertilizer-encyclopedia`, { headers: { Authorization: `Bearer ${token}` } })
       .then(res => res.json())
       .then(data => { setEncyclopedia(data.data || []); setIsLoadingEncyc(false) })
       .catch(() => setIsLoadingEncyc(false))

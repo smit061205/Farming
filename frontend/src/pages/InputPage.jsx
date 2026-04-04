@@ -127,7 +127,7 @@ export default function InputPage() {
   const handleSave = async () => {
     setSaveStatus('saving')
     try {
-      const res = await fetch('${API_BASE}/api/users/soil-data', {
+      const res = await fetch(`${API_BASE}/api/users/soil-data`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

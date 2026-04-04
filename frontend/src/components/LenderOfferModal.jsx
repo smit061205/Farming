@@ -66,7 +66,7 @@ export default function LenderOfferModal({ farmer, onClose }) {
   const handleSubmit = async () => {
     setIsSubmitting(true)
     try {
-      await fetch('${API_BASE}/api/notifications/test', {
+      await fetch(`${API_BASE}/api/notifications/test`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${lenderToken}` },
       })

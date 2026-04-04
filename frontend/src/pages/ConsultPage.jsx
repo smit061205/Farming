@@ -32,7 +32,7 @@ export default function ConsultPage() {
     setIsLoading(true)
 
     try {
-      const response = await fetch('${API_BASE}/api/engine/chat', {
+      const response = await fetch(`${API_BASE}/api/engine/chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

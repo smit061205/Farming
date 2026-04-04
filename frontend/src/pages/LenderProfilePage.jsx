@@ -42,7 +42,7 @@ export default function LenderProfilePage() {
   // Fetch latest full profile
   useEffect(() => {
     if (!lenderToken) return
-    fetch('${API_BASE}/api/users/me', {
+    fetch(`${API_BASE}/api/users/me`, {
       headers: { Authorization: `Bearer ${lenderToken}` }
     })
       .then(r => r.json())
@@ -57,7 +57,7 @@ export default function LenderProfilePage() {
     e.preventDefault()
     setSaveLoading(true)
     try {
-      const res = await fetch('${API_BASE}/api/users/me', {
+      const res = await fetch(`${API_BASE}/api/users/me`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -182,7 +182,7 @@ export default function LenderProfilePage() {
                   disabled={testEmailSent}
                   onClick={async () => {
                     try {
-                      await fetch('${API_BASE}/api/notifications/test', {
+                      await fetch(`${API_BASE}/api/notifications/test`, {
                         method: 'POST',
                         headers: { Authorization: `Bearer ${lenderToken}` }
                       })

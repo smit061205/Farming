@@ -43,7 +43,7 @@ export default function OnboardingPage() {
     await new Promise(r => setTimeout(r, 1200))
     try {
       const payload = { ...formData, ...finalDataPatch }
-      const res = await fetch('${API_BASE}/api/auth/register', {
+      const res = await fetch(`${API_BASE}/api/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
