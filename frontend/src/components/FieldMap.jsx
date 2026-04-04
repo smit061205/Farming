@@ -89,7 +89,7 @@ export default function FieldMap({ coordinates, zoom = 12, height = '100%', show
     }
 
     // Add new layer
-    eeLayerRef.current = L.tileLayer(geeUrlTemplate, { maxZoom: 18, opacity: 0.85 }).addTo(mapRef.current)
+    eeLayerRef.current = L.tileLayer(geeUrlTemplate, { maxZoom: 18, opacity: 0.85, zIndex: 100 }).addTo(mapRef.current)
 
     return () => {
       if (mapRef.current && eeLayerRef.current) {
