@@ -1,4 +1,4 @@
-import API_BASE from '../api.js'
+import API_BASE from "../../api.js"
 import { useState, useEffect } from 'react'
 import MapPicker from './MapPicker'
 import SoilOCRUploader from './SoilOCRUploader'

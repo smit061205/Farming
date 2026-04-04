@@ -1,4 +1,4 @@
-import API_BASE from '../api.js'
+import API_BASE from "../api.js"
 import { useState, useEffect, useCallback } from 'react'
 import LenderNavbar from '../components/LenderNavbar'
 import Footer from '../components/Footer'

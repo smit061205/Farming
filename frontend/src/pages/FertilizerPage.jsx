@@ -1,4 +1,4 @@
-import API_BASE from '../api.js'
+import API_BASE from "../api.js"
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Navbar from '../components/Navbar'

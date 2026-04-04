@@ -1,4 +1,4 @@
-import API_BASE from '../api.js'
+import API_BASE from "../api.js"
 import { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Navbar from '../components/Navbar'

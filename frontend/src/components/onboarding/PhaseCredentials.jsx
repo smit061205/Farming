@@ -1,4 +1,4 @@
-import API_BASE from '../api.js'
+import API_BASE from "../../api.js"
 import { useState } from 'react'
 
 export default function PhaseCredentials({ data, update, next, prev }) {
