@@ -114,20 +114,31 @@ async def get_satellite_map(lat: float, lng: float, layer_type: str = 'microbial
         image = collection.first()
         
         map_id_dict = None
-        if layer_type == 'microbial':
-            # Use NDVI visualization for Biomass (Microbial proxy)
-            # High NDVI (green) = higher active root biomass
+        if layer_type in ['microbial', 'ndvi']:
+            # Use NDVI visualization for Biomass/Greenness
             ndvi = image.normalizedDifference(['B8', 'B4'])
-            # We clip it to the generic area around the farm so the tile is visually focused, 
-            # or just serve the whole tile and leaf-let masked it.
             map_id_dict = ndvi.getMapId({
                 'min': -0.1, 
                 'max': 0.8, 
                 'palette': ['#9f402d', '#fb9f54', '#e7e3ca', '#c5efad', '#173809']
             })
-        else: # atmospheric
+        elif layer_type == 'ndwi':
+            # NDWI for moisture (B8 and B11 for canopy water)
+            ndwi = image.normalizedDifference(['B8', 'B11'])
+            map_id_dict = ndwi.getMapId({
+                'min': -0.3,
+                'max': 0.4,
+                'palette': ['#e7e3ca', '#f8f4db', '#c5efad', '#87ceeb', '#1e90ff', '#00008b']
+            })
+        elif layer_type == 'truecolor':
+            # Visual RGB spectrum
+            map_id_dict = image.getMapId({
+                'bands': ['B4', 'B3', 'B2'],
+                'min': 0, 'max': 3000,
+                'gamma': 1.2
+            })
+        else: # atmospheric / thermal proxy
             # Pseudo-color representation for Moisture & Atmosphere (SWIR, NIR, GREEN)
-            # Often used to see moisture stress and atmospheric penetration
             map_id_dict = image.getMapId({
                 'bands': ['B12', 'B8', 'B3'], 
                 'min': 0, 'max': 3000,
