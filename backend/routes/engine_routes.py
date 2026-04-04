@@ -111,7 +111,7 @@ async def get_satellite_map(lat: float, lng: float, layer_type: str = 'microbial
         if collection.size().getInfo() == 0:
             return {"url": None, "error": "No Sentinel-2 imagery available."}
             
-        image = collection.first()
+        image = collection.mosaic()
         
         map_id_dict = None
         if layer_type in ['microbial', 'ndvi']:
