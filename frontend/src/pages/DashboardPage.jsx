@@ -72,6 +72,16 @@ export default function DashboardPage() {
       .catch(() => {})
   }, [user?.coordinates?.lat, user?.coordinates?.lng])
 
+  useEffect(() => {
+    if (window.location.hash) {
+      setTimeout(() => {
+        const id = window.location.hash.replace('#', '')
+        const element = document.getElementById(id)
+        if (element) element.scrollIntoView({ behavior: 'smooth' })
+      }, 100)
+    }
+  }, [])
+
 
 
   const soilPh = lastAnalysis?.pH ?? user?.soil_data?.ph
@@ -203,7 +213,7 @@ export default function DashboardPage() {
         )}
 
         {/* Crop Recommendations — full width */}
-        <section className="mb-12">
+        <section id="ai-crop-recommendations" className="mb-12 scroll-m-[120px]">
           <div className="mb-10 flex justify-between items-center">
             <h2 className="font-headline text-4xl font-bold text-[#173809] tracking-tight">AI Crop Recommendations</h2>
             <div className="flex items-center gap-3">

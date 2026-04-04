@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import SoilTrendsChart from '../../components/SoilTrendsChart'
 import FieldMap from '../../components/FieldMap'
@@ -6,6 +7,7 @@ import API_BASE from '../../api'
 
 export default function SensorNetworkView() {
   const { user } = useAuth()
+  const navigate = useNavigate()
   
   // Try to load any actively analyzed data
   let lastAnalysis = null
@@ -375,7 +377,9 @@ export default function SensorNetworkView() {
               Based on the diagnostic profile, your soil presents an opportunity for targeted biological inoculants to boost low solubility reserves.
             </p>
             
-            <button className="mt-auto bg-white text-[#9f402d] rounded-full py-4 px-6 font-bold text-sm tracking-widest uppercase hover:bg-[#173809] hover:text-white transition-colors duration-300 flex items-center justify-between group">
+            <button 
+              onClick={() => navigate('/dashboard#ai-crop-recommendations')}
+              className="mt-auto bg-white text-[#9f402d] rounded-full py-4 px-6 font-bold text-sm tracking-widest uppercase hover:bg-[#173809] hover:text-white transition-colors duration-300 flex items-center justify-between group">
               Generate Protocol
               <span className="material-symbols-outlined transform group-hover:translate-x-1 transition-transform">arrow_forward</span>
             </button>
