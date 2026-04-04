@@ -23,10 +23,22 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# Allow requests from the Vite dev server
+# Allow requests from Vercel frontend + local dev
+CORS_ORIGINS = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "https://*.vercel.app",   # all Vercel preview/production URLs
+]
+# Also read extra origins from env var (e.g. custom domain)
+import os
+extra = os.getenv("CORS_ORIGIN", "")
+if extra:
+    CORS_ORIGINS.extend([o.strip() for o in extra.split(",") if o.strip()])
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+    allow_origins=CORS_ORIGINS,
+    allow_origin_regex=r"https://.*\.vercel\.app",   # catches ALL vercel subdomains
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
