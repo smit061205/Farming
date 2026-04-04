@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, forwardRef, useImperativeHandle } from 'react'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 
@@ -25,9 +25,15 @@ const greenIcon = L.divIcon({
  * `zoom` defaults to 12.
  * `height` controls the map box height (CSS string, default '100%').
  */
-export default function FieldMap({ coordinates, zoom = 12, height = '100%', showLabel = true, geeUrlTemplate = null, popupContent = null }) {
+const FieldMap = forwardRef(function FieldMap({ coordinates, zoom = 12, height = '100%', showLabel = true, geeUrlTemplate = null, popupContent = null }, ref) {
   const containerRef = useRef(null)
   const mapRef = useRef(null)
+
+  // Expose the Leaflet map instance to the parent
+  useImperativeHandle(ref, () => ({
+    getLeafletMap: () => mapRef.current,
+    getContainer: () => containerRef.current,
+  }))
 
   const lat = coordinates?.lat ?? 20.5937
   const lng = coordinates?.lng ?? 78.9629
@@ -137,4 +143,6 @@ export default function FieldMap({ coordinates, zoom = 12, height = '100%', show
       )}
     </div>
   )
-}
+})
+
+export default FieldMap

@@ -59,28 +59,59 @@ export default function SensorNetworkView() {
       .catch(console.error)
   }, [user, activeLayer])
 
-  const mapContainerRef = useRef(null)
+  const fieldMapRef = useRef(null)
   const [isCapturing, setIsCapturing] = useState(false)
 
   const handleDownloadScreenshot = async () => {
-    if (!mapContainerRef.current) return
+    const leafletMap = fieldMapRef.current?.getLeafletMap()
+    if (!leafletMap) return
     setIsCapturing(true)
     try {
-      const html2canvas = (await import('html2canvas')).default
-      const canvas = await html2canvas(mapContainerRef.current, {
-        useCORS: true,
-        allowTaint: false,
-        backgroundColor: null,
+      const mapContainer = leafletMap.getContainer()
+      const { width, height } = mapContainer.getBoundingClientRect()
+      
+      // Create a composite canvas from all Leaflet tile canvases
+      const outputCanvas = document.createElement('canvas')
+      outputCanvas.width = width
+      outputCanvas.height = height
+      const ctx = outputCanvas.getContext('2d')
+
+      // White background
+      ctx.fillStyle = '#ffffff'
+      ctx.fillRect(0, 0, width, height)
+
+      // Find all tile layer canvases rendered by Leaflet and composite them
+      const tileCanvases = mapContainer.querySelectorAll('canvas')
+      tileCanvases.forEach((tileCanvas) => {
+        if (tileCanvas.width > 0 && tileCanvas.height > 0) {
+          const rect = tileCanvas.getBoundingClientRect()
+          const containerRect = mapContainer.getBoundingClientRect()
+          const x = rect.left - containerRect.left
+          const y = rect.top - containerRect.top
+          try {
+            ctx.drawImage(tileCanvas, x, y, rect.width, rect.height)
+          } catch (e) {
+            // Skip cross-origin canvas elements
+          }
+        }
       })
+
+      // Add watermark label in corner
+      ctx.fillStyle = 'rgba(23, 56, 9, 0.8)'
+      ctx.fillRect(8, height - 36, 220, 28)
+      ctx.fillStyle = '#ffffff'
+      ctx.font = 'bold 12px monospace'
+      ctx.fillText(`${activeLayer.toUpperCase()} · ${new Date().toLocaleDateString()}`, 16, height - 16)
+
       const link = document.createElement('a')
       link.download = `field-map-${activeLayer}-${new Date().toISOString().split('T')[0]}.jpeg`
-      link.href = canvas.toDataURL('image/jpeg', 0.9)
+      link.href = outputCanvas.toDataURL('image/jpeg', 0.92)
       document.body.appendChild(link)
       link.click()
       document.body.removeChild(link)
     } catch (err) {
       console.error('Failed to capture map screenshot:', err)
-      alert("Failed to capture map. Ensure cross-origin data is complete.")
+      alert('Map capture failed. Please try again.')
     } finally {
       setIsCapturing(false)
     }
@@ -219,6 +250,7 @@ export default function SensorNetworkView() {
             </div>
             
             <FieldMap
+              ref={fieldMapRef}
               coordinates={user?.location || {lat: 23.16, lng: 72.44, label: "Gujrat"}}
               zoom={14}
               geeUrlTemplate={mapUrl}
