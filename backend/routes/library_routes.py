@@ -74,7 +74,7 @@ async def search_plants(q: str = ""):
     
     async with httpx.AsyncClient() as client:
         try:
-            resp = await client.get(url, timeout=10.0)
+            resp = await client.get(url, timeout=2.0)
             if resp.status_code == 200:
                 data = resp.json()
                 # Ensure we have imagery because visual libraries demand it

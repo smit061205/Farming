@@ -65,24 +65,42 @@ const SOIL_TYPES_DB = [
 
 export default function FertilizerHubPage() {
   const { token } = useAuth()
-  const [top3, setTop3] = useState([])
-  const [summary, setSummary] = useState('')
-  const [encyclopedia, setEncyclopedia] = useState([])
-  const [isLoadingRecs, setIsLoadingRecs] = useState(true)
-  const [isLoadingEncyc, setIsLoadingEncyc] = useState(true)
+  const [top3, setTop3] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('cached_fert_top3')) || [] } catch { return [] }
+  })
+  const [summary, setSummary] = useState(() => {
+    try { return localStorage.getItem('cached_fert_summary') || '' } catch { return '' }
+  })
+  const [encyclopedia, setEncyclopedia] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('cached_fert_encyc')) || [] } catch { return [] }
+  })
+  const [isLoadingRecs, setIsLoadingRecs] = useState(top3.length === 0)
+  const [isLoadingEncyc, setIsLoadingEncyc] = useState(encyclopedia.length === 0)
 
   useEffect(() => {
     if (!token) return
-    setIsLoadingRecs(true)
+    setIsLoadingRecs(top3.length === 0)
     fetch(`${API_BASE}/api/engine/fertilizer-top3`, { headers: { Authorization: `Bearer ${token}` } })
       .then(res => res.json())
-      .then(data => { setTop3(data.recommendations || []); setSummary(data.summary || ''); setIsLoadingRecs(false) })
+      .then(data => {
+        setTop3(data.recommendations || [])
+        setSummary(data.summary || '')
+        setIsLoadingRecs(false)
+        try {
+          localStorage.setItem('cached_fert_top3', JSON.stringify(data.recommendations || []))
+          localStorage.setItem('cached_fert_summary', data.summary || '')
+        } catch {}
+      })
       .catch(() => setIsLoadingRecs(false))
 
-    setIsLoadingEncyc(true)
+    setIsLoadingEncyc(encyclopedia.length === 0)
     fetch(`${API_BASE}/api/engine/fertilizer-encyclopedia`, { headers: { Authorization: `Bearer ${token}` } })
       .then(res => res.json())
-      .then(data => { setEncyclopedia(data.data || []); setIsLoadingEncyc(false) })
+      .then(data => {
+        setEncyclopedia(data.data || [])
+        setIsLoadingEncyc(false)
+        try { localStorage.setItem('cached_fert_encyc', JSON.stringify(data.data || [])) } catch {}
+      })
       .catch(() => setIsLoadingEncyc(false))
   }, [token])
 

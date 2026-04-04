@@ -765,8 +765,17 @@ FERTILIZER_DB = [
 async def get_fertilizer_encyclopedia():
     return {"status": "success", "data": FERTILIZER_DB}
 
+# Per-user cache: {user_id: (timestamp, response)}
+_fert_cache: dict = {}
+_FERT_TTL = 1800  # 30 minutes
+
 @router.get("/fertilizer-top3")
 async def get_fertilizer_top3(user: dict = Depends(get_current_user)):
+    user_id = str(user.get("_id", ""))
+    cached = _fert_cache.get(user_id)
+    if cached and (_time.time() - cached[0]) < _FERT_TTL:
+        return cached[1]
+
     soil_data = user.get("soil_data", {})
     ph = soil_data.get("ph", "Unknown")
     n = soil_data.get("nitrogen", "Unknown")
@@ -812,16 +821,20 @@ async def get_fertilizer_top3(user: dict = Depends(get_current_user)):
     try:
         response = await _call_groq(system_prompt, user_prompt, json_mode=True)
         data = json.loads(response)
-        return {"status": "success", "summary": data.get("summary", ""), "recommendations": data.get("recommendations", [])}
+        result = {"status": "success", "summary": data.get("summary", ""), "recommendations": data.get("recommendations", [])}
+        _fert_cache[user_id] = (_time.time(), result)
+        return result
     except Exception as e:
         print(f"Fertilizer Top3 error: {e}")
         mock_err1 = dict(FERTILIZER_DB[0])
         mock_err1["reason"] = "Default selection triggered due to missing AI synthesis connection."
-        return {
+        fallback = {
             "status": "mock",
             "summary": "Error reaching the AI. Defaulting to general recommendations.",
             "recommendations": [mock_err1, FERTILIZER_DB[1], FERTILIZER_DB[6]]
         }
+        _fert_cache[user_id] = (_time.time(), fallback)
+        return fallback
 
 
 # ── AI Consultant (Chatbot) ──────────────────────────────────────────────────
