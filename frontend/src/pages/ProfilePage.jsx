@@ -147,22 +147,28 @@ export default function ProfilePage() {
       const formData = new FormData()
       formData.append('file', file)
 
-      const res = await fetch(`${API_BASE}/api/users/soil-data/upload`, {
+      const res = await fetch(`${API_BASE}/api/engine/ocr-soil-report`, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        },
         body: formData
       })
       
-      if (!res.ok) throw new Error("Upload failed")
+      const result = await res.json()
+      if (!res.ok) throw new Error(result.detail || "Extraction failed")
       
-      // Update global context cache
-      await fetchUserProfile()
-      alert("Soil Lab Report Extracted Successfully!")
+      // Auto-populate the form inputs with extracted values
+      setSoilData(prev => ({
+        ...prev,
+        ph: result.data.ph !== null ? result.data.ph.toString() : prev.ph || '',
+        nitrogen: result.data.nitrogen_ppm !== null ? result.data.nitrogen_ppm.toString() : prev.nitrogen || '',
+        phosphorus: result.data.phosphorus_ppm !== null ? result.data.phosphorus_ppm.toString() : prev.phosphorus || '',
+        potassium: result.data.potassium_ppm !== null ? result.data.potassium_ppm.toString() : prev.potassium || '',
+        organic_matter_pct: result.data.organic_matter_pct !== null ? result.data.organic_matter_pct.toString() : prev.organic_matter_pct || ''
+      }))
+      
+      alert("Soil Lab Report Extracted! Please verify the numbers and click 'Save Profile'.")
     } catch (err) {
       console.error(err)
-      alert("Failed to process report.")
+      alert("Failed to process report: " + err.message)
     } finally {
       setIsExtracting(false)
     }
