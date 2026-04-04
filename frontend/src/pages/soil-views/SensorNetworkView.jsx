@@ -64,54 +64,32 @@ export default function SensorNetworkView() {
 
   const handleDownloadScreenshot = async () => {
     const leafletMap = fieldMapRef.current?.getLeafletMap()
-    if (!leafletMap) return
+    const mapContainer = leafletMap?.getContainer()
+    if (!mapContainer) return
+
     setIsCapturing(true)
     try {
-      const mapContainer = leafletMap.getContainer()
-      const { width, height } = mapContainer.getBoundingClientRect()
+      const { toJpeg } = await import('html-to-image')
       
-      // Create a composite canvas from all Leaflet tile canvases
-      const outputCanvas = document.createElement('canvas')
-      outputCanvas.width = width
-      outputCanvas.height = height
-      const ctx = outputCanvas.getContext('2d')
-
-      // White background
-      ctx.fillStyle = '#ffffff'
-      ctx.fillRect(0, 0, width, height)
-
-      // Find all tile layer canvases rendered by Leaflet and composite them
-      const tileCanvases = mapContainer.querySelectorAll('canvas')
-      tileCanvases.forEach((tileCanvas) => {
-        if (tileCanvas.width > 0 && tileCanvas.height > 0) {
-          const rect = tileCanvas.getBoundingClientRect()
-          const containerRect = mapContainer.getBoundingClientRect()
-          const x = rect.left - containerRect.left
-          const y = rect.top - containerRect.top
-          try {
-            ctx.drawImage(tileCanvas, x, y, rect.width, rect.height)
-          } catch (e) {
-            // Skip cross-origin canvas elements
-          }
+      const dataUrl = await toJpeg(mapContainer, {
+        quality: 0.95,
+        backgroundColor: '#ffffff',
+        // Make sure it captures cross origin images perfectly
+        pixelRatio: 2,
+        style: {
+          transform: 'none',
         }
       })
 
-      // Add watermark label in corner
-      ctx.fillStyle = 'rgba(23, 56, 9, 0.8)'
-      ctx.fillRect(8, height - 36, 220, 28)
-      ctx.fillStyle = '#ffffff'
-      ctx.font = 'bold 12px monospace'
-      ctx.fillText(`${activeLayer.toUpperCase()} · ${new Date().toLocaleDateString()}`, 16, height - 16)
-
       const link = document.createElement('a')
       link.download = `field-map-${activeLayer}-${new Date().toISOString().split('T')[0]}.jpeg`
-      link.href = outputCanvas.toDataURL('image/jpeg', 0.92)
+      link.href = dataUrl
       document.body.appendChild(link)
       link.click()
       document.body.removeChild(link)
     } catch (err) {
       console.error('Failed to capture map screenshot:', err)
-      alert('Map capture failed. Please try again.')
+      alert('Map capture failed. Please ensure cross-origin tiles are loaded.')
     } finally {
       setIsCapturing(false)
     }
