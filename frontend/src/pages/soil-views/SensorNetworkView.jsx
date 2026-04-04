@@ -117,10 +117,10 @@ export default function SensorNetworkView() {
 
       {/* Interactive Satellite Lens Switcher */}
       <div className="max-w-7xl mx-auto mb-10">
-        <div className="bg-[#e7e3ca] rounded-[2.5rem] p-4 soil-shadow relative overflow-hidden flex flex-col lg:flex-row gap-6">
+        <div className="bg-[#e7e3ca] rounded-[2.5rem] p-4 soil-shadow relative overflow-hidden flex flex-col lg:flex-row gap-6 lg:h-[520px]">
           
           {/* Controls Panel */}
-          <div className="w-full lg:w-1/3 bg-white rounded-[2rem] p-8 flex flex-col justify-between">
+          <div className="w-full lg:w-1/3 bg-white rounded-[2rem] p-8 flex flex-col justify-between h-full">
             <div>
               <div className="flex items-center gap-3 mb-6">
                 <span className="material-symbols-outlined text-[#173809] bg-[#e7e3ca] rounded-full p-2">satellite_alt</span>
@@ -172,7 +172,7 @@ export default function SensorNetworkView() {
           </div>
 
           {/* Map Viewer */}
-          <div className="w-full lg:w-2/3 h-[500px] bg-white rounded-[2rem] overflow-hidden relative border border-white/50">
+          <div className="w-full lg:w-2/3 min-h-[400px] lg:h-full bg-white rounded-[2rem] overflow-hidden relative border border-white/50">
             <div className="absolute top-4 right-4 z-[500] bg-white/90 backdrop-blur-md px-4 py-2 rounded-full shadow-sm text-[10px] font-bold tracking-widest uppercase flex items-center gap-2">
                {mapUrl ? (
                  <><span className="w-2 h-2 bg-[#2d4f1e] rounded-full animate-pulse"></span> {activeLayer} overlay active</>
@@ -186,6 +186,7 @@ export default function SensorNetworkView() {
               zoom={14}
               geeUrlTemplate={mapUrl}
               showLabel={false}
+              popupContent={satelliteData ? `NDVI: ${satelliteData.ndvi} <br/> NDWI: ${satelliteData.ndwi}` : null}
             />
           </div>
 

@@ -25,7 +25,7 @@ const greenIcon = L.divIcon({
  * `zoom` defaults to 12.
  * `height` controls the map box height (CSS string, default '100%').
  */
-export default function FieldMap({ coordinates, zoom = 12, height = '100%', showLabel = true, geeUrlTemplate = null }) {
+export default function FieldMap({ coordinates, zoom = 12, height = '100%', showLabel = true, geeUrlTemplate = null, popupContent = null }) {
   const containerRef = useRef(null)
   const mapRef = useRef(null)
 
@@ -41,11 +41,11 @@ export default function FieldMap({ coordinates, zoom = 12, height = '100%', show
     const map = L.map(containerRef.current, {
       center: [lat, lng],
       zoom: hasPin ? zoom : 4,
-      zoomControl: false,
+      zoomControl: true,
       attributionControl: false,
-      scrollWheelZoom: false,
-      dragging: false,
-      doubleClickZoom: false,
+      scrollWheelZoom: true,
+      dragging: true,
+      doubleClickZoom: true,
     })
 
     // Standard base map (cartocdn light)
@@ -53,9 +53,15 @@ export default function FieldMap({ coordinates, zoom = 12, height = '100%', show
       maxZoom: 18,
     }).addTo(map)
 
-    if (hasPin && !geeUrlTemplate) {
-      // Only do the pin if there is no geeUrlTemplate on mount
-      L.marker([lat, lng], { icon: greenIcon }).addTo(map)
+    if (hasPin) {
+      const marker = L.marker([lat, lng], { icon: greenIcon }).addTo(map)
+      
+      if (popupContent) {
+        marker.bindTooltip(
+          `<div class="font-bold font-label text-[#173809]">${popupContent}</div>`, 
+          { direction: 'top', offset: [0, -10] }
+        )
+      }
 
       // Subtle pulsing ring
       const ring = L.circleMarker([lat, lng], {
