@@ -1,3 +1,3 @@
-// Central API base URL — reads from .env in production, falls back to localhost in dev
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+// Central API base URL — pointing directly to live Render server to avoid Vercel env issues
+const API_BASE = 'https://farming-pe99.onrender.com'
 export default API_BASE
