@@ -114,6 +114,7 @@ export default function PhaseCredentials({ data, update, next, prev }) {
               value={data.phone || ''}
               onChange={e => { update({ phone: e.target.value.replace(/\D/g, '') }); setPhoneError('') }}
               placeholder="98765 43210"
+              autoComplete="tel"
               className={`${inputClass(!!phoneError)} pl-12`}
             />
           </div>

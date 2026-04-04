@@ -177,6 +177,7 @@ export default function LoginPage() {
                       value={identifier}
                       onChange={(e) => setIdentifier(e.target.value)}
                       placeholder={mode === 'email' ? 'agrarian@terroir.com' : '98765 43210'}
+                      autoComplete={mode === 'email' ? 'username' : 'tel'}
                       required
                       className={`w-full bg-[#e7e3ca] border-0 rounded-full py-5 text-lg font-body text-[#173809] focus:outline-none focus:bg-[#fefae0] transition-colors placeholder:text-[#73796d] ${
                         mode === 'phone' ? 'pl-[88px] pr-8' : 'px-8'
