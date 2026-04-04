@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../../context/AuthContext'
 import SoilTrendsChart from '../../components/SoilTrendsChart'
+import FieldMap from '../../components/FieldMap'
 import API_BASE from '../../api'
 
 export default function SensorNetworkView() {
@@ -32,6 +33,10 @@ export default function SensorNetworkView() {
 
   const [satelliteData, setSatelliteData] = useState(null)
   
+  // Map Lens Switcher State
+  const [activeLayer, setActiveLayer] = useState('ndvi')
+  const [mapUrl, setMapUrl] = useState(null)
+  
   useEffect(() => {
     // Defaulting to Gujarat coordinates if auth user has no location
     const lat = user?.location?.lat || 23.16;
@@ -41,7 +46,18 @@ export default function SensorNetworkView() {
       .then(res => res.json())
       .then(data => setSatelliteData(data))
       .catch(console.error)
-  }, [user])
+
+    fetch(`${API_BASE}/api/engine/satellite-map?lat=${lat}&lng=${lng}&layer_type=${activeLayer}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.status === 'success') {
+          setMapUrl(data.url)
+        } else {
+          setMapUrl(null)
+        }
+      })
+      .catch(console.error)
+  }, [user, activeLayer])
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 ease-out">
@@ -96,6 +112,83 @@ export default function SensorNetworkView() {
               <span className="material-symbols-outlined text-6xl">science</span>
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Interactive Satellite Lens Switcher */}
+      <div className="max-w-7xl mx-auto mb-10">
+        <div className="bg-[#e7e3ca] rounded-[2.5rem] p-4 soil-shadow relative overflow-hidden flex flex-col lg:flex-row gap-6">
+          
+          {/* Controls Panel */}
+          <div className="w-full lg:w-1/3 bg-white rounded-[2rem] p-8 flex flex-col justify-between">
+            <div>
+              <div className="flex items-center gap-3 mb-6">
+                <span className="material-symbols-outlined text-[#173809] bg-[#e7e3ca] rounded-full p-2">satellite_alt</span>
+                <h2 className="text-2xl font-headline font-bold text-[#173809]">Multispectral Lens</h2>
+              </div>
+              <p className="text-sm text-[#43493e] font-medium mb-8">
+                Toggle optical and radiometric sensors to visualize different field metrics.
+              </p>
+
+              <div className="flex flex-col gap-3">
+                <button 
+                  onClick={() => setActiveLayer('truecolor')}
+                  className={`px-6 py-4 rounded-xl font-bold flex justify-between items-center transition-colors ${activeLayer === 'truecolor' ? 'bg-[#173809] text-white' : 'bg-[#f8f4db] text-[#173809] hover:bg-[#c5efad]'}`}
+                >
+                  <span className="flex items-center gap-2"><span className="material-symbols-outlined text-sm">visibility</span> True Color Vision</span>
+                  {activeLayer === 'truecolor' && <span className="w-2 h-2 rounded-full bg-[#c5efad]"></span>}
+                </button>
+
+                <button 
+                  onClick={() => setActiveLayer('ndvi')}
+                  className={`px-6 py-4 rounded-xl font-bold flex justify-between items-center transition-colors ${activeLayer === 'ndvi' ? 'bg-[#173809] text-white' : 'bg-[#f8f4db] text-[#173809] hover:bg-[#c5efad]'}`}
+                >
+                  <span className="flex items-center gap-2"><span className="material-symbols-outlined text-sm">eco</span> NDVI (Crop Vigor)</span>
+                  {activeLayer === 'ndvi' && <span className="w-2 h-2 rounded-full bg-[#c5efad]"></span>}
+                </button>
+
+                <button 
+                  onClick={() => setActiveLayer('ndwi')}
+                  className={`px-6 py-4 rounded-xl font-bold flex justify-between items-center transition-colors ${activeLayer === 'ndwi' ? 'bg-[#173809] text-white' : 'bg-[#f8f4db] text-[#173809] hover:bg-[#c5efad]'}`}
+                >
+                  <span className="flex items-center gap-2"><span className="material-symbols-outlined text-sm">water_drop</span> NDWI (Moisture)</span>
+                  {activeLayer === 'ndwi' && <span className="w-2 h-2 rounded-full bg-[#c5efad]"></span>}
+                </button>
+
+                <button 
+                  onClick={() => setActiveLayer('atmospheric')}
+                  className={`px-6 py-4 rounded-xl font-bold flex justify-between items-center transition-colors ${activeLayer === 'atmospheric' ? 'bg-[#173809] text-white' : 'bg-[#f8f4db] text-[#173809] hover:bg-[#c5efad]'}`}
+                >
+                  <span className="flex items-center gap-2"><span className="material-symbols-outlined text-sm">thermostat</span> Thermal SWIR</span>
+                  {activeLayer === 'atmospheric' && <span className="w-2 h-2 rounded-full bg-[#c5efad]"></span>}
+                </button>
+              </div>
+            </div>
+
+            <div className="mt-8 bg-[#f8f4db] p-4 rounded-xl flex items-center justify-between text-xs font-bold text-[#173809]">
+               <span className="uppercase tracking-widest text-[#173809]/50">Tile Cache</span>
+               <span className="flex items-center gap-1"><span className="material-symbols-outlined text-[14px] text-[#2d4f1e]">cloud_done</span> SYNCED</span>
+            </div>
+          </div>
+
+          {/* Map Viewer */}
+          <div className="w-full lg:w-2/3 h-[500px] bg-white rounded-[2rem] overflow-hidden relative border border-white/50">
+            <div className="absolute top-4 right-4 z-[500] bg-white/90 backdrop-blur-md px-4 py-2 rounded-full shadow-sm text-[10px] font-bold tracking-widest uppercase flex items-center gap-2">
+               {mapUrl ? (
+                 <><span className="w-2 h-2 bg-[#2d4f1e] rounded-full animate-pulse"></span> {activeLayer} overlay active</>
+               ) : (
+                 <><span className="w-2 h-2 bg-[#9f402d] rounded-full"></span> Querying Satellites...</>
+               )}
+            </div>
+            
+            <FieldMap
+              coordinates={user?.location || {lat: 23.16, lng: 72.44, label: "Gujrat"}}
+              zoom={14}
+              geeUrlTemplate={mapUrl}
+              showLabel={false}
+            />
+          </div>
+
         </div>
       </div>
 
