@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
+import API_BASE from '../api'
 
 export default function SoilLibraryPage() {
   const [query, setQuery] = useState('')
@@ -18,7 +19,7 @@ export default function SoilLibraryPage() {
 
   useEffect(() => {
     setIsLoading(true)
-    fetch(`http://127.0.0.1:8000/api/library/search-plants?q=${debouncedQuery}`)
+    fetch(`${API_BASE}/api/library/search-plants?q=${debouncedQuery}`)
       .then(res => res.json())
       .then(data => {
         const fetchedResults = data.data || [];

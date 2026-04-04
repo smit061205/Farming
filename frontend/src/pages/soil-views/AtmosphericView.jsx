@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../../context/AuthContext'
 import FieldMap from '../../components/FieldMap'
+import API_BASE from '../../api'
 
 export default function AtmosphericView() {
   const { user } = useAuth()
@@ -10,7 +11,7 @@ export default function AtmosphericView() {
     const lat = user?.location?.lat || 23.16;
     const lng = user?.location?.lng || 72.44;
     
-    fetch(`http://127.0.0.1:8000/api/engine/satellite-map?lat=${lat}&lng=${lng}&layer_type=atmospheric`)
+    fetch(`${API_BASE}/api/engine/satellite-map?lat=${lat}&lng=${lng}&layer_type=atmospheric`)
       .then(res => res.json())
       .then(data => {
         if (data.status === 'success' && data.url) {
