@@ -41,6 +41,7 @@ export default function LoanApplicationModal({ partner, onClose }) {
     accountName: '',
     phone: '',
     countryCode: '+91',
+    principalAmount: '',
     accountNumber: '',
     confirmAccountNumber: '',
     ifsc: '',
@@ -57,6 +58,7 @@ export default function LoanApplicationModal({ partner, onClose }) {
     const e = {}
     if (!bankData.accountName.trim()) e.accountName = 'Required'
     if (!/^\d{7,15}$/.test(bankData.phone.replace(/\s/g, ''))) e.phone = 'Enter a valid mobile number'
+    if (!bankData.principalAmount || isNaN(bankData.principalAmount) || Number(bankData.principalAmount) < 1000) e.principalAmount = 'Enter an amount of at least 1,000'
     if (!/^\d{9,18}$/.test(bankData.accountNumber)) e.accountNumber = 'Must be 9–18 digits'
     if (bankData.accountNumber !== bankData.confirmAccountNumber) e.confirmAccountNumber = 'Account numbers do not match'
     if (!/^[A-Z]{4}0[A-Z0-9]{6}$/.test(bankData.ifsc.toUpperCase())) e.ifsc = 'Invalid IFSC (e.g. SBIN0001234)'
@@ -203,6 +205,16 @@ export default function LoanApplicationModal({ partner, onClose }) {
                 </div>
 
                 <div>
+                  <label className="block text-xs font-bold uppercase tracking-widest text-[#173809]/60 mb-1">Requested Principal Amount (₹)</label>
+                  <div className="relative">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[#173809]/40 font-bold">₹</span>
+                    <input className={`${inputClass('principalAmount')} pl-8`} placeholder="e.g. 50000" type="text" inputMode="numeric"
+                      value={bankData.principalAmount} onChange={e => setBankData({ ...bankData, principalAmount: e.target.value.replace(/\D/g, '') })} />
+                  </div>
+                  {errors.principalAmount && <p className="text-xs text-[#9f402d] mt-1">{errors.principalAmount}</p>}
+                </div>
+
+                <div>
                   <label className="block text-xs font-bold uppercase tracking-widest text-[#173809]/60 mb-1">
                     Mobile Number <span className="text-[#9f402d] font-black">*</span>
                   </label>
@@ -293,7 +305,8 @@ export default function LoanApplicationModal({ partner, onClose }) {
               <div className="space-y-4">
                 {/* Farm data summary */}
                 <div className="bg-[#fefae0] rounded-2xl p-5 border border-[#173809]/10">
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-[#173809]/50 mb-3">Farm Data To Be Shared</p>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-[#173809]/50 mb-3">Loan Request & Farm Data</p>
+                  <div className="flex justify-between mb-3 pb-3 border-b border-[#173809]/10"><span className="text-[#43493e]/60 text-sm">Principal Amount</span><strong className="text-[#173809] text-base">₹ {Number(bankData.principalAmount).toLocaleString()}</strong></div>
                   <div className="grid grid-cols-2 gap-3 text-sm">
                     <div><span className="text-[#43493e]/60">pH</span> <strong className="notranslate ml-2 text-[#173809]">{soil.ph || '—'}</strong></div>
                     <div><span className="text-[#43493e]/60">Nitrogen</span> <strong className="notranslate ml-2 text-[#173809]">{soil.nitrogen || '—'}</strong></div>
@@ -370,6 +383,7 @@ export default function LoanApplicationModal({ partner, onClose }) {
                       <div class="row"><span>Reference No.</span><strong class="ref">${ref}</strong></div>
                       <div class="row"><span>Submitted</span><strong>${now}</strong></div>
                       <div class="row"><span>Applicant</span><strong>${user?.full_name || 'N/A'}</strong></div>
+                      <div class="row" style="margin-top:8px; padding-top:8px; border-top:1px dashed #e0ddc8;"><span>Requested Principal</span><strong>₹ ${Number(bankData.principalAmount).toLocaleString()}</strong></div>
                     </div>
                     <div class="section"><h2>Lender</h2>
                       <div class="row"><span>Institution</span><strong>${partner.name}</strong></div>
