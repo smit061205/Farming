@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useAuth } from '../../context/AuthContext'
 import SoilTrendsChart from '../../components/SoilTrendsChart'
 import FieldMap from '../../components/FieldMap'
@@ -58,6 +58,33 @@ export default function SensorNetworkView() {
       })
       .catch(console.error)
   }, [user, activeLayer])
+
+  const mapContainerRef = useRef(null)
+  const [isCapturing, setIsCapturing] = useState(false)
+
+  const handleDownloadScreenshot = async () => {
+    if (!mapContainerRef.current) return
+    setIsCapturing(true)
+    try {
+      const html2canvas = (await import('html2canvas')).default
+      const canvas = await html2canvas(mapContainerRef.current, {
+        useCORS: true,
+        allowTaint: false,
+        backgroundColor: null,
+      })
+      const link = document.createElement('a')
+      link.download = `field-map-${activeLayer}-${new Date().toISOString().split('T')[0]}.jpeg`
+      link.href = canvas.toDataURL('image/jpeg', 0.9)
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+    } catch (err) {
+      console.error('Failed to capture map screenshot:', err)
+      alert("Failed to capture map. Ensure cross-origin data is complete.")
+    } finally {
+      setIsCapturing(false)
+    }
+  }
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 ease-out">
@@ -168,13 +195,27 @@ export default function SensorNetworkView() {
           </div>
 
           {/* Map Viewer */}
-          <div className="w-full lg:w-2/3 min-h-[400px] lg:h-full bg-white rounded-[2rem] overflow-hidden relative border border-white/50">
-            <div className="absolute top-4 right-4 z-[500] bg-white/90 backdrop-blur-md px-4 py-2 rounded-full shadow-sm text-[10px] font-bold tracking-widest uppercase flex items-center gap-2">
-               {mapUrl ? (
-                 <><span className="w-2 h-2 bg-[#2d4f1e] rounded-full animate-pulse"></span> {activeLayer} overlay active</>
-               ) : (
-                 <><span className="w-2 h-2 bg-[#9f402d] rounded-full"></span> Querying Satellites...</>
-               )}
+          <div ref={mapContainerRef} className="w-full lg:w-2/3 min-h-[400px] lg:h-full bg-white rounded-[2rem] overflow-hidden relative border border-white/50">
+            <div className="absolute top-4 right-4 z-[500] flex items-center gap-2">
+              <button 
+                onClick={handleDownloadScreenshot}
+                disabled={isCapturing || !mapUrl}
+                className="bg-white/90 backdrop-blur-md px-3 py-2 rounded-full shadow-sm text-[10px] font-bold tracking-widest uppercase flex items-center gap-1 hover:bg-[#c5efad] transition-colors disabled:opacity-50"
+                title="Download Screen Capture"
+              >
+                <span className="material-symbols-outlined text-[14px]">
+                  {isCapturing ? 'hourglass_empty' : 'download'}
+                </span>
+                {isCapturing ? 'Saving...' : 'Save'}
+              </button>
+
+              <div className="bg-white/90 backdrop-blur-md px-4 py-2 rounded-full shadow-sm text-[10px] font-bold tracking-widest uppercase flex items-center gap-2">
+                 {mapUrl ? (
+                   <><span className="w-2 h-2 bg-[#2d4f1e] rounded-full animate-pulse"></span> {activeLayer} overlay active</>
+                 ) : (
+                   <><span className="w-2 h-2 bg-[#9f402d] rounded-full"></span> Querying Satellites...</>
+                 )}
+              </div>
             </div>
             
             <FieldMap

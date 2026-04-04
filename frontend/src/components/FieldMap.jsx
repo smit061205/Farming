@@ -51,6 +51,7 @@ export default function FieldMap({ coordinates, zoom = 12, height = '100%', show
     // Standard base map (cartocdn light)
     L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
       maxZoom: 18,
+      crossOrigin: true
     }).addTo(map)
 
     if (hasPin) {
@@ -95,7 +96,12 @@ export default function FieldMap({ coordinates, zoom = 12, height = '100%', show
     }
 
     // Add new layer
-    eeLayerRef.current = L.tileLayer(geeUrlTemplate, { maxZoom: 18, opacity: 0.85, zIndex: 100 }).addTo(mapRef.current)
+    eeLayerRef.current = L.tileLayer(geeUrlTemplate, { 
+      maxZoom: 18, 
+      opacity: 0.85, 
+      zIndex: 100,
+      crossOrigin: true 
+    }).addTo(mapRef.current)
 
     return () => {
       if (mapRef.current && eeLayerRef.current) {

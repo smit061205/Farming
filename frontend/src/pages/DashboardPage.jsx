@@ -348,7 +348,7 @@ export default function DashboardPage() {
             </button>
 
             <button
-              onClick={() => navigate('/input')}
+              onClick={() => navigate('/soil-health')}
               className="flex-1 group bg-[#9f402d] rounded-[2rem] p-8 text-left hover:bg-[#c05030] transition-all duration-300 relative overflow-hidden"
               style={{ boxShadow: '0 20px 40px rgba(159,64,45,0.2)' }}
             >
@@ -359,7 +359,7 @@ export default function DashboardPage() {
               <h3 className="font-headline text-xl font-bold text-white mb-1 relative z-10">Sync Satellite Data</h3>
               <p className="text-white/70 text-sm mb-4 relative z-10">Fetch live moisture &amp; soil temperature.</p>
               <span className="font-label text-xs font-bold uppercase tracking-widest text-white/80 flex items-center gap-2 relative z-10 group-hover:text-white transition-colors">
-                Go to Analyze <span className="material-symbols-outlined text-base group-hover:translate-x-2 transition-transform">arrow_forward</span>
+                View Soil Health <span className="material-symbols-outlined text-base group-hover:translate-x-2 transition-transform">arrow_forward</span>
               </span>
             </button>
           </div>
