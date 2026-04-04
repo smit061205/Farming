@@ -322,7 +322,7 @@ export default function DashboardPage() {
                 ))}
               </div>
               <button
-                onClick={() => navigate('/fertilizer')}
+                onClick={() => navigate('/fertilizer-hub')}
                 className="mt-6 w-full bg-[#c5efad] text-[#173809] py-3 rounded-full font-label text-xs uppercase tracking-widest font-bold hover:bg-white transition-colors relative z-10"
               >
                 View Full Protocol →
