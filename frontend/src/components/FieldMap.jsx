@@ -34,6 +34,7 @@ export default function FieldMap({ coordinates, zoom = 12, height = '100%', show
   const label = coordinates?.label ?? null
   const hasPin = !!coordinates?.lat
 
+  // Setup base map on mount
   useEffect(() => {
     if (mapRef.current || !containerRef.current) return
 
@@ -47,27 +48,24 @@ export default function FieldMap({ coordinates, zoom = 12, height = '100%', show
       doubleClickZoom: false,
     })
 
-    // Standard base map (greyscale or muted looks better with Sentinel overlays usually, but default OSM for now)
+    // Standard base map (cartocdn light)
     L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
       maxZoom: 18,
     }).addTo(map)
 
-    if (hasPin) {
-      if (geeUrlTemplate) {
-        L.tileLayer(geeUrlTemplate, { maxZoom: 18, opacity: 0.85 }).addTo(map)
-      } else {
-        L.marker([lat, lng], { icon: greenIcon }).addTo(map)
-  
-        // Subtle pulsing ring
-        const ring = L.circleMarker([lat, lng], {
-          radius: 22,
-          color: '#c5efad',
-          weight: 2,
-          opacity: 0.5,
-          fill: false,
-        }).addTo(map)
-        ring.getElement()?.style.setProperty('animation', 'pulse 2s infinite')
-      }
+    if (hasPin && !geeUrlTemplate) {
+      // Only do the pin if there is no geeUrlTemplate on mount
+      L.marker([lat, lng], { icon: greenIcon }).addTo(map)
+
+      // Subtle pulsing ring
+      const ring = L.circleMarker([lat, lng], {
+        radius: 22,
+        color: '#c5efad',
+        weight: 2,
+        opacity: 0.5,
+        fill: false,
+      }).addTo(map)
+      ring.getElement()?.style.setProperty('animation', 'pulse 2s infinite')
     }
 
     mapRef.current = map
@@ -78,6 +76,27 @@ export default function FieldMap({ coordinates, zoom = 12, height = '100%', show
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  // Handle dynamic overlay changes
+  const eeLayerRef = useRef(null)
+  
+  useEffect(() => {
+    if (!mapRef.current || !geeUrlTemplate) return
+
+    // Remove existing layer if it exists
+    if (eeLayerRef.current) {
+      mapRef.current.removeLayer(eeLayerRef.current)
+    }
+
+    // Add new layer
+    eeLayerRef.current = L.tileLayer(geeUrlTemplate, { maxZoom: 18, opacity: 0.85 }).addTo(mapRef.current)
+
+    return () => {
+      if (mapRef.current && eeLayerRef.current) {
+        mapRef.current.removeLayer(eeLayerRef.current)
+      }
+    }
+  }, [geeUrlTemplate])
 
   return (
     <div className="relative w-full overflow-hidden" style={{ height }}>
