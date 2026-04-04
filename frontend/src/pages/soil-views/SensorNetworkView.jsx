@@ -165,10 +165,6 @@ export default function SensorNetworkView() {
               </div>
             </div>
 
-            <div className="mt-8 bg-[#f8f4db] p-4 rounded-xl flex items-center justify-between text-xs font-bold text-[#173809]">
-               <span className="uppercase tracking-widest text-[#173809]/50">Tile Cache</span>
-               <span className="flex items-center gap-1"><span className="material-symbols-outlined text-[14px] text-[#2d4f1e]">cloud_done</span> SYNCED</span>
-            </div>
           </div>
 
           {/* Map Viewer */}
