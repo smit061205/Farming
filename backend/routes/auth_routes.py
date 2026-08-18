@@ -85,30 +85,6 @@ async def register(body: UserRegister):
     token = create_access_token({"sub": str(result.inserted_id)})
     return TokenResponse(access_token=token, user=serialize_user(user_doc))
 
-@router.post("/demo-lender", response_model=TokenResponse)
-async def login_demo_lender():
-    """Bypass full signup for demo purposes, directly creating and logging in a dummy lender."""
-    db = get_db()
-    existing = await db["users"].find_one({"email": "demo.lender@terroir.com"})
-    
-    if existing:
-        token = create_access_token({"sub": str(existing["_id"])})
-        return TokenResponse(access_token=token, user=serialize_user(existing))
-        
-    user_doc = {
-        "full_name": "Global Bank Auth",
-        "email": "demo.lender@terroir.com",
-        "phone": None,
-        "hashed_password": hash_password("demo_password_123"),
-        "role": "lender",
-        "org_name": "Global Bank Demo"
-    }
-    result = await db["users"].insert_one(user_doc)
-    user_doc["_id"] = result.inserted_id
-    token = create_access_token({"sub": str(result.inserted_id)})
-    return TokenResponse(access_token=token, user=serialize_user(user_doc))
-
-
 @router.post("/login", response_model=TokenResponse)
 async def login(body: UserLogin):
     db = get_db()

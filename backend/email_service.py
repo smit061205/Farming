@@ -1,5 +1,5 @@
 """
-email_service.py — Terroir notification mailer
+email_service.py — AgriSense notification mailer
 Uses Gmail SMTP (app password) via environment variables.
 Set SMTP_EMAIL and SMTP_APP_PASSWORD in backend/.env
 """
@@ -49,13 +49,13 @@ def _build_base_html(title: str, color: str, icon: str, body_html: str) -> str:
     <div class="header">
       <span class="icon">{icon}</span>
       <h1>{title}</h1>
-      <p>Technological Terroir · Field Intelligence</p>
+      <p>AgriSense · Fertilizer Recommendations</p>
     </div>
     <div class="body">
       {body_html}
     </div>
     <div class="footer">
-      <p>© 2026 Technological Terroir · <a href="http://localhost:5173/profile">Manage notifications</a></p>
+      <p>© 2026 AgriSense · <a href="http://localhost:5173/profile">Manage notifications</a></p>
     </div>
   </div>
 </body>
@@ -145,7 +145,7 @@ def _send_email(to_email: str, subject: str, html_body: str) -> bool:
         if SMTP_EMAIL and SMTP_PASSWORD:
             msg = MIMEMultipart("alternative")
             msg["Subject"] = subject
-            msg["From"] = f"Technological Terroir <{SMTP_EMAIL}>"
+            msg["From"] = f"AgriSense <{SMTP_EMAIL}>"
             msg["To"] = to_email
             msg.attach(MIMEText(html_body, "html"))
 
@@ -164,7 +164,7 @@ def _send_email(to_email: str, subject: str, html_body: str) -> bool:
         
         # Fallback: Save HTML locally and open in browser
         try:
-            filename = f"terroir_email_demo_{int(time.time())}.html"
+            filename = f"agrisense_email_demo_{int(time.time())}.html"
             temp_path = os.path.join(tempfile.gettempdir(), filename)
             with open(temp_path, "w", encoding="utf-8") as f:
                 f.write(html_body)

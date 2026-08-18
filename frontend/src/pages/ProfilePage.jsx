@@ -213,7 +213,7 @@ export default function ProfilePage() {
                 {fullName || 'Your Name'}
               </h1>
               <p className="text-[#9f402d] font-medium tracking-wide mt-1">
-                {title || 'Agrarian Specialist'}
+                {title || 'Farmer'}
               </p>
 
               <div className="mt-8 w-full flex flex-col gap-3">
@@ -332,9 +332,9 @@ export default function ProfilePage() {
               <div className="absolute top-0 right-0 p-10 opacity-5 font-headline text-[12rem] leading-none pointer-events-none select-none text-[#173809]">ID</div>
 
               <header className="mb-12 relative z-10">
-                <h2 className="font-headline text-4xl font-bold text-[#173809] mb-2">Profile Orchestration</h2>
+                <h2 className="font-headline text-4xl font-bold text-[#173809] mb-2">Profile & Field Settings</h2>
                 <p className="font-body text-lg text-[#43493e] max-w-lg">
-                  Calibrate your digital presence to match the precision of your soil's terroir.
+                  Keep your field location, soil baseline, and contact details current so every recommendation stays accurate.
                 </p>
               </header>
 
@@ -371,7 +371,7 @@ export default function ProfilePage() {
 
                 {/* Title */}
                 <div className="space-y-2">
-                  <label className="font-label text-xs uppercase tracking-widest text-[#173809] font-bold px-4">Agrarian Title</label>
+                  <label className="font-label text-xs uppercase tracking-widest text-[#173809] font-bold px-4">Title</label>
                   <input
                     className="w-full bg-[#f8f4db] rounded-full px-6 py-4 border-none focus:outline-none focus:bg-[#e7e3ca] transition-colors font-body text-[#1d1c0d]"
                     type="text"

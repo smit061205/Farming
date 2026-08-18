@@ -6,6 +6,7 @@ import Footer from '../components/Footer'
 import { useAuth } from '../context/AuthContext'
 import FieldMap from '../components/FieldMap'
 import SoilOCRUploader from '../components/onboarding/SoilOCRUploader'
+import { CROP_OPTIONS, GROWTH_STAGE_OPTIONS } from '../constants/crops'
 
 const NPK_CONFIG = [
   { key: 'N', label: 'Nitrogen', unit: 'mg/kg', min: 0, max: 500, desc: 'Drives leaf & stem growth' },
@@ -29,7 +30,10 @@ export default function InputPage() {
       const saved = localStorage.getItem('last_analysis')
       if (saved) return JSON.parse(saved)
     } catch {}
-    return { N: 96, P: 48, K: 194, pH: 6.8, cropType: 'Wheat', soilType: 'Clay Loam' }
+    return {
+      N: 96, P: 48, K: 194, pH: 6.8, cropType: 'Wheat', soilType: 'Clay Loam',
+      fieldSize: 2, fieldSizeUnit: 'acres', growthStage: 'sowing',
+    }
   })
   const [saveStatus, setSaveStatus] = useState(null) // null | 'saving' | 'saved' | 'error'
 
@@ -50,6 +54,9 @@ export default function InputPage() {
       pH: ph, N: n, P: p, K: k,
       cropType: sd.cropType || 'Wheat',
       soilType: sd.soilType || 'Clay Loam',
+      fieldSize: sd.fieldSize ?? 2,
+      fieldSizeUnit: sd.fieldSizeUnit || 'acres',
+      growthStage: sd.growthStage || 'sowing',
     }
     setValues(initial)
     setSavedValues(initial)
@@ -85,8 +92,12 @@ export default function InputPage() {
   }
 
   const handleChange = (field, valStr) => {
-    if (['cropType', 'soilType'].includes(field)) {
+    if (['cropType', 'soilType', 'fieldSizeUnit', 'growthStage'].includes(field)) {
       setValues(prev => ({ ...prev, [field]: valStr }))
+      return
+    }
+    if (field === 'fieldSize') {
+      setValues(prev => ({ ...prev, fieldSize: valStr === '' ? '' : Math.max(0, parseFloat(valStr) || 0) }))
       return
     }
     if (valStr === '') { setValues(prev => ({ ...prev, [field]: '' })); return }
@@ -140,6 +151,9 @@ export default function InputPage() {
           potassium: parseFloat(values.K),
           cropType: values.cropType,
           soilType: values.soilType,
+          fieldSize: parseFloat(values.fieldSize) || 0,
+          fieldSizeUnit: values.fieldSizeUnit,
+          growthStage: values.growthStage,
         }),
       })
       if (!res.ok) throw new Error('Save failed')
@@ -190,9 +204,9 @@ export default function InputPage() {
         <header className="mb-14 flex items-end justify-between gap-6">
           <div>
             <span className="text-xs font-bold uppercase tracking-[0.3em] text-[#173809]/40 mb-3 block">
-              Field Intelligence Terminal
+              Tell Us About Your Field
             </span>
-            <h1 className="font-headline text-6xl md:text-7xl font-bold text-[#173809] tracking-tighter leading-none">
+            <h1 className="font-headline text-4xl sm:text-5xl md:text-7xl font-bold text-[#173809] tracking-tighter leading-none">
               Analyze Your <span className="italic font-light">Field</span>
             </h1>
           </div>
@@ -295,11 +309,12 @@ export default function InputPage() {
               </div>
             </div>
 
-            {/* Crop & Soil Type */}
-            <div className="grid grid-cols-2 gap-5">
+            {/* Crop, Soil Type & Growth Stage */}
+            <div className="grid grid-cols-3 gap-5">
               {[
-                { field: 'cropType', label: 'Crop Type', options: ['Wheat', 'Rice', 'Corn', 'Sugarcane', 'Cotton', 'Soybeans', 'Vegetables'] },
-                { field: 'soilType', label: 'Soil Type', options: ['Clay Loam', 'Sandy Loam', 'Silt Loam', 'Sandy', 'Loamy', 'Clay'] },
+                { field: 'cropType', label: 'Crop Type', options: CROP_OPTIONS.map(o => ({ value: o, label: o })) },
+                { field: 'soilType', label: 'Soil Type', options: ['Clay Loam', 'Sandy Loam', 'Silt Loam', 'Sandy', 'Loamy', 'Clay'].map(o => ({ value: o, label: o })) },
+                { field: 'growthStage', label: 'Growth Stage', options: GROWTH_STAGE_OPTIONS },
               ].map(({ field, label, options }) => (
                 <div key={field} className="bg-white rounded-3xl p-6 border border-[#173809]/8 shadow-sm">
                   <label className="text-[10px] font-bold uppercase tracking-widest text-[#173809]/40 block mb-3">{label}</label>
@@ -308,10 +323,41 @@ export default function InputPage() {
                     onChange={e => handleChange(field, e.target.value)}
                     className="w-full bg-[#fafaf8] border border-[#173809]/10 rounded-xl px-4 py-3 text-base font-bold text-[#173809] focus:outline-none focus:border-[#173809]/30 cursor-pointer transition-colors"
                   >
-                    {options.map(o => <option key={o}>{o}</option>)}
+                    {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                   </select>
                 </div>
               ))}
+            </div>
+
+            {/* Field Size — drives total product quantity, not just a per-hectare rate */}
+            <div className="bg-white rounded-3xl p-8 border border-[#173809]/8 shadow-sm">
+              <div className="flex items-end justify-between gap-6">
+                <div className="flex-1">
+                  <h2 className="text-xl font-bold text-[#173809]">Field Size</h2>
+                  <p className="text-xs text-[#173809]/40 font-medium mt-0.5 uppercase tracking-widest">Converts dosage rate into total product needed</p>
+                </div>
+                <input
+                  type="number"
+                  min={0} step="0.1"
+                  value={values.fieldSize}
+                  onChange={e => handleChange('fieldSize', e.target.value)}
+                  className="w-28 bg-[#fafaf8] border border-[#173809]/10 rounded-xl px-4 py-3 text-2xl font-headline font-bold text-[#173809] text-right focus:outline-none focus:border-[#173809]/30 transition-colors"
+                />
+                <div className="flex bg-[#fafaf8] border border-[#173809]/10 rounded-xl p-1 shrink-0">
+                  {['acres', 'hectares'].map(u => (
+                    <button
+                      key={u}
+                      type="button"
+                      onClick={() => handleChange('fieldSizeUnit', u)}
+                      className={`px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-widest transition-colors ${
+                        values.fieldSizeUnit === u ? 'bg-[#173809] text-white' : 'text-[#173809]/50 hover:text-[#173809]'
+                      }`}
+                    >
+                      {u}
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
 
             {/* Map Card */}
@@ -378,10 +424,14 @@ export default function InputPage() {
                     </div>
                   )
                 })}
-                <div className="flex items-center gap-4 pt-2 text-xs text-[#173809]/40 font-medium">
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 pt-2 text-xs text-[#173809]/40 font-medium">
                   <span>{values.cropType}</span>
                   <span className="text-[#173809]/20">·</span>
                   <span>{values.soilType}</span>
+                  <span className="text-[#173809]/20">·</span>
+                  <span>{values.fieldSize} {values.fieldSizeUnit}</span>
+                  <span className="text-[#173809]/20">·</span>
+                  <span className="capitalize">{values.growthStage}</span>
                 </div>
               </div>
             </div>
@@ -408,11 +458,11 @@ export default function InputPage() {
               onClick={handleAnalyze}
               className="w-full bg-[#173809] text-white rounded-full py-5 px-10 font-headline text-lg font-bold hover:bg-[#2d4f1e] hover:scale-[0.99] transition-all flex items-center justify-center gap-3 group shadow-[0_8px_30px_rgba(23,56,9,0.2)]"
             >
-              Run AI Analysis
+              Get My Fertilizer Plan
               <span className="material-symbols-outlined group-hover:translate-x-1 transition-transform text-[20px]">arrow_forward</span>
             </button>
             <p className="text-center text-[10px] text-[#173809]/30 uppercase tracking-widest font-bold">
-              Powered by Terroir-Engine v4.0
+              Powered by AgriSense
             </p>
           </div>
         </div>

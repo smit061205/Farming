@@ -8,7 +8,7 @@ import { useAuth } from '../context/AuthContext'
 export default function ConsultPage() {
   const { user, token } = useAuth()
   const [messages, setMessages] = useState([
-    { role: 'assistant', content: "Hello! I'm your Technological Terroir AI Agronomist. I have access to your latest soil metrics and coordinates. How can I assist you with your yield optimization today?" }
+    { role: 'assistant', content: "Hello! I'm your precision fertilizer advisor. I have your latest soil test, crop, and field data on hand — ask me what to apply, how much, and when." }
   ])
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
@@ -115,10 +115,10 @@ export default function ConsultPage() {
         <header className="mb-8">
           <div className="flex items-center gap-3 text-[#173809] mb-3">
             <span className="material-symbols-outlined text-4xl">psychology</span>
-            <h1 className="font-headline text-3xl font-black uppercase tracking-tighter">AI Consultant</h1>
+            <h1 className="font-headline text-3xl font-black uppercase tracking-tighter">Fertilizer Advisor</h1>
           </div>
           <p className="text-[#43493e] max-w-2xl text-sm leading-relaxed">
-            Your personal AI Agronomist. It is fully aware of your verified soil parameters and geographic location to provide hyperspecific farming advice.
+            Ask about your recommended dosage, application timing, or how weather affects your plan — grounded in your actual soil test and field data.
           </p>
         </header>
 
@@ -143,7 +143,7 @@ export default function ConsultPage() {
                       <div className="flex items-center justify-between mb-2 text-[#73796d]">
                         <div className="flex items-center gap-2">
                           <span className="material-symbols-outlined text-sm">psychology</span>
-                          <span className="font-label text-[10px] uppercase tracking-widest font-bold">Terroir AI</span>
+                          <span className="font-label text-[10px] uppercase tracking-widest font-bold">AgriSense</span>
                         </div>
                         <button 
                           onClick={() => handleTTS(msg.content)}
@@ -190,7 +190,7 @@ export default function ConsultPage() {
                   handleSend()
                 }
               }}
-              placeholder="Ask about crops, soil remediation, or market dynamics..."
+              placeholder="Ask about fertilizer dosage, timing, or soil deficiencies..."
               className="notranslate flex-1 bg-white border border-[#173809]/20 rounded-xl px-4 py-3 text-sm text-[#173809] focus:outline-none focus:border-[#9f402d] resize-none h-[52px]"
               rows="1"
             />

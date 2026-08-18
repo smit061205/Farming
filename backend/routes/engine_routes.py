@@ -3,6 +3,7 @@ import json
 import math
 import base64
 import io
+import asyncio
 import httpx
 from fastapi import APIRouter, Depends, UploadFile, File, HTTPException
 from pydantic import BaseModel
@@ -22,6 +23,8 @@ except ImportError:
 
 import gee_client
 import ee
+import fertilizer_engine
+import sustainability_engine
 
 router = APIRouter(prefix="/api/engine", tags=["engine"])
 
@@ -30,10 +33,47 @@ gee_client.initialize_gee()
 
 api_key = os.getenv("GROQ_API_KEY", "").strip().strip('"').strip("'")
 
+def _fetch_satellite_insights_sync(lat: float, lng: float) -> dict:
+    """Blocking Earth Engine work — always call via asyncio.to_thread so it
+    can't freeze the server's event loop for every other request."""
+    from datetime import datetime, timedelta
+    end_date = datetime.now()
+    start_date = end_date - timedelta(days=60)  # Look back 60 days to bypass winter cloud cover
+
+    point = ee.Geometry.Point([lng, lat])
+    roi = point.buffer(200)  # 200m radius around farm
+
+    collection = (ee.ImageCollection('COPERNICUS/S2_SR_HARMONIZED')
+                  .filterBounds(roi)
+                  .filterDate(start_date.strftime('%Y-%m-%d'), end_date.strftime('%Y-%m-%d'))
+                  .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 20))
+                  .sort('system:time_start', False))
+
+    count = collection.size().getInfo()
+    if count == 0:
+        return {"error": "No cloud-free Sentinel-2 imagery found in recent timeframe."}
+
+    image = collection.first()
+
+    ndvi = image.normalizedDifference(['B8', 'B4']).rename('NDVI')
+    ndwi = image.normalizedDifference(['B8', 'B11']).rename('NDWI')
+
+    ndvi_mean = ndvi.reduceRegion(ee.Reducer.mean(), geometry=roi, scale=10).get('NDVI').getInfo()
+    ndwi_mean = ndwi.reduceRegion(ee.Reducer.mean(), geometry=roi, scale=10).get('NDWI').getInfo()
+    image_date = image.date().format('YYYY-MM-dd').getInfo()
+
+    return {
+        "ndvi": round(ndvi_mean, 3) if ndvi_mean else 0.0,
+        "ndwi": round(ndwi_mean, 3) if ndwi_mean else 0.0,
+        "image_date": image_date,
+        "info": "LIVE_DATA"
+    }
+
+
 @router.get("/satellite-insights")
 async def get_satellite_insights(lat: float, lng: float):
     """
-    Query Google Earth Engine for Sentinel-2 satellite imagery over the 
+    Query Google Earth Engine for Sentinel-2 satellite imagery over the
     specified coordinates and calculate multispectral indices (NDVI, NDWI).
     """
     if not gee_client.ee_initialized:
@@ -44,44 +84,9 @@ async def get_satellite_insights(lat: float, lng: float):
             "ndwi": round(random.uniform(0.20, 0.40), 2),
             "info": "MOCK_DATA - Upload GEE Credentials (gee_credentials.json) to enable true Sentinel-2 scans"
         }
-        
+
     try:
-        from datetime import datetime, timedelta
-        end_date = datetime.now()
-        start_date = end_date - timedelta(days=60) # Look back 60 days to bypass winter cloud cover
-        
-        point = ee.Geometry.Point([lng, lat])
-        roi = point.buffer(200) # 200m radius around farm
-        
-        collection = (ee.ImageCollection('COPERNICUS/S2_SR_HARMONIZED')
-                      .filterBounds(roi)
-                      .filterDate(start_date.strftime('%Y-%m-%d'), end_date.strftime('%Y-%m-%d'))
-                      .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 20))
-                      .sort('system:time_start', False))
-                      
-        count = collection.size().getInfo()
-        if count == 0:
-            return {"error": "No cloud-free Sentinel-2 imagery found in recent timeframe."}
-            
-        image = collection.first()
-        
-        # NDVI: (NIR - Red) / (NIR + Red) -> Bands 8 and 4
-        ndvi = image.normalizedDifference(['B8', 'B4']).rename('NDVI')
-        
-        # NDWI (Water): (NIR - SWIR) / (NIR + SWIR) -> Bands 8 and 11
-        ndwi = image.normalizedDifference(['B8', 'B11']).rename('NDWI')
-        
-        ndvi_mean = ndvi.reduceRegion(ee.Reducer.mean(), geometry=roi, scale=10).get('NDVI').getInfo()
-        ndwi_mean = ndwi.reduceRegion(ee.Reducer.mean(), geometry=roi, scale=10).get('NDWI').getInfo()
-        
-        image_date = image.date().format('YYYY-MM-dd').getInfo()
-        
-        return {
-            "ndvi": round(ndvi_mean, 3) if ndvi_mean else 0.0,
-            "ndwi": round(ndwi_mean, 3) if ndwi_mean else 0.0,
-            "image_date": image_date,
-            "info": "LIVE_DATA"
-        }
+        return await asyncio.to_thread(_fetch_satellite_insights_sync, lat, lng)
     except Exception as e:
         print("GEE Pipeline Error:", e)
         import random
@@ -91,65 +96,73 @@ async def get_satellite_insights(lat: float, lng: float):
             "info": f"MOCK_DATA - GEE Failed: {str(e)}"
         }
 
+
+def _fetch_satellite_map_sync(lat: float, lng: float, layer_type: str) -> dict:
+    """Blocking Earth Engine work — always call via asyncio.to_thread."""
+    from datetime import datetime, timedelta
+    end_date = datetime.now()
+    start_date = end_date - timedelta(days=90)  # recent imagery only — a wide date range forces
+                                                 # GEE to mosaic hundreds of scenes, which is what
+                                                 # made this endpoint take minutes instead of seconds
+
+    point = ee.Geometry.Point(lng, lat)
+    roi = point.buffer(200)
+
+    collection = (ee.ImageCollection('COPERNICUS/S2')
+                  .filterBounds(roi)
+                  .filterDate(start_date.strftime('%Y-%m-%d'), end_date.strftime('%Y-%m-%d'))
+                  .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 20))
+                  .sort('system:time_start', False))
+
+    if collection.size().getInfo() == 0:
+        return {"url": None, "error": "No recent Sentinel-2 imagery available."}
+
+    # Single most-recent scene, not a mosaic — plenty for a 200m field radius and
+    # far cheaper for Earth Engine to render into map tiles.
+    image = collection.first()
+
+    if layer_type in ['microbial', 'ndvi']:
+        # Use NDVI visualization for Biomass/Greenness
+        ndvi = image.normalizedDifference(['B8', 'B4'])
+        map_id_dict = ndvi.getMapId({
+            'min': -0.1,
+            'max': 0.8,
+            'palette': ['#9f402d', '#fb9f54', '#e7e3ca', '#c5efad', '#173809']
+        })
+    elif layer_type == 'ndwi':
+        # NDWI for moisture (B8 and B11 for canopy water)
+        ndwi = image.normalizedDifference(['B8', 'B11'])
+        map_id_dict = ndwi.getMapId({
+            'min': -0.3,
+            'max': 0.4,
+            'palette': ['#e7e3ca', '#f8f4db', '#c5efad', '#87ceeb', '#1e90ff', '#00008b']
+        })
+    elif layer_type == 'truecolor':
+        # Visual RGB spectrum
+        map_id_dict = image.getMapId({
+            'bands': ['B4', 'B3', 'B2'],
+            'min': 0, 'max': 3000,
+            'gamma': 1.2
+        })
+    else:  # atmospheric / thermal proxy
+        # Pseudo-color representation for Moisture & Atmosphere (SWIR, NIR, GREEN)
+        map_id_dict = image.getMapId({
+            'bands': ['B12', 'B8', 'B3'],
+            'min': 0, 'max': 3000,
+            'gamma': 1.5
+        })
+
+    tile_url = map_id_dict['tile_fetcher'].url_format
+    return {"url": tile_url, "status": "success"}
+
+
 @router.get("/satellite-map")
 async def get_satellite_map(lat: float, lng: float, layer_type: str = 'microbial'):
     if not gee_client.ee_initialized:
         return {"url": None, "error": "GEE not initialized"}
-        
-    try:
-        import ee
-        point = ee.Geometry.Point(lng, lat)
-        roi = point.buffer(200)
 
-        # Get latest cloud-free Sentinel-2 image
-        collection = (ee.ImageCollection('COPERNICUS/S2')
-                      .filterBounds(roi)
-                      .filterDate('2025-01-01', '2026-12-31')
-                      .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 20))
-                      .sort('system:time_start', False))
-                      
-        if collection.size().getInfo() == 0:
-            return {"url": None, "error": "No Sentinel-2 imagery available."}
-            
-        image = collection.mosaic()
-        
-        map_id_dict = None
-        if layer_type in ['microbial', 'ndvi']:
-            # Use NDVI visualization for Biomass/Greenness
-            ndvi = image.normalizedDifference(['B8', 'B4'])
-            map_id_dict = ndvi.getMapId({
-                'min': -0.1, 
-                'max': 0.8, 
-                'palette': ['#9f402d', '#fb9f54', '#e7e3ca', '#c5efad', '#173809']
-            })
-        elif layer_type == 'ndwi':
-            # NDWI for moisture (B8 and B11 for canopy water)
-            ndwi = image.normalizedDifference(['B8', 'B11'])
-            map_id_dict = ndwi.getMapId({
-                'min': -0.3,
-                'max': 0.4,
-                'palette': ['#e7e3ca', '#f8f4db', '#c5efad', '#87ceeb', '#1e90ff', '#00008b']
-            })
-        elif layer_type == 'truecolor':
-            # Visual RGB spectrum
-            map_id_dict = image.getMapId({
-                'bands': ['B4', 'B3', 'B2'],
-                'min': 0, 'max': 3000,
-                'gamma': 1.2
-            })
-        else: # atmospheric / thermal proxy
-            # Pseudo-color representation for Moisture & Atmosphere (SWIR, NIR, GREEN)
-            map_id_dict = image.getMapId({
-                'bands': ['B12', 'B8', 'B3'], 
-                'min': 0, 'max': 3000,
-                'gamma': 1.5
-            })
-            
-        # Extract the {z}/{x}/{y} url template
-        tile_url = map_id_dict['tile_fetcher'].url_format
-        
-        return {"url": tile_url, "status": "success"}
-        
+    try:
+        return await asyncio.to_thread(_fetch_satellite_map_sync, lat, lng, layer_type)
     except Exception as e:
         print("GEE Map Generation Error:", e)
         return {"url": None, "error": str(e)}
@@ -211,7 +224,7 @@ MOCK_INSIGHTS = {
             "glow": "0 0 15px 2px rgba(159,64,45,0.6)",
             "title": "Low Nitrogen Identified",
             "desc": "Baseline nitrogen is insufficient for optimal yield. Application required.",
-            "actionLabel": "View Protocol →"
+            "actionLabel": "View Plan →"
         },
         {
             "color": "#fb9f54",
@@ -220,14 +233,7 @@ MOCK_INSIGHTS = {
             "desc": "Predicted relative humidity rise tomorrow. Optimal timing for nutrient absorption.",
             "actionLabel": None
         }
-    ],
-    "fertilizerProtocol": {
-        "formulaName": "Granular Urea",
-        "npk": "(46-0-0)",
-        "dosage": "120 kg",
-        "timing": "Pre-Sunrise 4-6 AM",
-        "mode": "Broadcasting"
-    }
+    ]
 }
 
 MOCK_SOIL_REPORT = (
@@ -344,7 +350,8 @@ async def get_insights(
         return MOCK_INSIGHTS
 
     system_prompt = (
-        "You are an elite Agrarian AI for the 'Technological Terroir' platform. "
+        "You are an expert farm advisor for the 'AgriSense' app, writing for smallholder farmers. "
+        "Use simple, everyday words — avoid technical jargon where a plain word works just as well. "
         "Return ONLY valid JSON. Never use markdown, no code fences, no backticks. "
         "Crop names must be real agricultural crops suitable for the given soil conditions."
     )
@@ -375,7 +382,7 @@ Return ONLY this JSON structure (no markdown, no backticks):
             "glow": "0 0 15px 2px rgba(159,64,45,0.6)",
             "title": "<Specific alert based on the above NPK and pH>",
             "desc": "<Actionable advice referencing actual values like pH {soil_ph} or N={soil_n} ppm>",
-            "actionLabel": "View Protocol →"
+            "actionLabel": "View Plan →"
         }},
         {{
             "color": "#fb9f54",
@@ -384,14 +391,7 @@ Return ONLY this JSON structure (no markdown, no backticks):
             "desc": "<Irrigation or timing advice>",
             "actionLabel": null
         }}
-    ],
-    "fertilizerProtocol": {{
-        "formulaName": "<Specific fertilizer name matched to these NPK deficiencies>",
-        "npk": "<N-P-K ratio e.g. 46-0-0>",
-        "dosage": "<kg/ha>",
-        "timing": "<When to apply>",
-        "mode": "<Broadcasting/Foliar/Drip>"
-    }}
+    ]
 }}
 """
 
@@ -447,11 +447,11 @@ async def get_soil_report(lang: str = "en", user: dict = Depends(get_current_use
     }
     native_lang = lang_map.get(lang, "English")
 
-    system_prompt = f"Act as an elite digital agronomist writing for a premium agritech platform. Write elegant, scientific prose without any markdown. YOU MUST WRITE THE ENTIRE RESPONSE NATIVELY IN {native_lang.upper()}."
+    system_prompt = f"Act as a friendly farm advisor explaining a soil test to a smallholder farmer. Use simple, everyday words and short sentences — avoid technical jargon. Write no markdown. YOU MUST WRITE THE ENTIRE RESPONSE NATIVELY IN {native_lang.upper()}."
     user_prompt = f"""
-Write a single sophisticated paragraph (max 4 sentences) analyzing soil with pH {soil_ph} and Nitrogen {soil_n} ppm from a field located in {coords}.
-Cover: how the regional climate and pH affect microbial bioavailability, what the nitrogen level implies for crop phenology in this region, and what precise amendment is needed.
-Do NOT use markdown. Write the response beautifully in {native_lang}.
+Write a short, simple paragraph (max 4 sentences) explaining what pH {soil_ph} and Nitrogen {soil_n} ppm mean for a field located in {coords}.
+Cover: whether the soil is in good shape, what the nitrogen level means for the crop in plain terms, and exactly what amendment is needed.
+Do NOT use markdown. Write in plain, easy-to-understand {native_lang}.
 """
 
     try:
@@ -604,88 +604,172 @@ class DeriveMetricsRequest(BaseModel):
 @router.post("/derive-soil-metrics")
 async def derive_soil_metrics(req: DeriveMetricsRequest):
     """
-    Given NPK + pH + soil type, compute 6 derived soil health metrics.
+    Given NPK + pH + soil type, compute derived soil health metrics.
     All calculations based on standard agronomic formulas.
     """
-    ph = req.ph
-    n = req.nitrogen
-    p = req.phosphorus or max(0, round(50 + (ph - 7) * 10))
-    k = req.potassium or max(0, round(200 + (ph - 7) * 30))
-    soil_type = (req.soil_type or "loam").lower()
+    return fertilizer_engine.compute_soil_diagnostics(req.ph, req.nitrogen, req.phosphorus, req.potassium, req.soil_type)
 
-    # 1. Organic Matter % — Walkley-Black approximation
-    organic_matter_pct = round(n / (10 * 0.05), 2) if n else None
-    if organic_matter_pct:
-        organic_matter_pct = min(organic_matter_pct, 12.0)  # cap at realistic max
 
-    # 2. CEC (Cation Exchange Capacity) meq/100g — estimated from pH + soil type
-    cec_base = {"clay": 30, "loam": 20, "silt": 18, "sandy": 8}.get(soil_type, 20)
-    cec_ph_factor = 1 + (ph - 7) * 0.05  # CEC increases slightly with pH
-    cec = round(cec_base * cec_ph_factor, 1)
+# ── Precision Fertilizer Recommendation Engine ───────────────────────────────
+# Core feature: soil health + crop type + weather patterns -> exact fertilizer
+# type & quantity. The dose itself is deterministic agronomy math
+# (fertilizer_engine.py); Groq only narrates the already-computed numbers.
 
-    # 3. Lime Requirement (kg CaCO3 / ha) — buffer pH method approximation
-    target_ph = 6.5
-    if ph < target_ph:
-        lime_req_kg_ha = round((target_ph - ph) * 2000 * {"clay": 1.5, "loam": 1.0, "silt": 1.1, "sandy": 0.6}.get(soil_type, 1.0))
-    else:
-        lime_req_kg_ha = 0
+_precision_cache: dict = {}   # {user_id: (timestamp, cache_key, response)}
+_PRECISION_TTL = 1800  # 30 minutes — weather/soil don't change faster than this
 
-    # 4. Salinity Risk — heuristic from K level
-    if k > 400:
-        salinity_risk = "high"
-    elif k > 200:
-        salinity_risk = "medium"
-    else:
-        salinity_risk = "low"
 
-    # 5. Microbial Activity — pH is the primary driver
-    if 6.0 <= ph <= 7.5:
-        microbial_activity = "optimal"
-    elif 5.5 <= ph <= 8.0:
-        microbial_activity = "moderate"
-    else:
-        microbial_activity = "stressed"
-
-    # 6. Water Retention — from soil type
-    water_retention = {"clay": "high", "loam": "medium", "silt": "medium-high", "sandy": "low"}.get(soil_type, "medium")
-
-    # 7. Nitrogen Adequacy
-    if n >= 250:
-        n_status = "sufficient"
-    elif n >= 100:
-        n_status = "moderate"
-    else:
-        n_status = "deficient"
-
-    # 8. Phosphorus Adequacy
-    if p >= 50:
-        p_status = "sufficient"
-    elif p >= 20:
-        p_status = "moderate"
-    else:
-        p_status = "deficient"
-
+def _resolve_field_inputs(user: dict, n, p, k, ph, crop_type, field_size, field_size_unit) -> dict:
+    """Merge explicit query overrides with the user's saved soil profile."""
+    soil = user.get("soil_data", {})
+    soil_ph = ph if ph is not None else float(soil.get("ph", 6.5))
+    soil_n  = n  if n  is not None else float(soil.get("nitrogen", 100))
+    soil_p  = p  if p  is not None else float(soil.get("phosphorus") or max(0, round(50 + (soil_ph - 7) * 10)))
+    soil_k  = k  if k  is not None else float(soil.get("potassium")  or max(0, round(200 + (soil_ph - 7) * 30)))
     return {
-        "organic_matter_pct": organic_matter_pct,
-        "cec": cec,
-        "lime_requirement_kg_ha": lime_req_kg_ha,
-        "salinity_risk": salinity_risk,
-        "microbial_activity": microbial_activity,
-        "water_retention": water_retention,
-        "nitrogen_status": n_status,
-        "phosphorus_status": p_status,
-        "ph_adequacy": "optimal" if 6.0 <= ph <= 7.5 else ("slightly off" if 5.5 <= ph <= 8.5 else "critical"),
-        "overall_health_score": _compute_health_score(ph, n, p, k),
+        "ph": soil_ph, "n": soil_n, "p": soil_p, "k": soil_k,
+        "crop": crop_type or soil.get("cropType") or "Wheat",
+        "size": field_size if field_size is not None else float(soil.get("fieldSize") or 2),
+        "size_unit": field_size_unit or soil.get("fieldSizeUnit") or "acres",
     }
 
 
-def _compute_health_score(ph: float, n: float, p: float, k: float) -> int:
-    """0-100 composite soil health score."""
-    ph_score = max(0, 100 - abs(ph - 6.5) * 25)
-    n_score = min(100, (n / 300) * 100)
-    p_score = min(100, (p / 60) * 100)
-    k_score = min(100, (k / 250) * 100)
-    return round((ph_score * 0.4) + (n_score * 0.3) + (p_score * 0.15) + (k_score * 0.15))
+async def _compute_dose_for_user(user: dict, n, p, k, ph, crop_type, field_size, field_size_unit) -> dict:
+    f = _resolve_field_inputs(user, n, p, k, ph, crop_type, field_size, field_size_unit)
+    coords = user.get("coordinates", {})
+    weather = None
+    if isinstance(coords, dict) and coords.get("lat") and coords.get("lng"):
+        weather = await fertilizer_engine.fetch_rain_forecast(coords["lat"], coords["lng"])
+    dose = fertilizer_engine.compute_precision_dose(
+        crop_type=f["crop"], ph=f["ph"], n_ppm=f["n"], p_ppm=f["p"], k_ppm=f["k"],
+        field_size=f["size"], field_size_unit=f["size_unit"], weather=weather,
+    )
+    return dose, f
+
+
+@router.get("/precision-recommendation")
+async def get_precision_recommendation(
+    user: dict = Depends(get_current_user),
+    n: float = None,
+    p: float = None,
+    k: float = None,
+    ph: float = None,
+    crop_type: str = None,
+    field_size: float = None,
+    field_size_unit: str = None,
+):
+    """
+    The core endpoint: computes exact fertilizer type + quantity for this field,
+    adjusted for the 5-day rain/heat forecast, then asks the AI to explain it.
+    """
+    f = _resolve_field_inputs(user, n, p, k, ph, crop_type, field_size, field_size_unit)
+    soil_ph, soil_n, soil_p, soil_k = f["ph"], f["n"], f["p"], f["k"]
+    crop, size, size_unit = f["crop"], f["size"], f["size_unit"]
+
+    cache_key = f"{soil_ph}_{soil_n}_{soil_p}_{soil_k}_{crop}_{size}_{size_unit}"
+    user_id = str(user.get("_id", ""))
+    cached = _precision_cache.get(user_id)
+    if cached and cached[1] == cache_key and (_time.time() - cached[0]) < _PRECISION_TTL:
+        return cached[2]
+
+    dose, _ = await _compute_dose_for_user(user, n, p, k, ph, crop_type, field_size, field_size_unit)
+
+    narrative = None
+    if api_key and _groq_available:
+        system_prompt = (
+            "You are a friendly farm advisor for the AgriSense app, explaining a fertilizer plan to a farmer. "
+            "Use simple, everyday words — no technical jargon. "
+            "You are given ALREADY-COMPUTED dosing numbers — do not invent different figures, "
+            "only explain and contextualize the ones given. Return ONLY valid JSON, no markdown."
+        )
+        user_prompt = f"""
+Computed precision fertilizer plan for {crop} on a {dose['field_size']} {dose['field_size_unit']} field (pH {soil_ph}):
+{json.dumps(dose['nutrients'], indent=2)}
+
+Weather outlook: {json.dumps(dose['weather'])}
+Application plan: {json.dumps(dose['application_plan'])}
+
+Return ONLY this JSON:
+{{
+    "headline": "<one short sentence stating the single most important action>",
+    "explanation": "<2-3 sentences explaining WHY these specific quantities were chosen, referencing the actual deficit numbers above>",
+    "sustainability_note": "<1-2 sentences on how following this exact dose (vs. guessing/over-applying) protects soil health and avoids waste>"
+}}
+"""
+        try:
+            text = await _call_groq(system_prompt, user_prompt, json_mode=True)
+            narrative = json.loads(text)
+        except Exception as e:
+            print(f"Precision recommendation narrative error: {e}")
+
+    if narrative is None:
+        narrative = {
+            "headline": f"Apply computed doses for {crop} based on current soil deficits.",
+            "explanation": "AI narrative unavailable — showing computed agronomy figures only.",
+            "sustainability_note": "Applying only the calculated deficit avoids the over-fertilization that degrades soil and wastes input cost.",
+        }
+
+    result = {"status": "success", "dose": dose, "ai": narrative}
+    _precision_cache[user_id] = (_time.time(), cache_key, result)
+
+    # Persist to history (best-effort — a logging failure shouldn't break the response)
+    try:
+        db = get_db()
+        await db["recommendation_history"].insert_one({
+            "user_id": user["_id"],
+            "created_at": _time.time(),
+            "crop_type": crop,
+            "field_size": size,
+            "field_size_unit": size_unit,
+            "ph": soil_ph, "n": soil_n, "p": soil_p, "k": soil_k,
+            "dose": dose,
+            "headline": narrative.get("headline"),
+        })
+    except Exception as e:
+        print(f"Recommendation history logging error: {e}")
+
+    return result
+
+
+@router.get("/recommendation-history")
+async def get_recommendation_history(user: dict = Depends(get_current_user), limit: int = 20):
+    """Past precision-recommendation runs for this user, newest first."""
+    db = get_db()
+    cursor = db["recommendation_history"].find({"user_id": user["_id"]}).sort("created_at", -1).limit(limit)
+    history = []
+    async for doc in cursor:
+        history.append({
+            "id": str(doc["_id"]),
+            "created_at": doc.get("created_at"),
+            "crop_type": doc.get("crop_type"),
+            "field_size": doc.get("field_size"),
+            "field_size_unit": doc.get("field_size_unit"),
+            "headline": doc.get("headline"),
+            "nutrients": doc.get("dose", {}).get("nutrients", {}),
+        })
+    return {"status": "success", "history": history}
+
+
+@router.get("/sustainability-impact")
+async def get_sustainability_impact(
+    user: dict = Depends(get_current_user),
+    n: float = None,
+    p: float = None,
+    k: float = None,
+    ph: float = None,
+    crop_type: str = None,
+    field_size: float = None,
+    field_size_unit: str = None,
+):
+    """
+    Quantifies what following the precision dose (vs. typical blanket over-application)
+    means for fertilizer savings, avoided emissions, and projected yield/income —
+    the "sustainable practice + farmer income" half of the problem statement.
+    """
+    dose, f = await _compute_dose_for_user(user, n, p, k, ph, crop_type, field_size, field_size_unit)
+    impact = sustainability_engine.compute_sustainability_impact(dose, f["ph"], f["n"], f["p"], f["k"])
+    return {"status": "success", "impact": impact}
+
 
 # ── Fertilizer Hub ───────────────────────────────────────────────────────────
 
@@ -744,7 +828,7 @@ FERTILIZER_DB = [
         "type": "Synthetic",
         "npk": "21-0-0 (+24S)",
         "description": "Delivers dual-action Nitrogen and Sulfur. Excellent for lowering pH in alkaline soils over time.",
-        "bestFor": "Blueberries, Alkaline Terroir"
+        "bestFor": "Blueberries, Alkaline Soils"
     },
     {
         "id": "f8",
@@ -776,77 +860,6 @@ FERTILIZER_DB = [
 async def get_fertilizer_encyclopedia():
     return {"status": "success", "data": FERTILIZER_DB}
 
-# Per-user cache: {user_id: (timestamp, response)}
-_fert_cache: dict = {}
-_FERT_TTL = 1800  # 30 minutes
-
-@router.get("/fertilizer-top3")
-async def get_fertilizer_top3(user: dict = Depends(get_current_user)):
-    user_id = str(user.get("_id", ""))
-    cached = _fert_cache.get(user_id)
-    if cached and (_time.time() - cached[0]) < _FERT_TTL:
-        return cached[1]
-
-    soil_data = user.get("soil_data", {})
-    ph = soil_data.get("ph", "Unknown")
-    n = soil_data.get("nitrogen", "Unknown")
-
-    if not api_key or not _groq_available:
-        # Inject standard reasons into the mock fallback
-        mock_rec1 = dict(FERTILIZER_DB[0])
-        mock_rec1["reason"] = "Due to the critical nitrogen deficiency detected in your baseline, this synthetic granule rapidly injects N to trigger immediate canopy recovery."
-        mock_rec1["dosage"] = "100 kg / hectare"
-        
-        mock_rec2 = dict(FERTILIZER_DB[1])
-        mock_rec2["reason"] = "We selected this to balance the P deficit and support string root structures despite the local alkaline pH buffering."
-        mock_rec2["dosage"] = "40 kg / hectare"
-
-        mock_rec3 = dict(FERTILIZER_DB[6])
-        mock_rec3["reason"] = "The sulfur content actively counters high soil pH, optimizing overall uptake while delivering a secondary nitrogen boost."
-        mock_rec3["dosage"] = "75 kg / hectare"
-
-        return {
-            "status": "mock",
-            "summary": "This is a fallback summary indicating that based on your soil's constraints, we have selected standard commercial amendments to ensure crop viability.",
-            "recommendations": [mock_rec1, mock_rec2, mock_rec3]
-        }
-
-    system_prompt = "You are an elite AI agronomist. Output only valid JSON data matching the user's requested schema, without any markdown formatting."
-    user_prompt = f"""
-    Based on the following user soil baseline:
-    pH: {ph}
-    Nitrogen (ppm): {n}
-
-    Select exactly 3 most appropriate fertilizers from the standard agriculture industry that will correct or support this baseline. Provide an AI rationale summary too.
-    Must match exactly this JSON format:
-    {{
-        "summary": "A highly elegant, single-paragraph (3 sentences max) AI rationale explaining why these specific 3 fertilizers were chosen for the user's specific pH and Nitrogen levels. Use scientific agricultural tone.",
-        "recommendations": [
-            {{ "name": "Fertilizer 1", "npk": "X-X-X", "type": "Synthetic or Organic", "dosage": "Recommended dosage rate per hectare/acre", "reason": "A highly specific, custom 2-sentence AI rationale explaining EXACTLY why this formula was chosen for this farmer's specific pH and Nitrogen levels." }},
-            ... exactly 3 items
-        ]
-    }}
-    Do NOT output anything except the JSON payload.
-    """
-
-    try:
-        response = await _call_groq(system_prompt, user_prompt, json_mode=True)
-        data = json.loads(response)
-        result = {"status": "success", "summary": data.get("summary", ""), "recommendations": data.get("recommendations", [])}
-        _fert_cache[user_id] = (_time.time(), result)
-        return result
-    except Exception as e:
-        print(f"Fertilizer Top3 error: {e}")
-        mock_err1 = dict(FERTILIZER_DB[0])
-        mock_err1["reason"] = "Default selection triggered due to missing AI synthesis connection."
-        fallback = {
-            "status": "mock",
-            "summary": "Error reaching the AI. Defaulting to general recommendations.",
-            "recommendations": [mock_err1, FERTILIZER_DB[1], FERTILIZER_DB[6]]
-        }
-        _fert_cache[user_id] = (_time.time(), fallback)
-        return fallback
-
 
 # ── AI Consultant (Chatbot) ──────────────────────────────────────────────────
 
@@ -873,12 +886,15 @@ async def ai_consultation_chat(req: ChatRequest, current_user = Depends(get_curr
     - Name: Farmer
     - Location Coordinate Info: {current_user.get('coordinates', {}).get('label', 'Unknown')}
     - Latest Soil Scan: pH={soil.get('ph', 'N/A')}, N={soil.get('nitrogen', 'N/A')}ppm, P={soil.get('phosphorus', 'N/A')}ppm, K={soil.get('potassium', 'N/A')}ppm.
+    - Crop: {soil.get('cropType', 'N/A')}, Field Size: {soil.get('fieldSize', 'N/A')} {soil.get('fieldSizeUnit', '')}, Growth Stage: {soil.get('growthStage', 'N/A')}.
     """
 
     system_prompt = {
         "role": "system",
-        "content": f"""You are the 'Technological Terroir AI Agronomist', a highly advanced, professional, and hyper-intelligent consultant for farmers.
-You MUST provide concise, highly accurate, and actionable advice tailored directly to the farmer.
+        "content": f"""You are the AgriSense fertilizer advisor — a friendly expert who helps farmers choose the right fertilizer, the right amount, and the right time to apply it.
+You MUST provide concise, accurate, actionable advice tailored to the farmer's exact soil, crop, and field data below.
+Use simple, everyday words a farmer with no chemistry background would understand — avoid technical jargon.
+Stay focused on fertilizer type, quantity, timing, and sustainable practice — this is not a general farming chatbot.
 Respond natively in whatever language the user speaks. Do NOT use markdown headers, keep text formatting clean (bullet points and bold are fine).
 Do not offer generalities. Use the exact data below to answer their questions.
 
@@ -905,71 +921,3 @@ Do not offer generalities. Use the exact data below to answer their questions.
     except Exception as e:
         print(f"Chatbot Engine error: {e}")
         raise HTTPException(status_code=500, detail="AI Brain unavailable. Please try again later.")
-
-
-# ── Lender Data Feed ─────────────────────────────────────────────────────────
-
-@router.get("/verified-farmers")
-async def get_verified_farmers():
-    """
-    Public ledger endpoint specifically for the Lender Dashboard.
-    Returns anonymized farm data for users who have submitted a valid soil test.
-    Used by banks and lending institutions to find low-risk candidates.
-    """
-    db = get_db()
-    # Fetch users who have filled out their soil profile
-    cursor = db.users.find({"soil_data.ph": {"$exists": True}, "soil_data.nitrogen": {"$exists": True}})
-    
-    candidates = []
-    async for doc in cursor:
-        soil = doc.get("soil_data", {})
-        
-        # Calculate Mock Blockchain Score algorithmically
-        # If pH is neutral-ish (5.5 - 7.5) and Nitrogen is decent, risk is lower.
-        try:
-            ph = float(soil.get("ph", 6.5))
-        except (ValueError, TypeError):
-            ph = 6.5
-            
-        try:
-            n = float(soil.get("nitrogen", 100))
-        except (ValueError, TypeError):
-            n = 100.0
-        
-        if 5.8 <= ph <= 7.2 and n > 40:
-            score = "A+"
-        elif 5.0 <= ph <= 8.0:
-            score = "B"
-        else:
-            score = "C"
-            
-        region = "Unknown Region"
-        raw_coords = doc.get("coordinates", {})
-        # coordinates may be stored as a plain string for legacy users
-        if isinstance(raw_coords, dict):
-            loc_label = raw_coords.get("label", "")
-        elif isinstance(raw_coords, str):
-            loc_label = raw_coords
-        else:
-            loc_label = ""
-        if loc_label:
-            parts = loc_label.split(",")
-            if len(parts) >= 2:
-                region = f"Region: {parts[-2].strip()}, {parts[-1].strip()}"
-            else:
-                region = loc_label
-
-        candidates.append({
-            "id": str(doc["_id"]),
-            "region": region,
-            "crop_type": soil.get("cropType", "Unknown"),
-            "soil_type": soil.get("soilType", "Standard"),
-            "ph": ph,
-            "nitrogen_ppm": n,
-            "phosphorus_ppm": soil.get("phosphorus", 0),
-            "potassium_ppm": soil.get("potassium", 0),
-            "risk_score": score,
-            "verified": True
-        })
-        
-    return {"status": "success", "total_candidates": len(candidates), "candidates": candidates}

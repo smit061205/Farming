@@ -3,38 +3,41 @@ import { createContext, useContext, useState, useEffect, useCallback } from 'rea
 
 const AuthContext = createContext()
 
+function readStoredToken() {
+  return localStorage.getItem('token') || sessionStorage.getItem('token')
+}
+
 export function AuthProvider({ children }) {
-  const [token, setToken] = useState(localStorage.getItem('token'))
+  const [token, setToken] = useState(readStoredToken)
   const [user, setUser] = useState(null)
   const [isLoading, setIsLoading] = useState(true)
 
   const fetchUser = useCallback(async (t) => {
     try {
       const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 5000)
+      const timeoutId = setTimeout(() => controller.abort(), 15000)
       const res = await fetch(`${API_BASE}/api/users/me`, {
         headers: { Authorization: `Bearer ${t}` },
         signal: controller.signal
       })
       clearTimeout(timeoutId)
-      if (!res.ok) throw new Error('Token expired')
-      const data = await res.json()
-      // CRITICAL: If a lender token somehow ended up in the farmer auth store, evict it.
-      if (data.role === 'lender') {
-        console.warn('AuthContext: Lender token detected in farmer store — evicting.')
+
+      if (res.status === 401) {
+        // Token is genuinely invalid/expired — this is the only case that should log the user out.
         localStorage.removeItem('token')
+        sessionStorage.removeItem('token')
         setToken(null)
         setUser(null)
         return
       }
+      if (!res.ok) throw new Error(`Server error ${res.status}`)
+      const data = await res.json()
       setUser(data)
     } catch (err) {
-      console.error('Auth error:', err)
-      // Do NOT call logout() here — it changes token which re-fires
-      // useEffect([token, fetchUser]), causing an infinite render loop.
-      localStorage.removeItem('token')
-      setToken(null)
-      setUser(null)
+      // Network hiccup, timeout, or server hiccup — NOT proof the token is invalid.
+      // Keep the session alive; the user stays logged in and pages fall back to
+      // their own loading/empty states instead of getting bounced to /login.
+      console.error('Auth check failed (keeping session):', err)
     }
   }, [])
 
@@ -46,13 +49,20 @@ export function AuthProvider({ children }) {
     }
   }, [token, fetchUser])
 
-  const login = (newToken) => {
-    localStorage.setItem('token', newToken)
+  const login = (newToken, remember = true) => {
+    if (remember) {
+      localStorage.setItem('token', newToken)
+      sessionStorage.removeItem('token')
+    } else {
+      sessionStorage.setItem('token', newToken)
+      localStorage.removeItem('token')
+    }
     setToken(newToken)
   }
 
   const logout = () => {
     localStorage.removeItem('token')
+    sessionStorage.removeItem('token')
     setToken(null)
     setUser(null)
   }
@@ -72,4 +82,3 @@ export function AuthProvider({ children }) {
 export function useAuth() {
   return useContext(AuthContext)
 }
-

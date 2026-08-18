@@ -1,45 +1,142 @@
+import API_BASE from "../api.js"
+import { useEffect, useState } from 'react'
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts'
+import { useNavigate } from 'react-router-dom'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
+import { useAuth } from '../context/AuthContext'
+
+const inr = (v) => `₹${Number(v || 0).toLocaleString('en-IN')}`
+
+function ImpactStat({ icon, label, value, sub, dark }) {
+  return (
+    <div className={`p-8 rounded-[2rem] soil-shadow ${dark ? 'bg-[#173809] text-white' : 'bg-white'}`}>
+      <div className={`w-14 h-14 rounded-full flex items-center justify-center mb-6 ${dark ? 'bg-white/10' : 'bg-[#173809]/10'}`}>
+        <span className={`material-symbols-outlined text-2xl ${dark ? 'text-[#c5efad]' : 'text-[#173809]'}`}>{icon}</span>
+      </div>
+      <p className={`text-4xl font-headline font-bold mb-1 ${dark ? 'text-[#c5efad]' : 'text-[#173809]'}`}>{value}</p>
+      <p className={`text-sm font-bold uppercase tracking-widest ${dark ? 'text-white/50' : 'text-[#173809]/40'}`}>{label}</p>
+      {sub && <p className={`text-sm mt-3 leading-relaxed ${dark ? 'text-white/70' : 'text-[#43493e]'}`}>{sub}</p>}
+    </div>
+  )
+}
 
 export default function SustainabilityPage() {
+  const { token } = useAuth()
+  const navigate = useNavigate()
+  const [impact, setImpact] = useState(null)
+  const [isLoading, setIsLoading] = useState(!!token)
+
+  useEffect(() => {
+    if (!token) return
+    fetch(`${API_BASE}/api/engine/sustainability-impact`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(res => res.json())
+      .then(data => {
+        if (data.status === 'success') setImpact(data.impact)
+        setIsLoading(false)
+      })
+      .catch(() => setIsLoading(false))
+  }, [token])
+
+  const costData = impact ? [
+    { name: 'Blanket Application', value: impact.cost.baseline_inr, fill: '#e7e3ca' },
+    { name: 'Precision Recommendation', value: impact.cost.recommended_inr, fill: '#173809' },
+  ] : []
+
   return (
     <div className="bg-[#fefae0] text-[#1d1c0d] overflow-x-hidden min-h-screen flex flex-col">
       <Navbar />
 
       <main className="flex-grow pt-32 pb-24 px-8 md:px-12 max-w-[1920px] mx-auto w-full">
-        <header className="mb-20 grid grid-cols-1 md:grid-cols-12 gap-12 items-end max-w-7xl mx-auto">
+        <header className="mb-16 grid grid-cols-1 md:grid-cols-12 gap-12 items-end max-w-7xl mx-auto">
           <div className="md:col-span-8">
             <span className="text-[#9f402d] font-headline font-bold tracking-widest text-xs uppercase mb-4 block">
-              Core Mission
+              Sustainability Impact
             </span>
-            <h1 className="text-6xl md:text-8xl font-headline font-bold text-[#173809] tracking-tighter leading-none mb-8">
-              Yield vs. <br />
-              <span className="italic font-light">Ecology</span>
+            <h1 className="text-4xl sm:text-6xl md:text-8xl font-headline font-bold text-[#173809] tracking-tighter leading-none mb-8">
+              Precision Over <br />
+              <span className="italic font-light">Excess.</span>
             </h1>
             <p className="text-xl md:text-2xl text-[#43493e] font-light max-w-2xl leading-relaxed">
-              We do not accept the premise that maximizing output requires degrading the topsoil layer. True yield is intergenerational.
+              Over-fertilizing doesn't raise yield — it degrades soil, wastes money, and runs off into waterways. Every recommendation here applies only the calculated deficit, nothing more.
             </p>
           </div>
         </header>
 
-        {/* Hero Image */}
-        <div className="max-w-7xl mx-auto mb-20 relative h-[500px] rounded-[3rem] overflow-hidden soil-shadow">
-          <img src="https://images.unsplash.com/photo-1596704017254-9b121068fb31?w=1200&q=80" className="w-full h-full object-cover" alt="Soil Layers" />
-          <div className="absolute inset-0 bg-[#173809]/20 mix-blend-overlay"></div>
-          <div className="absolute bottom-12 left-12 bg-white/90 backdrop-blur-md p-6 rounded-[1.5rem] shadow-xl max-w-md">
-            <h3 className="font-headline font-bold text-[#173809] text-xl mb-2">Our Goal: -30% Nitrate Runoff</h3>
-            <p className="text-[#43493e] text-sm">By hyper-localizing chemical drop zones, we are actively cutting the pollution entering the water table.</p>
-          </div>
+        {/* ── Personalized Impact ── */}
+        <div className="max-w-7xl mx-auto mb-20">
+          {!token ? (
+            <div className="bg-white rounded-[2.5rem] p-12 border border-[#173809]/8 text-center">
+              <p className="text-[#173809]/60 mb-6">Sign in and analyze your field to see your field's personalized sustainability impact.</p>
+              <button
+                onClick={() => navigate('/login')}
+                className="bg-[#173809] text-white px-8 py-4 rounded-full font-bold hover:scale-105 active:scale-95 transition-transform"
+              >
+                Sign In
+              </button>
+            </div>
+          ) : isLoading ? (
+            <div className="animate-pulse bg-[#e7e3ca] h-96 rounded-[2.5rem] w-full" />
+          ) : !impact ? null : (
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                <ImpactStat
+                  icon="eco"
+                  label="Less Fertilizer Used"
+                  value={`${impact.fertilizer_reduction_pct}%`}
+                  sub="vs. blanket application without a soil test"
+                  dark
+                />
+                <ImpactStat
+                  icon="cloud"
+                  label="CO₂e Avoided"
+                  value={`${impact.co2e_avoided_kg} kg`}
+                  sub="From unnecessary nitrogen manufacture & runoff"
+                />
+                <ImpactStat
+                  icon="savings"
+                  label="Input Cost Saved"
+                  value={inr(impact.cost.savings_inr)}
+                  sub="On this field, this season"
+                />
+                <ImpactStat
+                  icon="trending_up"
+                  label="Est. Yield Uplift"
+                  value={`+${impact.yield_uplift_pct}%`}
+                  sub={`Net income impact: ${inr(impact.income.net_income_impact_inr)}`}
+                />
+              </div>
+
+              <div className="bg-white rounded-[2.5rem] p-8 md:p-10 border border-[#173809]/8 shadow-sm">
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-xl font-bold text-[#173809]">Fertilizer Cost: Blanket vs. Precision</h3>
+                  <span className="text-[10px] uppercase tracking-widest text-[#173809]/40 font-bold">Soil Health Score: {impact.health_score}/100</span>
+                </div>
+                <ResponsiveContainer width="100%" height={220}>
+                  <BarChart data={costData} layout="vertical" margin={{ left: 40 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#173809" strokeOpacity={0.08} horizontal={false} />
+                    <XAxis type="number" tickFormatter={(v) => `₹${v}`} tick={{ fill: '#173809', fontSize: 11 }} axisLine={false} tickLine={false} />
+                    <YAxis type="category" dataKey="name" tick={{ fill: '#173809', fontWeight: 700, fontSize: 12 }} axisLine={false} tickLine={false} width={180} />
+                    <Tooltip formatter={(v) => inr(v)} cursor={{ fill: '#173809', fillOpacity: 0.04 }} />
+                    <Bar dataKey="value" radius={[0, 8, 8, 0]} maxBarSize={44}>
+                      {costData.map((entry, i) => <Cell key={i} fill={entry.fill} />)}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+                <p className="text-xs text-[#173809]/40 mt-4">{impact.baseline_method} {impact.disclaimer}</p>
+              </div>
+            </>
+          )}
         </div>
 
         <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-12">
           <div className="bg-[#f8f4db] p-12 rounded-[2rem] soil-shadow">
             <div className="w-16 h-16 rounded-full bg-[#173809]/10 flex items-center justify-center mb-8">
-              <span className="material-symbols-outlined text-[#173809] text-3xl">psychiatry</span>
+              <span className="material-symbols-outlined text-[#173809] text-3xl">science</span>
             </div>
-            <h2 className="text-3xl font-headline font-bold text-[#173809] mb-4">Carbon Sequestration</h2>
+            <h2 className="text-3xl font-headline font-bold text-[#173809] mb-4">Why Excess Hurts</h2>
             <p className="text-[#43493e] leading-relaxed">
-              Our models actively encourage cover crop deployments that maximize root depth. A healthy hectare of mycelium networks can capture metric tons of atmospheric carbon, transitioning farms from heavy emitters into climate stabilizers.
+              Applying more nitrogen than a crop can use doesn't sit in the soil waiting — it leaches into groundwater, runs off into waterways, and volatilizes into the air as greenhouse gas. It also acidifies soil over time, degrading the very productivity it was meant to boost.
             </p>
           </div>
 
@@ -47,9 +144,9 @@ export default function SustainabilityPage() {
             <div className="w-16 h-16 rounded-full bg-white/10 flex items-center justify-center mb-8">
               <span className="material-symbols-outlined text-[#c5efad] text-3xl">water_drop</span>
             </div>
-            <h2 className="text-3xl font-headline font-bold text-[#c5efad] mb-4">Evapotranspiration Deficit</h2>
+            <h2 className="text-3xl font-headline font-bold text-[#c5efad] mb-4">Weather-Aware Timing</h2>
             <p className="text-white/80 leading-relaxed">
-              Global water reservoirs are under unprecedented stress. The Technological Terroir engine constantly maps dew points and solar load to advise on precision irrigation, preventing the disastrous squandering of fresh water on dormant rootscapes.
+              A dose that's right on paper can still wash away in the wrong weather. The engine checks the 5-day rain and heat forecast and splits or times the application to keep nutrients where the crop can actually use them.
             </p>
           </div>
         </div>

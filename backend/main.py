@@ -6,7 +6,6 @@ from database import connect_db, close_db
 from routes.auth_routes import router as auth_router
 from routes.user_routes import router as user_router
 from routes.engine_routes import router as engine_router
-from routes.library_routes import router as library_router
 from routes.notification_routes import router as notification_router
 
 @asynccontextmanager
@@ -17,8 +16,8 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="Technological Terroir API",
-    description="Backend for the Terroir agritech platform",
+    title="AgriSense API",
+    description="Backend for the AgriSense precision fertilizer platform",
     version="1.0.0",
     lifespan=lifespan,
 )
@@ -47,10 +46,9 @@ app.add_middleware(
 app.include_router(auth_router)
 app.include_router(user_router)
 app.include_router(engine_router)
-app.include_router(library_router)
 app.include_router(notification_router)
 
 
 @app.get("/")
 async def root():
-    return {"status": "Terroir API is running 🌱"}
+    return {"status": "AgriSense API is running 🌱"}

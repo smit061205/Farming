@@ -5,11 +5,8 @@ import { AnimatePresence, motion } from 'framer-motion'
 import LandingPage       from './pages/LandingPage'
 import LoginPage         from './pages/LoginPage'
 import InputPage         from './pages/InputPage'
-import LoadingPage       from './pages/LoadingPage'
 import DashboardPage     from './pages/DashboardPage'
-import FertilizerPage    from './pages/FertilizerPage'
 import SoilHealthPage    from './pages/SoilHealthPage'
-import SoilLibraryPage   from './pages/SoilLibraryPage'
 import FertilizerHubPage from './pages/FertilizerHubPage'
 import PrivacyPage       from './pages/PrivacyPage'
 import TermsPage         from './pages/TermsPage'
@@ -18,13 +15,7 @@ import ContactPage       from './pages/ContactPage'
 import ProfilePage       from './pages/ProfilePage'
 import OnboardingPage    from './pages/OnboardingPage'
 import ConsultPage       from './pages/ConsultPage'
-import LoansPage         from './pages/LoansPage'
-import LoanTermsPage    from './pages/LoanTermsPage'
-import LenderLandingPage   from './pages/LenderLandingPage'
-import LenderDashboardPage from './pages/LenderDashboardPage'
-import LenderProfilePage   from './pages/LenderProfilePage'
 import { AuthProvider, useAuth }  from './context/AuthContext'
-import { LenderAuthProvider } from './context/LenderAuthContext'
 import ProtectedRoute    from './components/ProtectedRoute'
 
 // Page fade animation — subtle so it never feels heavy
@@ -144,23 +135,13 @@ function AnimatedRoutes() {
           <Route path="/contact"       element={<ContactPage />} />
 
           {/* Protected */}
-          <Route path="/input"         element={<ProtectedRoute allowedRoles={['farmer']}><InputPage /></ProtectedRoute>} />
-          <Route path="/loading"       element={<ProtectedRoute allowedRoles={['farmer']}><LoadingPage /></ProtectedRoute>} />
-          <Route path="/dashboard"     element={<ProtectedRoute allowedRoles={['farmer']}><DashboardPage /></ProtectedRoute>} />
-          <Route path="/fertilizer"    element={<ProtectedRoute allowedRoles={['farmer']}><FertilizerPage /></ProtectedRoute>} />
-          <Route path="/soil-health"   element={<ProtectedRoute allowedRoles={['farmer']}><SoilHealthPage /></ProtectedRoute>} />
-          <Route path="/soil-library"  element={<ProtectedRoute allowedRoles={['farmer']}><SoilLibraryPage /></ProtectedRoute>} />
-          <Route path="/fertilizer-hub" element={<ProtectedRoute allowedRoles={['farmer']}><FertilizerHubPage /></ProtectedRoute>} />
-          <Route path="/profile"       element={<ProtectedRoute allowedRoles={['farmer']}><ProfilePage /></ProtectedRoute>} />
+          <Route path="/input"         element={<ProtectedRoute><InputPage /></ProtectedRoute>} />
+          <Route path="/dashboard"     element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
+          <Route path="/soil-health"   element={<ProtectedRoute><SoilHealthPage /></ProtectedRoute>} />
+          <Route path="/fertilizer-hub" element={<ProtectedRoute><FertilizerHubPage /></ProtectedRoute>} />
+          <Route path="/profile"       element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
           
-          <Route path="/consult"       element={<ProtectedRoute allowedRoles={['farmer']}><ConsultPage /></ProtectedRoute>} />
-          <Route path="/loans"         element={<ProtectedRoute allowedRoles={['farmer']}><LoansPage /></ProtectedRoute>} />
-          <Route path="/loans/terms"   element={<LoanTermsPage />} />
-
-          {/* Lender Persona */}
-          <Route path="/lender"           element={<LenderLandingPage />} />
-          <Route path="/lender/dashboard" element={<ProtectedRoute allowedRoles={['lender']}><LenderDashboardPage /></ProtectedRoute>} />
-          <Route path="/lender/profile"   element={<ProtectedRoute allowedRoles={['lender']}><LenderProfilePage /></ProtectedRoute>} />
+          <Route path="/consult"       element={<ProtectedRoute><ConsultPage /></ProtectedRoute>} />
 
           <Route path="*"              element={<Navigate to="/" replace />} />
         </Routes>
@@ -171,12 +152,10 @@ function AnimatedRoutes() {
 
 export default function App() {
   return (
-    <LenderAuthProvider>
-      <AuthProvider>
-        <BrowserRouter>
-          <AnimatedRoutes />
-        </BrowserRouter>
-      </AuthProvider>
-    </LenderAuthProvider>
+    <AuthProvider>
+      <BrowserRouter>
+        <AnimatedRoutes />
+      </BrowserRouter>
+    </AuthProvider>
   )
 }

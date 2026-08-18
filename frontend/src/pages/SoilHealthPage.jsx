@@ -6,9 +6,6 @@ import { useReactToPrint } from 'react-to-print'
 import PageTransitionLoader from '../components/PageTransitionLoader'
 
 import SensorNetworkView  from './soil-views/SensorNetworkView'
-import MicrobialMapsView  from './soil-views/MicrobialMapsView'
-import NutrientFlowView   from './soil-views/NutrientFlowView'
-import AtmosphericView    from './soil-views/AtmosphericView'
 import ArchiveView        from './soil-views/ArchiveView'
 import AIInterpreterView  from './soil-views/AIInterpreterView'
 import Navbar             from '../components/Navbar'
@@ -16,9 +13,6 @@ import PrintableReport    from '../components/PrintableReport'
 
 const VIEW_MAP = {
   sensor:      SensorNetworkView,
-  microbial:   MicrobialMapsView,
-  nutrient:    NutrientFlowView,
-  atmospheric: AtmosphericView,
   interpreter: AIInterpreterView,
   archive:     ArchiveView,
 }
@@ -32,9 +26,6 @@ export default function SoilHealthPage() {
 
   const tabs = [
     { id: 'sensor',      icon: 'sensors',     label: 'Sensor Network' },
-    { id: 'microbial',   icon: 'biotech',      label: 'Microbial Maps'  },
-    { id: 'nutrient',    icon: 'grass',        label: 'Nutrient Flow'   },
-    { id: 'atmospheric', icon: 'cloud',        label: 'Atmospheric'     },
     { id: 'interpreter', icon: 'psychology',   label: 'AI Report'       },
     { id: 'archive',     icon: 'auto_stories', label: 'Archive'         },
   ]
@@ -57,7 +48,7 @@ export default function SoilHealthPage() {
 
   const handlePrint = useReactToPrint({
     contentRef: reportRef,
-    documentTitle: 'Agritech_Terroir_Report',
+    documentTitle: 'AgriSense_Soil_Report',
     onAfterPrint:  () => setIsGenerating(false),
     onPrintError:  () => setIsGenerating(false),
   })
@@ -168,7 +159,7 @@ export default function SoilHealthPage() {
       </main>
 
       {/* ── Mobile Bottom Nav ── */}
-      <nav className="md:hidden fixed bottom-0 left-0 w-full bg-[#fefae0]/90 backdrop-blur-lg flex justify-around p-4 z-50 border-t border-[#173809]/10">
+      <nav className="lg:hidden fixed bottom-0 left-0 w-full bg-[#fefae0]/90 backdrop-blur-lg flex justify-around p-4 z-50 border-t border-[#173809]/10">
         {tabs.slice(0, 4).map((tab) => {
           const isActive = activeTab === tab.id
           return (
@@ -190,13 +181,18 @@ export default function SoilHealthPage() {
         <Footer dark />
       </div>
 
-      {/* PrintableReport — always mounted off-screen */}
-      <div
-        style={{ position: 'fixed', top: '-9999px', left: '-9999px', width: '1200px', pointerEvents: 'none', zIndex: -1 }}
-        aria-hidden="true"
-      >
-        <PrintableReport reportRef={reportRef} />
-      </div>
+      {/* PrintableReport — only mounted while generating a download. Mounting it
+          eagerly on every page load was firing a second, duplicate round of
+          satellite/map requests (it renders its own SensorNetworkView copy),
+          which is exactly what was slowing the map down. */}
+      {isGenerating && (
+        <div
+          style={{ position: 'fixed', top: '-9999px', left: '-9999px', width: '1200px', pointerEvents: 'none', zIndex: -1 }}
+          aria-hidden="true"
+        >
+          <PrintableReport reportRef={reportRef} />
+        </div>
+      )}
     </div>
   )
 }

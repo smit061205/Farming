@@ -1,10 +1,7 @@
 import { motion } from 'framer-motion'
 
 /**
- * Shared botanical leaf-ring loader used by:
- *  - LoadingPage (analysis transition)
- *  - SoilHealthPage (tab switching)
- *  - App.jsx (page transitions via AnimatePresence)
+ * Botanical leaf-ring loader used by SoilHealthPage for tab switching.
  *
  * Props:
  *  - label: string — text shown below the spinner

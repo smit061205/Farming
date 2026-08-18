@@ -15,10 +15,10 @@ export default function Footer({ dark = false }) {
     >
       <div className="flex flex-col items-center md:items-start">
         <Link to="/" className="font-headline font-bold text-[#fefae0] text-2xl mb-2 tracking-tighter uppercase hover:opacity-80 transition-opacity">
-          Technological Terroir
+          AgriSense
         </Link>
         <p className="font-body text-sm uppercase tracking-widest text-[#fefae0]/50 max-w-xs text-center md:text-left">
-          © 2026 Technological Terroir. The Digital Agrarian.
+          © 2026 AgriSense. The Right Fertilizer, Every Time.
         </p>
       </div>
       <div className="flex flex-wrap justify-center gap-12 font-body text-sm uppercase tracking-widest">

@@ -15,32 +15,32 @@ export default function TermsPage() {
             Terms of <span className="italic font-light">Service</span>
           </h1>
           <p className="text-xl text-[#43493e] font-medium leading-relaxed">
-            Please read these conditions carefully before integrating our telemetry hardware into your operational ecosystem.
+            Please read this before using AgriSense on your farm.
           </p>
         </header>
 
         <article className="space-y-12 text-[#43493e] leading-relaxed">
           <section>
-            <h2 className="text-2xl font-headline font-bold text-[#173809] mb-4">1. Acceptance of Terms</h2>
+            <h2 className="text-2xl font-headline font-bold text-[#173809] mb-4">1. Using AgriSense</h2>
             <p>
-              By accessing the Technological Terroir dashboard or API, you agree to be bound by these Terms of Service. Disagreeing with these Terms revokes your authorization to utilize our agrarian recommendation engines and machine learning interfaces.
+              By using the AgriSense app, you agree to these terms. If you don't agree, please don't use the app.
             </p>
           </section>
-          
+
           <section>
-            <h2 className="text-2xl font-headline font-bold text-[#173809] mb-4">2. Agnostic Recommendations & Liability</h2>
+            <h2 className="text-2xl font-headline font-bold text-[#173809] mb-4">2. Our Recommendations Are Guidance, Not a Guarantee</h2>
             <p className="mb-4">
-              All fertilization and crop rotation recommendations derived from our system are algorithmic projections based on statistical terroir models. While rigorously tested, we cannot account for unpredictable meteorological anomalies or macro-ecological shifts (e.g. flash flooding, extreme pest invasion).
+              Our fertilizer recommendations are calculated from your soil test, crop, and the weather forecast. While we test our methods carefully, we can't predict every real-world condition — like sudden flooding or a pest outbreak.
             </p>
             <div className="bg-[#e7e3ca] p-6 rounded-[1rem] border-l-4 border-[#9f402d] mt-4">
-              <strong className="text-[#173809]">Disclaimer:</strong> Technological Terroir assumes no liability for chemical scorch or yield reduction resulting from the blind application of unverified protocols. Local agronomic consultation is always advised.
+              <strong className="text-[#173809]">Please note:</strong> AgriSense is not responsible for crop loss or damage from following a recommendation. When in doubt, check with a local agriculture expert before applying any fertilizer.
             </div>
           </section>
 
           <section>
-            <h2 className="text-2xl font-headline font-bold text-[#173809] mb-4">3. Device Lifespan & Network Sync</h2>
+            <h2 className="text-2xl font-headline font-bold text-[#173809] mb-4">3. Your Account</h2>
             <p>
-              Sensor batteries are rated for two full harvest cycles under nominal terrestrial conditions. Interference via dense canopy foliage may artificially degrade the LoRaWAN signal required for our primary dashboards. Ensure sensor heads remain unoccluded.
+              Keep your login details private. You're responsible for the accuracy of the soil and field data you enter — better data means better recommendations.
             </p>
           </section>
         </article>

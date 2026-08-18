@@ -25,7 +25,7 @@ export default function SensorNetworkView() {
   const om = parseFloat(user?.soil_data?.organic_matter_pct ?? 4.2).toFixed(1)
   const cec = parseFloat(user?.soil_data?.cec ?? 15.0).toFixed(1)
   const salinity = user?.soil_data?.salinity_risk ?? "Low"
-  const limeReq = user?.soil_data?.lime_requirement_tons_per_ha ?? 0
+  const limeReq = user?.soil_data?.lime_requirement_kg_ha ?? 0
 
   const phScore = Math.max(0, Math.min(100, Math.round(100 - Math.abs(soilPh - 6.5) * 20)))
   const nScore = Math.max(0, Math.min(100, Math.round((soilN / 300) * 100)))
@@ -38,27 +38,31 @@ export default function SensorNetworkView() {
   // Map Lens Switcher State
   const [activeLayer, setActiveLayer] = useState('ndvi')
   const [mapUrl, setMapUrl] = useState(null)
-  
+  const [mapStatus, setMapStatus] = useState('loading') // 'loading' | 'success' | 'empty'
+
   useEffect(() => {
     // Defaulting to Gujarat coordinates if auth user has no location
-    const lat = user?.location?.lat || 23.16;
-    const lng = user?.location?.lng || 72.44;
-    
+    const lat = user?.coordinates?.lat || 23.16;
+    const lng = user?.coordinates?.lng || 72.44;
+
     fetch(`${API_BASE}/api/engine/satellite-insights?lat=${lat}&lng=${lng}`)
       .then(res => res.json())
       .then(data => setSatelliteData(data))
       .catch(console.error)
 
+    setMapStatus('loading')
     fetch(`${API_BASE}/api/engine/satellite-map?lat=${lat}&lng=${lng}&layer_type=${activeLayer}`)
       .then(res => res.json())
       .then(data => {
         if (data.status === 'success') {
           setMapUrl(data.url)
+          setMapStatus('success')
         } else {
           setMapUrl(null)
+          setMapStatus('empty')
         }
       })
-      .catch(console.error)
+      .catch(() => { setMapUrl(null); setMapStatus('empty') })
   }, [user, activeLayer])
 
   const fieldMapRef = useRef(null)
@@ -107,7 +111,7 @@ export default function SensorNetworkView() {
             <span className="text-[#9f402d] font-headline font-bold tracking-widest text-xs uppercase mb-2 block">
               Live Field Status
             </span>
-            <h1 className="text-5xl md:text-6xl font-headline font-bold text-[#173809] tracking-tighter leading-none">
+            <h1 className="text-3xl sm:text-4xl md:text-6xl font-headline font-bold text-[#173809] tracking-tighter leading-none">
               Soil Intelligence
             </h1>
           </div>
@@ -119,7 +123,7 @@ export default function SensorNetworkView() {
         {/* 4-Column Symmetrical KPI Grid */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
           <div className="bg-[#e7e3ca] rounded-3xl p-6 soil-shadow relative overflow-hidden flex flex-col justify-between">
-            <span className="text-[#173809] font-bold text-xs uppercase tracking-widest mb-4">Vitality Index</span>
+            <span className="text-[#173809] font-bold text-xs uppercase tracking-widest mb-4">Soil Health</span>
             <div className="flex items-baseline gap-2 z-10">
               <span className="text-5xl font-headline font-bold text-[#173809]">{vitality}%</span>
               <span className="text-[#2d4f1e] font-bold text-sm tracking-wide">{vitality > 85 ? 'Optimal' : vitality > 60 ? 'Stable' : 'Critical'}</span>
@@ -127,7 +131,7 @@ export default function SensorNetworkView() {
             <div className="absolute -right-4 -bottom-4 w-24 h-24 bg-[#c5efad]/40 rounded-full blur-2xl"></div>
           </div>
           <div className="bg-[#f8f4db] rounded-3xl p-6 soil-shadow flex flex-col justify-between border border-white/50">
-            <span className="text-[#173809] font-bold text-xs uppercase tracking-widest mb-4">Cation Exchange Limit</span>
+            <span className="text-[#173809] font-bold text-xs uppercase tracking-widest mb-4">Nutrient Holding</span>
             <div className="flex items-baseline gap-2">
               <span className="text-5xl font-headline font-bold text-[#173809]">{cec}</span>
               <span className="text-[#173809]/60 font-bold text-sm">meq/100g</span>
@@ -141,7 +145,7 @@ export default function SensorNetworkView() {
             </div>
           </div>
           <div className="bg-[#173809] text-white rounded-3xl p-6 soil-shadow flex flex-col justify-between relative overflow-hidden">
-            <span className="text-white/70 font-bold text-xs uppercase tracking-widest mb-4">pH Equilibrium</span>
+            <span className="text-white/70 font-bold text-xs uppercase tracking-widest mb-4">Soil pH</span>
             <div className="flex items-baseline gap-2 z-10">
               <span className="text-5xl font-headline font-bold text-white">{soilPh.toFixed(1)}</span>
               <span className="text-[#c5efad] font-bold text-sm">{phStatus}</span>
@@ -221,17 +225,19 @@ export default function SensorNetworkView() {
               </button>
 
               <div className="bg-white/90 backdrop-blur-md px-4 py-2 rounded-full shadow-sm text-[10px] font-bold tracking-widest uppercase flex items-center gap-2">
-                 {mapUrl ? (
+                 {mapStatus === 'success' ? (
                    <><span className="w-2 h-2 bg-[#2d4f1e] rounded-full animate-pulse"></span> {activeLayer} overlay active</>
+                 ) : mapStatus === 'loading' ? (
+                   <><span className="w-2 h-2 bg-[#9f402d] rounded-full animate-pulse"></span> Querying satellites...</>
                  ) : (
-                   <><span className="w-2 h-2 bg-[#9f402d] rounded-full"></span> Querying Satellites...</>
+                   <><span className="w-2 h-2 bg-[#173809]/30 rounded-full"></span> No recent cloud-free image</>
                  )}
               </div>
             </div>
             
             <FieldMap
               ref={fieldMapRef}
-              coordinates={user?.location || {lat: 23.16, lng: 72.44, label: "Gujrat"}}
+              coordinates={user?.coordinates || {lat: 23.16, lng: 72.44, label: "Gujarat"}}
               zoom={14}
               geeUrlTemplate={mapUrl}
               showLabel={false}
@@ -245,11 +251,11 @@ export default function SensorNetworkView() {
       {/* Main 50/50 Symmetrical Split */}
       <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10">
         
-        {/* Left Column: Macro-Nutrient Stratification */}
+        {/* Left Column: Nutrient Levels */}
         <div className="bg-[#f8f4db] rounded-[2.5rem] p-10 soil-shadow flex flex-col">
           <div className="flex items-center gap-3 mb-10">
             <span className="material-symbols-outlined text-[#173809] bg-[#e7e3ca] rounded-full p-2">grass</span>
-            <h2 className="text-2xl font-headline font-bold text-[#173809]">Macro-Nutrient Stratification</h2>
+            <h2 className="text-2xl font-headline font-bold text-[#173809]">Nutrient Levels</h2>
           </div>
           
           <div className="space-y-10 flex-1 flex flex-col justify-center">
@@ -292,18 +298,18 @@ export default function SensorNetworkView() {
           </div>
         </div>
 
-        {/* Right Column: Physical & Diagnostic Risk Profile */}
+        {/* Right Column: Soil Risks */}
         <div className="bg-[#173809] text-[#fefae0] rounded-[2.5rem] p-10 soil-shadow flex flex-col relative overflow-hidden">
           <div className="flex items-center gap-3 mb-10 relative z-10">
             <span className="material-symbols-outlined text-[#173809] bg-[#c5efad] rounded-full p-2">analytics</span>
-            <h2 className="text-2xl font-headline font-bold text-white">Diagnostic Risk Profile</h2>
+            <h2 className="text-2xl font-headline font-bold text-white">Soil Risks</h2>
           </div>
           
           <div className="grid grid-cols-2 gap-x-8 gap-y-10 flex-1 content-center relative z-10">
             <div>
               <p className="text-[#c5efad] text-xs font-bold uppercase tracking-widest mb-1">Lime Requirement</p>
-              <p className="text-3xl font-headline font-bold text-white mb-2">{limeReq} <span className="text-lg text-white/50">t/ha</span></p>
-              <p className="text-xs text-white/50">{limeReq > 0 ? 'Corrective amendent advised' : 'No lime required'}</p>
+              <p className="text-3xl font-headline font-bold text-white mb-2">{limeReq} <span className="text-lg text-white/50">kg/ha</span></p>
+              <p className="text-xs text-white/50">{limeReq > 0 ? 'Corrective amendment advised' : 'No lime required'}</p>
             </div>
             <div>
                <p className="text-[#c5efad] text-xs font-bold uppercase tracking-widest mb-1">Salinity Risk</p>
@@ -311,9 +317,9 @@ export default function SensorNetworkView() {
               <p className="text-xs text-white/50">Electrical conductivity assessment</p>
             </div>
             <div>
-               <p className="text-[#c5efad] text-xs font-bold uppercase tracking-widest mb-1">Buffer pH Status</p>
-              <p className="text-3xl font-headline font-bold text-white mb-2">Stable</p>
-              <p className="text-xs text-white/50">Calculated from CEC & base saturation</p>
+               <p className="text-[#c5efad] text-xs font-bold uppercase tracking-widest mb-1">pH Status</p>
+              <p className="text-3xl font-headline font-bold text-white mb-2 capitalize">{user?.soil_data?.ph_adequacy || 'Unknown'}</p>
+              <p className="text-xs text-white/50">Calculated from your soil test</p>
             </div>
             <div>
                <p className="text-[#c5efad] text-xs font-bold uppercase tracking-widest mb-1">Soil Texture</p>
@@ -333,7 +339,7 @@ export default function SensorNetworkView() {
         {/* Wide Chart */}
         <div className="lg:col-span-2 bg-white rounded-[2.5rem] p-10 soil-shadow flex flex-col">
           <div className="flex justify-between items-center mb-8">
-            <h2 className="text-2xl font-headline font-bold text-[#173809]">Telemetry Projection</h2>
+            <h2 className="text-2xl font-headline font-bold text-[#173809]">Trends Over Time</h2>
             <div className="flex gap-4">
               {satelliteData?.info?.includes('LIVE_DATA') ? (
                 <span className="flex items-center gap-1.5 text-xs font-bold text-[#2d4f1e] whitespace-nowrap bg-[#c5efad]/30 px-3 py-1 rounded-full">
@@ -372,15 +378,15 @@ export default function SensorNetworkView() {
         {/* Action Panel */}
         <div className="lg:col-span-1 bg-[#9f402d] text-white rounded-[2.5rem] p-10 soil-shadow flex flex-col relative overflow-hidden">
           <div className="relative z-10 flex flex-col h-full">
-            <h2 className="text-3xl font-headline font-bold mb-4 tracking-tighter leading-tight">Recommended<br/>Culturals</h2>
+            <h2 className="text-3xl font-headline font-bold mb-4 tracking-tighter leading-tight">What To Do<br/>Next</h2>
             <p className="text-white/80 text-sm font-medium leading-relaxed mb-10">
-              Based on the diagnostic profile, your soil presents an opportunity for targeted biological inoculants to boost low solubility reserves.
+              Your soil could use a boost from natural microbes to help release more nutrients to your crop.
             </p>
-            
-            <button 
+
+            <button
               onClick={() => navigate('/dashboard#ai-crop-recommendations')}
               className="mt-auto bg-white text-[#9f402d] rounded-full py-4 px-6 font-bold text-sm tracking-widest uppercase hover:bg-[#173809] hover:text-white transition-colors duration-300 flex items-center justify-between group">
-              Generate Protocol
+              See Recommendations
               <span className="material-symbols-outlined transform group-hover:translate-x-1 transition-transform">arrow_forward</span>
             </button>
           </div>

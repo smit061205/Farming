@@ -63,35 +63,31 @@ const SOIL_TYPES_DB = [
   }
 ]
 
+const NUTRIENT_META = {
+  nitrogen:   { short: 'N', color: '#173809' },
+  phosphorus: { short: 'P', color: '#9f402d' },
+  potassium:  { short: 'K', color: '#4e2500' },
+}
+
 export default function FertilizerHubPage() {
   const { token } = useAuth()
-  const [top3, setTop3] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('cached_fert_top3')) || [] } catch { return [] }
-  })
-  const [summary, setSummary] = useState(() => {
-    try { return localStorage.getItem('cached_fert_summary') || '' } catch { return '' }
-  })
+  const [precision, setPrecision] = useState(null)
+  const [isLoadingPrecision, setIsLoadingPrecision] = useState(true)
   const [encyclopedia, setEncyclopedia] = useState(() => {
     try { return JSON.parse(localStorage.getItem('cached_fert_encyc')) || [] } catch { return [] }
   })
-  const [isLoadingRecs, setIsLoadingRecs] = useState(top3.length === 0)
   const [isLoadingEncyc, setIsLoadingEncyc] = useState(encyclopedia.length === 0)
 
   useEffect(() => {
     if (!token) return
-    setIsLoadingRecs(top3.length === 0)
-    fetch(`${API_BASE}/api/engine/fertilizer-top3`, { headers: { Authorization: `Bearer ${token}` } })
+    setIsLoadingPrecision(true)
+    fetch(`${API_BASE}/api/engine/precision-recommendation`, { headers: { Authorization: `Bearer ${token}` } })
       .then(res => res.json())
       .then(data => {
-        setTop3(data.recommendations || [])
-        setSummary(data.summary || '')
-        setIsLoadingRecs(false)
-        try {
-          localStorage.setItem('cached_fert_top3', JSON.stringify(data.recommendations || []))
-          localStorage.setItem('cached_fert_summary', data.summary || '')
-        } catch {}
+        if (data.status === 'success') setPrecision(data)
+        setIsLoadingPrecision(false)
       })
-      .catch(() => setIsLoadingRecs(false))
+      .catch(() => setIsLoadingPrecision(false))
 
     setIsLoadingEncyc(encyclopedia.length === 0)
     fetch(`${API_BASE}/api/engine/fertilizer-encyclopedia`, { headers: { Authorization: `Bearer ${token}` } })
@@ -110,57 +106,109 @@ export default function FertilizerHubPage() {
 
       <main className="flex-grow pt-32 pb-24 px-4 md:px-12 max-w-[1920px] mx-auto w-full">
 
-        {/* ── AI Top 3 ── */}
+        {/* ── Precision Recommendation ── */}
         <section className="mb-24 max-w-7xl mx-auto">
-          <header className="mb-12">
-            <span className="font-label uppercase tracking-[0.3em] text-[#9f402d] text-sm font-bold mb-4 block">Algorithmic Nutrition</span>
-            <h1 className="font-headline text-5xl md:text-7xl font-bold text-[#173809] tracking-tighter leading-none mb-6">Precision Formulas</h1>
-            {isLoadingRecs ? (
-              <div className="animate-pulse bg-[#e7e3ca] h-24 rounded-2xl w-full max-w-3xl" />
-            ) : (
-              <div className="bg-[#173809] text-white p-6 md:p-8 rounded-[2rem] max-w-4xl shadow-xl flex gap-6 relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-64 h-64 bg-[#c5efad]/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
-                <div className="shrink-0 pt-1"><span className="material-symbols-outlined text-[#c5efad] text-3xl">smart_toy</span></div>
-                <div className="relative z-10">
-                  <h3 className="text-sm font-bold text-[#c5efad] uppercase tracking-widest mb-2">AI Analysis</h3>
-                  <p className="text-lg md:text-xl font-medium leading-relaxed opacity-90">{summary}</p>
-                </div>
-              </div>
-            )}
+          <header className="mb-10">
+            <span className="font-label uppercase tracking-[0.3em] text-[#9f402d] text-sm font-bold mb-4 block">Made For Your Field</span>
+            <h1 className="font-headline text-3xl sm:text-4xl md:text-7xl font-bold text-[#173809] tracking-tighter leading-none mb-6">Your Fertilizer Plan</h1>
           </header>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {isLoadingRecs ? [1,2,3].map(i => (
-              <div key={i} className="animate-pulse bg-white/50 h-80 rounded-[2.5rem] border border-[#173809]/10" />
-            )) : top3.map((fert, idx) => (
-              <div key={idx} className="bg-white rounded-[2.5rem] p-8 shadow-[0_20px_40px_rgba(23,56,9,0.05)] border border-[#173809]/5 relative overflow-hidden group hover:-translate-y-2 transition-transform duration-300 flex flex-col h-full">
-                <div className="flex justify-between items-center mb-6 border-b border-[#173809]/5 pb-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#173809] to-[#2d4f1e] text-white flex items-center justify-center font-bold shadow-md">#{idx + 1}</div>
-                    <span className="text-xs font-bold text-[#173809]/40 uppercase tracking-widest">Priority Rank</span>
+          {isLoadingPrecision ? (
+            <div className="animate-pulse bg-[#e7e3ca] h-96 rounded-[2.5rem] w-full" />
+          ) : !precision ? (
+            <div className="bg-white rounded-[2.5rem] p-10 border border-[#173809]/8 text-[#173809]/50">
+              Set your soil data, crop, and field size on the Analyze page to generate a precision plan.
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+              {/* AI narrative */}
+              <div className="lg:col-span-5 bg-[#173809] text-white rounded-[2.5rem] p-8 md:p-10 shadow-xl relative overflow-hidden flex flex-col">
+                <div className="absolute top-0 right-0 w-64 h-64 bg-[#c5efad]/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+                <div className="relative z-10 flex-grow">
+                  <span className="text-xs font-bold text-[#c5efad] uppercase tracking-widest">{precision.dose.crop_type} · {precision.dose.field_size} {precision.dose.field_size_unit}</span>
+                  <h3 className="text-2xl md:text-3xl font-headline font-bold mt-3 mb-5 leading-tight">{precision.ai.headline}</h3>
+                  <p className="text-white/80 leading-relaxed mb-6">{precision.ai.explanation}</p>
+                  <div className="bg-white/10 rounded-2xl p-5 border border-white/5 flex gap-3">
+                    <span className="material-symbols-outlined text-[#c5efad] shrink-0">eco</span>
+                    <p className="text-sm text-[#c5efad]/90 leading-relaxed">{precision.ai.sustainability_note}</p>
                   </div>
-                  <span className={`text-[10px] uppercase font-bold tracking-widest px-3 py-1 rounded-full ${fert.type === 'Organic' ? 'bg-[#c5efad]/40 text-[#173809]' : 'bg-[#e7e3ca] text-[#173809]'}`}>
-                    {fert.type || 'Standard'}
-                  </span>
                 </div>
-                <h3 className="text-3xl font-headline font-bold text-[#173809] mb-1 line-clamp-1">{fert.name}</h3>
-                <p className="text-2xl font-black text-[#9f402d] tracking-widest mb-6 font-mono">{fert.npk}</p>
-                <div className="bg-gradient-to-br from-[#f8f4db] to-[#fefae0] p-6 rounded-2xl border border-[#173809]/5 flex-grow shadow-inner">
-                  <div className="flex items-center gap-2 mb-3">
-                    <span className="material-symbols-outlined text-[#9f402d] text-lg">auto_awesome</span>
-                    <p className="text-[10px] uppercase tracking-widest text-[#9f402d] font-bold">AI Selection Rationale</p>
-                  </div>
-                  <p className="text-[#1d1c0d] font-medium leading-relaxed italic border-l-2 border-[#9f402d]/30 pl-4">{fert.reason || fert.description}</p>
-                </div>
-                {fert.dosage && (
-                  <div className="mt-6 pt-5 border-t border-[#173809]/10 flex items-center justify-between">
-                    <span className="text-xs uppercase tracking-widest text-[#173809]/40 font-bold flex items-center gap-1"><span className="material-symbols-outlined text-[14px]">scale</span> Target Dosage</span>
-                    <span className="font-bold text-[#173809] bg-[#e7e3ca]/50 px-3 py-1 rounded-md">{fert.dosage}</span>
+
+                {precision.dose.weather.rain_forecast_mm_5d !== null && (
+                  <div className="relative z-10 mt-6 pt-6 border-t border-white/10 flex items-center gap-6 text-sm">
+                    <div className="flex items-center gap-2">
+                      <span className="material-symbols-outlined text-[18px] text-[#c5efad]">rainy</span>
+                      {precision.dose.weather.rain_forecast_mm_5d}mm / 5d
+                    </div>
+                    {precision.dose.weather.avg_temp_c !== null && (
+                      <div className="flex items-center gap-2">
+                        <span className="material-symbols-outlined text-[18px] text-[#c5efad]">thermostat</span>
+                        {precision.dose.weather.avg_temp_c}°C avg
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
-            ))}
-          </div>
+
+              {/* Nutrient dosing table */}
+              <div className="lg:col-span-7 bg-white rounded-[2.5rem] p-8 md:p-10 border border-[#173809]/8 shadow-sm">
+                <h3 className="text-xl font-bold text-[#173809] mb-6">How Much to Apply</h3>
+                <div className="space-y-5">
+                  {Object.entries(precision.dose.nutrients).map(([label, data]) => {
+                    const meta = NUTRIENT_META[label]
+                    return (
+                      <div key={label} className="flex items-center gap-5 pb-5 border-b border-[#173809]/6 last:border-0 last:pb-0">
+                        <div
+                          className="w-12 h-12 rounded-2xl flex items-center justify-center font-bold text-lg shrink-0"
+                          style={{ backgroundColor: `${meta.color}14`, color: meta.color }}
+                        >
+                          {meta.short}
+                        </div>
+                        <div className="flex-grow min-w-0">
+                          <div className="flex items-baseline justify-between gap-2">
+                            <span className="font-bold text-[#173809] capitalize">{label}</span>
+                            <span className="text-[10px] uppercase tracking-widest text-[#173809]/40 font-bold">
+                              deficit {data.deficit_kg_ha} kg/ha
+                            </span>
+                          </div>
+                          <p className="text-sm text-[#43493e] mt-1">
+                            {data.product_kg_total > 0
+                              ? <>Apply <span className="font-bold text-[#173809]">{data.product_kg_total} kg</span> of <span className="font-bold">{data.product}</span> across the field</>
+                              : <span className="text-[#173809]/50">Soil already meets target — no application needed</span>}
+                          </p>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+
+                {precision.dose.notes.length > 0 && (
+                  <div className="mt-6 space-y-3">
+                    {precision.dose.notes.map((note, i) => (
+                      <div key={i} className="flex gap-3 bg-[#ffdad3]/40 rounded-xl p-4 text-sm text-[#802918]">
+                        <span className="material-symbols-outlined text-[18px] shrink-0">warning</span>
+                        {note}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {precision.dose.application_plan.length > 1 && (
+                  <div className="mt-6 pt-6 border-t border-[#173809]/6">
+                    <p className="text-[10px] uppercase tracking-widest text-[#173809]/40 font-bold mb-3">When to Apply</p>
+                    <div className="flex gap-3">
+                      {precision.dose.application_plan.map((stage, i) => (
+                        <div key={i} className="flex-1 bg-[#f8f4db] rounded-xl p-4 text-center">
+                          <p className="text-2xl font-headline font-bold text-[#173809]">{stage.pct_of_nitrogen}%</p>
+                          <p className="text-xs text-[#173809]/50 mt-1">{stage.stage}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </section>
 
         <div className="w-full h-px bg-[#173809]/10 my-20 max-w-7xl mx-auto" />
@@ -168,8 +216,8 @@ export default function FertilizerHubPage() {
         {/* ── Fertilizer Encyclopedia ── */}
         <section className="max-w-7xl mx-auto mb-20">
           <header className="mb-12">
-            <span className="font-label uppercase tracking-[0.3em] text-[#173809]/40 text-sm font-bold mb-2 block">Reference Database</span>
-            <h2 className="font-headline text-4xl md:text-5xl font-bold text-[#173809] tracking-tighter">Fertilizer Encyclopedia</h2>
+            <span className="font-label uppercase tracking-[0.3em] text-[#173809]/40 text-sm font-bold mb-2 block">Learn More</span>
+            <h2 className="font-headline text-4xl md:text-5xl font-bold text-[#173809] tracking-tighter">Fertilizer Guide</h2>
           </header>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {isLoadingEncyc ? [1,2,3,4,5,6,7,8].map(i => (
@@ -197,10 +245,10 @@ export default function FertilizerHubPage() {
         {/* ── Soil Types Encyclopedia ── */}
         <section className="max-w-7xl mx-auto">
           <header className="mb-12">
-            <span className="font-label uppercase tracking-[0.3em] text-[#173809]/40 text-sm font-bold mb-2 block">Terroir Knowledge Base</span>
-            <h2 className="font-headline text-4xl md:text-5xl font-bold text-[#173809] tracking-tighter">Soil Types Encyclopedia</h2>
+            <span className="font-label uppercase tracking-[0.3em] text-[#173809]/40 text-sm font-bold mb-2 block">Soil Guide</span>
+            <h2 className="font-headline text-4xl md:text-5xl font-bold text-[#173809] tracking-tighter">Soil Types Explained</h2>
             <p className="text-[#173809]/50 text-base mt-3 max-w-2xl leading-relaxed">
-              Understanding your terrain's composition is the foundation of precision agriculture. Each soil type demands a distinct nutritional and management strategy.
+              Knowing your soil type helps explain why it needs a different fertilizer plan than your neighbor's field.
             </p>
           </header>
 

@@ -6,6 +6,8 @@ import Footer from '../components/Footer'
 import { useAuth } from '../context/AuthContext'
 import FieldMap from '../components/FieldMap'
 
+const NUTRIENT_SHORT = { nitrogen: 'N', phosphorus: 'P', potassium: 'K' }
+
 export default function DashboardPage() {
   const navigate = useNavigate()
   const { token, user } = useAuth()
@@ -13,6 +15,7 @@ export default function DashboardPage() {
     try { return JSON.parse(localStorage.getItem('cached_insights')) || {} } catch { return {} }
   })
   const [telemetry, setTelemetry] = useState(null)
+  const [precision, setPrecision] = useState(null)
 
   // Read the last analysis the user submitted from InputPage
   const lastAnalysis = (() => {
@@ -36,6 +39,18 @@ export default function DashboardPage() {
         try { localStorage.setItem('cached_insights', JSON.stringify(data)) } catch {}
       })
       .catch(err => console.error('Could not fetch insights:', err))
+  }, [token])
+
+  // The real fertilizer plan (type + quantity), same engine that powers the Fertilizer Hub —
+  // keeps the Dashboard's summary card in sync with the authoritative recommendation.
+  useEffect(() => {
+    if (!token) return
+    fetch(`${API_BASE}/api/engine/precision-recommendation`, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+      .then(res => res.json())
+      .then(data => { if (data.status === 'success') setPrecision(data) })
+      .catch(err => console.error('Could not fetch precision recommendation:', err))
   }, [token])
 
   const refreshInsights = async () => {
@@ -116,13 +131,13 @@ export default function DashboardPage() {
         {/* Header */}
         <header className="mb-12 grid grid-cols-12 gap-8 items-end">
           <div className="col-span-12 lg:col-span-7">
-            <p className="font-headline font-bold text-[#9f402d] uppercase tracking-[0.2em] mb-4">Field Journal No. 42</p>
-            <h1 className="font-headline text-7xl md:text-8xl font-bold text-[#173809] tracking-tighter leading-none mb-8">
-              The Digital <br />
-              <span className="italic font-light">Agrarian</span>
+            <p className="font-headline font-bold text-[#9f402d] uppercase tracking-[0.2em] mb-4">Precision Dosing Console</p>
+            <h1 className="font-headline text-4xl sm:text-6xl md:text-8xl font-bold text-[#173809] tracking-tighter leading-none mb-8">
+              Know Exactly <br />
+              <span className="italic font-light">What to Apply.</span>
             </h1>
             <p className="text-xl text-[#43493e] max-w-xl leading-relaxed">
-              Analyzing subsurface nitrogen cycles and satellite vegetation indices to optimize the upcoming harvest cycle. Your terroir is speaking; we are translating.
+              We read your soil chemistry and the coming week's weather to tell you the precise fertilizer type and quantity your field needs — no more, no less.
             </p>
           </div>
           <div className="col-span-12 lg:col-span-4 lg:col-start-9 relative">
@@ -290,7 +305,7 @@ export default function DashboardPage() {
                     <h4 className="font-bold text-[#173809] text-base leading-tight mb-1">{title}</h4>
                     <p className="text-[#43493e] text-sm leading-relaxed">{desc}</p>
                     {actionLabel && (
-                      <button onClick={() => navigate('/fertilizer')} className="mt-2 text-[#9f402d] text-xs font-bold uppercase tracking-widest hover:underline">
+                      <button onClick={() => navigate('/fertilizer-hub')} className="mt-2 text-[#9f402d] text-xs font-bold uppercase tracking-widest hover:underline">
                         {actionLabel}
                       </button>
                     )}
@@ -300,24 +315,20 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Fertilizer Protocol */}
-          {insights.fertilizerProtocol ? (
+          {/* Fertilizer Plan — the real, computed dose (same engine as the Fertilizer Hub) */}
+          {precision?.dose ? (
             <div className="bg-[#173809] rounded-[2rem] p-10 relative overflow-hidden" style={{ boxShadow: '0 20px 40px rgba(29,28,13,0.12)' }}>
               <div className="absolute -bottom-8 -right-8 opacity-10">
                 <span className="material-symbols-outlined text-[10rem] text-white">agriculture</span>
               </div>
-              <p className="font-label text-xs uppercase tracking-widest text-[#c5efad]/50 mb-2 relative z-10">Recommended Protocol</p>
-              <h3 className="font-headline text-2xl font-bold text-white mb-1 relative z-10">{insights.fertilizerProtocol.formulaName}</h3>
-              <p className="text-[#c5efad] font-headline font-black text-3xl mb-6 relative z-10">{insights.fertilizerProtocol.npk}</p>
-              <div className="grid grid-cols-2 gap-3 relative z-10">
-                {[
-                  { label: 'Dosage', val: insights.fertilizerProtocol.dosage },
-                  { label: 'Timing', val: insights.fertilizerProtocol.timing },
-                  { label: 'Mode', val: insights.fertilizerProtocol.mode },
-                ].map(({ label, val }) => (
+              <p className="font-label text-xs uppercase tracking-widest text-[#c5efad]/50 mb-2 relative z-10">Your Fertilizer Plan</p>
+              <h3 className="font-headline text-2xl font-bold text-white mb-1 relative z-10">{precision.dose.crop_type}</h3>
+              <p className="text-[#c5efad] text-sm font-medium mb-6 relative z-10 line-clamp-2">{precision.ai?.headline}</p>
+              <div className="grid grid-cols-3 gap-3 relative z-10">
+                {Object.entries(precision.dose.nutrients).map(([label, data]) => (
                   <div key={label} className="bg-white/10 rounded-xl p-4">
-                    <p className="font-label text-[10px] uppercase tracking-widest text-[#c5efad]/50 mb-1">{label}</p>
-                    <p className="font-bold text-white text-sm">{val}</p>
+                    <p className="font-label text-[10px] uppercase tracking-widest text-[#c5efad]/50 mb-1">{NUTRIENT_SHORT[label] || label}</p>
+                    <p className="font-bold text-white text-sm">{data.product_kg_total} kg</p>
                   </div>
                 ))}
               </div>
@@ -325,14 +336,14 @@ export default function DashboardPage() {
                 onClick={() => navigate('/fertilizer-hub')}
                 className="mt-6 w-full bg-[#c5efad] text-[#173809] py-3 rounded-full font-label text-xs uppercase tracking-widest font-bold hover:bg-white transition-colors relative z-10"
               >
-                View Full Protocol →
+                View Full Plan →
               </button>
             </div>
           ) : (
             <div className="bg-[#e7e3ca] rounded-[2rem] p-10 flex flex-col items-center justify-center text-center" style={{ boxShadow: '0 20px 40px rgba(29,28,13,0.06)' }}>
               <span className="material-symbols-outlined text-5xl text-[#9f402d] mb-4">science</span>
-              <h3 className="font-headline text-xl font-bold text-[#173809] mb-2">No Protocol Yet</h3>
-              <p className="text-[#43493e] text-sm mb-6">Run a soil analysis to generate your personalized fertilizer schedule.</p>
+              <h3 className="font-headline text-xl font-bold text-[#173809] mb-2">No Plan Yet</h3>
+              <p className="text-[#43493e] text-sm mb-6">Run a soil analysis to generate your personalized fertilizer plan.</p>
               <button onClick={() => navigate('/input')} className="bg-[#173809] text-white px-8 py-3 rounded-full font-label text-xs uppercase tracking-widest font-bold hover:opacity-90 transition-all">
                 Analyze Now
               </button>

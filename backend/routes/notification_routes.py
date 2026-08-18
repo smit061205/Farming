@@ -1,5 +1,5 @@
 """
-notification_routes.py — Terroir real-time notification endpoints
+notification_routes.py — AgriSense real-time notification endpoints
 POST /api/notifications/satellite-alert  → Send spike warning email
 POST /api/notifications/biweekly-report  → Send biweekly AI report email
 POST /api/notifications/test             → Send a test email (dev only)

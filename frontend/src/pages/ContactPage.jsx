@@ -17,12 +17,12 @@ export default function ContactPage() {
             <span className="text-[#9f402d] font-headline font-bold tracking-widest text-xs uppercase mb-4 block">
               Get in Touch
             </span>
-            <h1 className="text-6xl md:text-7xl font-headline font-bold text-[#173809] tracking-tighter leading-none mb-8">
-              Speak to <br />
-              <span className="italic font-light">the Field.</span>
+            <h1 className="text-4xl sm:text-5xl md:text-7xl font-headline font-bold text-[#173809] tracking-tighter leading-none mb-8">
+              We're Here <br />
+              <span className="italic font-light">to Help.</span>
             </h1>
             <p className="text-xl text-[#43493e] font-light max-w-sm leading-relaxed mb-12">
-              We're a small, field-obsessed team. Whether it's a technical integration question or a request for a custom soil report, we'll respond within one growing cycle.
+              Questions about your fertilizer plan, a soil report, or the app itself — send us a message and we'll get back to you within a few days.
             </p>
 
             <div className="space-y-8">
@@ -31,8 +31,8 @@ export default function ContactPage() {
                   <span className="material-symbols-outlined text-[#173809]">mail</span>
                 </div>
                 <div>
-                  <p className="text-xs font-bold uppercase tracking-widest text-[#9f402d] mb-1">Direct Line</p>
-                  <p className="font-headline font-bold text-[#173809]">agrarian@terroir.systems</p>
+                  <p className="text-xs font-bold uppercase tracking-widest text-[#9f402d] mb-1">Email Us</p>
+                  <p className="font-headline font-bold text-[#173809]">help@agrisense.app</p>
                 </div>
               </div>
               <div className="flex items-center gap-6">
@@ -40,8 +40,8 @@ export default function ContactPage() {
                   <span className="material-symbols-outlined text-[#173809]">location_on</span>
                 </div>
                 <div>
-                  <p className="text-xs font-bold uppercase tracking-widest text-[#9f402d] mb-1">Field Office</p>
-                  <p className="font-headline font-bold text-[#173809]">Block A-12, North Vineyard<br />Napa Valley, CA 94558</p>
+                  <p className="text-xs font-bold uppercase tracking-widest text-[#9f402d] mb-1">Office</p>
+                  <p className="font-headline font-bold text-[#173809]">Plot 12, Agri Tech Park<br />Rajkot, Gujarat 360001</p>
                 </div>
               </div>
               <div className="flex items-center gap-6">
@@ -49,8 +49,8 @@ export default function ContactPage() {
                   <span className="material-symbols-outlined text-[#173809]">schedule</span>
                 </div>
                 <div>
-                  <p className="text-xs font-bold uppercase tracking-widest text-[#9f402d] mb-1">Response Window</p>
-                  <p className="font-headline font-bold text-[#173809]">Mon – Fri, 06:00 – 18:00 PST</p>
+                  <p className="text-xs font-bold uppercase tracking-widest text-[#9f402d] mb-1">Hours</p>
+                  <p className="font-headline font-bold text-[#173809]">Mon – Sat, 9 AM – 6 PM IST</p>
                 </div>
               </div>
             </div>
@@ -61,9 +61,9 @@ export default function ContactPage() {
             {sent ? (
               <div className="bg-[#173809] text-white rounded-[3rem] p-16 flex flex-col items-center justify-center text-center h-full min-h-[500px] soil-shadow">
                 <span className="material-symbols-outlined text-[#c5efad] text-6xl mb-8" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
-                <h2 className="text-4xl font-headline font-bold mb-4">Transmission Received</h2>
+                <h2 className="text-4xl font-headline font-bold mb-4">Message Sent</h2>
                 <p className="text-white/70 text-lg max-w-sm leading-relaxed">
-                  Your message has been relayed to our agrarian network. Expect a response before the next soil sync.
+                  Thanks for reaching out. Our team will get back to you soon.
                 </p>
                 <button
                   onClick={() => setSent(false)}
@@ -83,7 +83,7 @@ export default function ContactPage() {
                     <input
                       type="text"
                       required
-                      placeholder="Mireille"
+                      placeholder="Ramesh"
                       className="w-full bg-white/60 border-0 rounded-2xl px-6 py-4 font-headline font-bold text-[#173809] placeholder:text-[#173809]/30 placeholder:font-normal outline-none focus:ring-2 focus:ring-[#173809]/20 transition-all"
                     />
                   </div>
@@ -92,7 +92,7 @@ export default function ContactPage() {
                     <input
                       type="text"
                       required
-                      placeholder="Fontenay"
+                      placeholder="Patel"
                       className="w-full bg-white/60 border-0 rounded-2xl px-6 py-4 font-headline font-bold text-[#173809] placeholder:text-[#173809]/30 placeholder:font-normal outline-none focus:ring-2 focus:ring-[#173809]/20 transition-all"
                     />
                   </div>
@@ -103,7 +103,7 @@ export default function ContactPage() {
                   <input
                     type="email"
                     required
-                    placeholder="mireille@fontenay-domaine.fr"
+                    placeholder="ramesh@example.com"
                     className="w-full bg-white/60 border-0 rounded-2xl px-6 py-4 font-headline font-bold text-[#173809] placeholder:text-[#173809]/30 placeholder:font-normal outline-none focus:ring-2 focus:ring-[#173809]/20 transition-all"
                   />
                 </div>
@@ -111,11 +111,11 @@ export default function ContactPage() {
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-widest text-[#9f402d] mb-3">Subject</label>
                   <select className="w-full bg-white/60 border-0 rounded-2xl px-6 py-4 font-headline font-bold text-[#173809] outline-none focus:ring-2 focus:ring-[#173809]/20 transition-all appearance-none cursor-pointer">
-                    <option>Sensor Hardware Integration</option>
-                    <option>Soil Report Request</option>
-                    <option>Platform Subscription</option>
-                    <option>Research & Data Partnership</option>
-                    <option>General Inquiry</option>
+                    <option>Fertilizer Recommendation Help</option>
+                    <option>Soil Report Question</option>
+                    <option>Account & Billing</option>
+                    <option>Partnership Inquiry</option>
+                    <option>Something Else</option>
                   </select>
                 </div>
 
@@ -124,7 +124,7 @@ export default function ContactPage() {
                   <textarea
                     required
                     rows={6}
-                    placeholder="Describe your terroir challenge in detail..."
+                    placeholder="Tell us what's going on with your field..."
                     className="w-full bg-white/60 border-0 rounded-2xl px-6 py-4 font-headline font-bold text-[#173809] placeholder:text-[#173809]/30 placeholder:font-normal outline-none focus:ring-2 focus:ring-[#173809]/20 transition-all resize-none"
                   ></textarea>
                 </div>
@@ -133,7 +133,7 @@ export default function ContactPage() {
                   type="submit"
                   className="w-full bg-[#173809] text-white rounded-full py-5 font-bold text-sm tracking-widest uppercase hover:bg-[#2d4f1e] active:scale-95 transition-all shadow-lg"
                 >
-                  Send Transmission
+                  Send Message
                 </button>
               </form>
             )}

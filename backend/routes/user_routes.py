@@ -3,6 +3,7 @@ from pydantic import BaseModel
 from typing import Optional
 from auth import get_current_user
 from database import get_db
+import fertilizer_engine
 
 router = APIRouter(prefix="/api/users", tags=["users"])
 
@@ -36,6 +37,9 @@ class SoilDataUpdate(BaseModel):
     potassium: Optional[float] = None
     cropType: Optional[str] = None
     soilType: Optional[str] = None
+    fieldSize: Optional[float] = None
+    fieldSizeUnit: Optional[str] = None   # 'acres' | 'hectares'
+    growthStage: Optional[str] = None     # 'sowing' | 'vegetative' | 'flowering' | 'maturity'
 
 
 @router.put("/soil-data")
@@ -56,6 +60,19 @@ async def update_soil_data(
     if payload.potassium is not None: soil_patch["soil_data.potassium"]   = payload.potassium
     if payload.cropType is not None:  soil_patch["soil_data.cropType"]    = payload.cropType
     if payload.soilType is not None:  soil_patch["soil_data.soilType"]    = payload.soilType
+    if payload.fieldSize is not None: soil_patch["soil_data.fieldSize"]   = payload.fieldSize
+    if payload.fieldSizeUnit is not None: soil_patch["soil_data.fieldSizeUnit"] = payload.fieldSizeUnit
+    if payload.growthStage is not None:   soil_patch["soil_data.growthStage"]   = payload.growthStage
+
+    # Whenever a fresh soil chemistry reading comes in, recompute the derived
+    # diagnostics (organic matter, CEC, lime requirement, salinity risk, ...)
+    # so the Soil Health page's numbers stay honest instead of going stale.
+    if payload.ph is not None and payload.nitrogen is not None:
+        diagnostics = fertilizer_engine.compute_soil_diagnostics(
+            payload.ph, payload.nitrogen, payload.phosphorus, payload.potassium, payload.soilType,
+        )
+        for key, value in diagnostics.items():
+            soil_patch[f"soil_data.{key}"] = value
 
     # Invalidate AI caches so dashboard & fertilizer hub regenerate
     unset_fields = {

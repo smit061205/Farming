@@ -1,48 +1,37 @@
 import API_BASE from "../api.js"
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { motion, AnimatePresence } from 'framer-motion'
-import PhasePersonal from '../components/onboarding/PhasePersonal'
-import PhaseCredentials from '../components/onboarding/PhaseCredentials'
-import PhaseGeology from '../components/onboarding/PhaseGeology'
+import Navbar from '../components/Navbar'
 import { useAuth } from '../context/AuthContext'
-
-const STEPS = [
-  { num: 1, label: 'Identity' },
-  { num: 2, label: 'Credentials' },
-  { num: 3, label: 'Soil Profile' },
-]
-
-const slide = {
-  initial: { opacity: 0, y: 16 },
-  in:      { opacity: 1, y: 0 },
-  out:     { opacity: 0, y: -16 },
-}
-const slideTransition = { type: 'tween', ease: 'easeInOut', duration: 0.3 }
 
 export default function OnboardingPage() {
   const navigate = useNavigate()
   const { login } = useAuth()
-  const [step, setStep] = useState(1)
-  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  const [fullName, setFullName] = useState('')
+  const [mode, setMode] = useState('email')
+  const [identifier, setIdentifier] = useState('')
+  const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [keepSignedIn, setKeepSignedIn] = useState(true)
   const [error, setError] = useState('')
+  const [isLoading, setIsLoading] = useState(false)
 
-  const [formData, setFormData] = useState({
-    full_name: '', gender: '', title: '', email: '', phone: '', password: '',
-    org_name: '', coordinates: null, focuses: [], profile_photo: '',
-    soil_data: { ph: '', nitrogen: '' },
-  })
-
-  const updateData = (fields) => setFormData(prev => ({ ...prev, ...fields }))
-  const handleNext = () => setStep(s => Math.min(s + 1, 3))
-  const handlePrev = () => setStep(s => Math.max(s - 1, 1))
-
-  const handleSubmit = async (finalDataPatch = {}) => {
-    setIsSubmitting(true)
+  const handleSubmit = async (e) => {
+    e.preventDefault()
     setError('')
-    await new Promise(r => setTimeout(r, 1200))
+
+    if (password.length < 8) { setError('Password must be at least 8 characters.'); return }
+    if (password !== confirmPassword) { setError('Passwords do not match.'); return }
+
+    setIsLoading(true)
     try {
-      const payload = { ...formData, ...finalDataPatch }
+      const payload = {
+        full_name: fullName,
+        password,
+        ...(mode === 'email' ? { email: identifier } : { phone: `+91${identifier}` }),
+      }
       const res = await fetch(`${API_BASE}/api/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -53,126 +42,173 @@ export default function OnboardingPage() {
         if (Array.isArray(data.detail)) {
           throw new Error(data.detail.map(d => `${d.loc.at(-1)}: ${d.msg}`).join(', '))
         }
-        throw new Error(data.detail || 'Registration failed')
+        throw new Error(data.detail || 'Could not create your account.')
       }
-      login(data.access_token)
+      login(data.access_token, keepSignedIn)
       navigate('/dashboard')
     } catch (err) {
       setError(err.message)
-      setIsSubmitting(false)
+    } finally {
+      setIsLoading(false)
     }
   }
 
-  // ── Submitting Screen ──────────────────────────────────────────────────────
-  if (isSubmitting) {
-    return (
-      <div className="min-h-screen bg-[#fefae0] flex items-center justify-center">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.96 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="flex flex-col items-center text-center px-8 max-w-sm"
-        >
-          <div className="w-16 h-16 rounded-full border-2 border-[#173809]/20 border-t-[#173809] animate-spin mb-8" />
-          <h2 className="font-headline text-3xl font-bold text-[#173809] tracking-tight mb-3">
-            Setting up your profile
-          </h2>
-          <p className="text-sm text-[#173809]/40 leading-relaxed">
-            Calibrating soil matrices and anchoring geological baseline…
-          </p>
-        </motion.div>
-      </div>
-    )
-  }
-
-  // ── Main Layout ────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-[#fefae0] flex items-center justify-center px-4 py-12">
-      <div className="w-full max-w-5xl bg-white rounded-[2.5rem] shadow-[0_32px_80px_rgba(23,56,9,0.08)] border border-[#173809]/5 overflow-hidden flex flex-col md:flex-row min-h-[600px]">
+    <div className="bg-[#fefae0] text-[#1d1c0d] min-h-screen overflow-x-hidden">
+      <Navbar />
 
-        {/* ── Left: Static sidebar ── */}
-        <div className="w-full md:w-64 lg:w-72 bg-[#fafaf8] border-b md:border-b-0 md:border-r border-[#173809]/8 flex flex-col justify-between p-8 shrink-0">
-          <div>
-            <button
-              onClick={() => navigate('/login')}
-              className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-[#173809]/40 hover:text-[#173809] transition-colors mb-10"
-            >
-              <span className="material-symbols-outlined text-[16px]">arrow_back</span>
-              Back to Login
-            </button>
-
-            <h1 className="font-headline text-xl font-bold text-[#173809] tracking-tight mb-1">
-              Technological Terroir
+      <main className="min-h-screen flex items-center justify-center px-6 py-32">
+        <div className="w-full max-w-md">
+          <div className="text-center mb-10">
+            <h1 className="font-headline text-4xl font-bold text-[#173809] tracking-tight mb-3">
+              Create Your Account
             </h1>
-            <p className="text-xs text-[#173809]/40 mb-10">Field Intelligence Platform</p>
-
-            <nav className="space-y-2">
-              {STEPS.map(s => {
-                const done = step > s.num
-                const active = step === s.num
-                return (
-                  <div key={s.num} className={`flex items-center gap-3 px-4 py-3 rounded-2xl transition-all duration-300 ${active ? 'bg-[#173809] text-white' : 'text-[#173809]/40'}`}>
-                    <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
-                      done   ? 'bg-[#173809]/10 text-[#173809]' :
-                      active ? 'bg-white/20 text-white' :
-                               'border border-[#173809]/20 text-[#173809]/30'
-                    }`}>
-                      {done
-                        ? <span className="material-symbols-outlined text-[13px]">check</span>
-                        : s.num
-                      }
-                    </div>
-                    <span className={`text-xs font-bold uppercase tracking-widest ${active ? 'text-white' : done ? 'text-[#173809]/60' : 'text-[#173809]/30'}`}>
-                      {s.label}
-                    </span>
-                  </div>
-                )
-              })}
-            </nav>
+            <p className="text-[#43493e]">
+              Just a few details and you're in.
+            </p>
           </div>
 
-          {/* Progress bar */}
-          <div className="mt-10">
-            <div className="flex justify-between text-[10px] font-bold text-[#173809]/30 uppercase tracking-widest mb-2">
-              <span>Progress</span>
-              <span>{Math.round(((step - 1) / 2) * 100)}%</span>
-            </div>
-            <div className="h-1 bg-[#173809]/8 rounded-full overflow-hidden">
-              <div
-                className="h-full bg-[#173809] rounded-full transition-all duration-500"
-                style={{ width: `${((step - 1) / 2) * 100}%` }}
-              />
+          <div
+            className="bg-[#f8f4db] rounded-[2.5rem] p-8 md:p-10"
+            style={{ boxShadow: '0 20px 40px rgba(29,28,13,0.06)' }}
+          >
+            {error && (
+              <div className="bg-[#9f402d]/10 border border-[#9f402d]/20 text-[#9f402d] px-4 py-3 rounded-xl text-sm font-bold mb-6">
+                {error}
+              </div>
+            )}
+
+            <form onSubmit={handleSubmit} className="space-y-5">
+              {/* Name */}
+              <div>
+                <label className="block font-label text-xs uppercase tracking-widest text-[#43493e] mb-2 ml-2">
+                  Your Name
+                </label>
+                <input
+                  type="text"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  placeholder="Ramesh Patel"
+                  autoComplete="name"
+                  required
+                  className="w-full bg-white border-0 rounded-full px-6 py-4 text-base font-body text-[#173809] focus:outline-none focus:ring-2 focus:ring-[#173809]/20 transition-shadow placeholder:text-[#73796d]"
+                />
+              </div>
+
+              {/* Email / Phone toggle */}
+              <div>
+                <div className="flex bg-[#e7e3ca] rounded-full p-1 mb-3">
+                  {[
+                    { key: 'email', icon: 'mail', label: 'Email' },
+                    { key: 'phone', icon: 'smartphone', label: 'Phone' },
+                  ].map(({ key, icon, label }) => (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => { setMode(key); setIdentifier(''); setError('') }}
+                      className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-full text-sm font-bold transition-all ${
+                        mode === key
+                          ? 'bg-[#173809] text-white shadow'
+                          : 'text-[#173809]/60 hover:text-[#173809]'
+                      }`}
+                    >
+                      <span className="material-symbols-outlined text-[18px]">{icon}</span>
+                      {label}
+                    </button>
+                  ))}
+                </div>
+                <div className="relative flex items-center">
+                  {mode === 'phone' && (
+                    <span className="absolute left-6 text-sm font-bold text-[#173809]/60 pointer-events-none">+91</span>
+                  )}
+                  <input
+                    type={mode === 'email' ? 'email' : 'tel'}
+                    inputMode={mode === 'phone' ? 'numeric' : undefined}
+                    maxLength={mode === 'phone' ? 10 : undefined}
+                    value={identifier}
+                    onChange={(e) => setIdentifier(mode === 'phone' ? e.target.value.replace(/\D/g, '') : e.target.value)}
+                    placeholder={mode === 'email' ? 'you@example.com' : '98765 43210'}
+                    autoComplete={mode === 'email' ? 'username' : 'tel'}
+                    required
+                    className={`w-full bg-white border-0 rounded-full py-4 text-base font-body text-[#173809] focus:outline-none focus:ring-2 focus:ring-[#173809]/20 transition-shadow placeholder:text-[#73796d] ${
+                      mode === 'phone' ? 'pl-16 pr-6' : 'px-6'
+                    }`}
+                  />
+                </div>
+              </div>
+
+              {/* Password */}
+              <div>
+                <label className="block font-label text-xs uppercase tracking-widest text-[#43493e] mb-2 ml-2">
+                  Password <span className="normal-case font-normal text-[#43493e]/60">(min 8 characters)</span>
+                </label>
+                <div className="relative">
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    autoComplete="new-password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••••••"
+                    required
+                    className="w-full bg-white border-0 rounded-full px-6 py-4 pr-14 text-base font-body text-[#173809] focus:outline-none focus:ring-2 focus:ring-[#173809]/20 transition-shadow placeholder:text-[#73796d]"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(v => !v)}
+                    className="absolute right-5 top-1/2 -translate-y-1/2 text-[#173809]/40 hover:text-[#173809] transition-colors"
+                  >
+                    <span className="material-symbols-outlined text-[20px]">{showPassword ? 'visibility_off' : 'visibility'}</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Confirm Password */}
+              <div>
+                <label className="block font-label text-xs uppercase tracking-widest text-[#43493e] mb-2 ml-2">
+                  Confirm Password
+                </label>
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  autoComplete="new-password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="••••••••••"
+                  required
+                  className="w-full bg-white border-0 rounded-full px-6 py-4 text-base font-body text-[#173809] focus:outline-none focus:ring-2 focus:ring-[#173809]/20 transition-shadow placeholder:text-[#73796d]"
+                />
+              </div>
+
+              {/* Keep signed in */}
+              <label className="flex items-center gap-3 cursor-pointer select-none px-2">
+                <input
+                  type="checkbox"
+                  checked={keepSignedIn}
+                  onChange={(e) => setKeepSignedIn(e.target.checked)}
+                  className="w-5 h-5 rounded-md border-2 border-[#173809]/30 text-[#173809] accent-[#173809] cursor-pointer"
+                />
+                <span className="text-sm font-medium text-[#43493e]">Keep me signed in</span>
+              </label>
+
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="notranslate w-full bg-[#173809] text-white rounded-full py-4 font-headline text-lg font-bold hover:bg-[#2d4f1e] active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+              >
+                {isLoading ? 'Creating your account…' : 'Create Account'}
+              </button>
+            </form>
+
+            <div className="mt-6 text-center">
+              <button
+                onClick={() => navigate('/login')}
+                className="text-sm font-bold text-[#9f402d] hover:text-[#c05030] transition-colors"
+              >
+                Already have an account? Sign in
+              </button>
             </div>
           </div>
         </div>
-
-        {/* ── Right: Form area ── */}
-        <div className="flex-1 p-8 md:p-12 relative overflow-hidden">
-          {error && (
-            <div className="mb-6 flex items-start gap-3 bg-[#9f402d]/6 border border-[#9f402d]/15 rounded-2xl px-4 py-3">
-              <span className="material-symbols-outlined text-[#9f402d] text-[16px] mt-0.5 shrink-0">error</span>
-              <p className="text-sm font-medium text-[#9f402d]">{error}</p>
-            </div>
-          )}
-
-          <AnimatePresence mode="wait">
-            {step === 1 && (
-              <motion.div key="s1" variants={slide} initial="initial" animate="in" exit="out" transition={slideTransition}>
-                <PhasePersonal data={formData} update={updateData} next={handleNext} />
-              </motion.div>
-            )}
-            {step === 2 && (
-              <motion.div key="s2" variants={slide} initial="initial" animate="in" exit="out" transition={slideTransition}>
-                <PhaseCredentials data={formData} update={updateData} next={handleNext} prev={handlePrev} />
-              </motion.div>
-            )}
-            {step === 3 && (
-              <motion.div key="s3" variants={slide} initial="initial" animate="in" exit="out" transition={slideTransition}>
-                <PhaseGeology data={formData} update={updateData} prev={handlePrev} submit={handleSubmit} />
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-      </div>
+      </main>
     </div>
   )
 }

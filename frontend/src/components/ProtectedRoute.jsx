@@ -1,34 +1,18 @@
+import { useMemo } from 'react'
 import { Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import { useLenderAuth } from '../context/LenderAuthContext'
 
-const Loading = () => (
-  <div className="min-h-screen bg-[#fefae0] flex items-center justify-center">
-    <div className="text-[#173809] font-headline font-bold text-xl animate-pulse tracking-widest uppercase">
-      Verifying Access...
-    </div>
-  </div>
-)
-
-// Guard for farmer-only routes
-function FarmerRoute({ children }) {
-  const { token, isLoading } = useAuth()
+export default function ProtectedRoute({ children }) {
+  const { token } = useAuth()
   const location = useLocation()
-  if (isLoading) return <Loading />
-  if (!token) return <Navigate to="/login" state={{ from: location }} replace />
+  // Stable reference — a fresh { from: location } literal on every render makes
+  // <Navigate>'s redirect effect re-fire continuously (React Router treats each
+  // new state object as a distinct navigation), which trips React's update-depth guard.
+  const redirectState = useMemo(() => ({ from: location }), [location])
+  // Render immediately if a token exists — don't block navigation on a network
+  // round-trip to verify it. Pages fetch their own data and show their own
+  // loading states; if the token turns out to be invalid, AuthContext clears
+  // it on a 401 and this component redirects to /login on the next render.
+  if (!token) return <Navigate to="/login" state={redirectState} replace />
   return children
-}
-
-// Guard for lender-only routes
-function LenderRoute({ children }) {
-  const { lenderToken, isLenderLoading } = useLenderAuth()
-  if (isLenderLoading) return <Loading />
-  if (!lenderToken) return <Navigate to="/lender" replace />
-  return children
-}
-
-export default function ProtectedRoute({ children, allowedRoles }) {
-  const isLenderRoute = allowedRoles && allowedRoles.includes('lender')
-  if (isLenderRoute) return <LenderRoute>{children}</LenderRoute>
-  return <FarmerRoute>{children}</FarmerRoute>
 }

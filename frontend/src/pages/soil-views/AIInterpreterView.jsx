@@ -38,7 +38,7 @@ export default function AIInterpreterView() {
           </h2>
         </div>
         <p className="font-body text-[#43493e] text-lg max-w-3xl leading-relaxed mb-8">
-          A contextual, neuro-linguistic translation of your raw geological anchor point, identifying invisible correlations.
+          An AI-written analysis of your soil test — what your pH and nitrogen levels mean for this crop, and what amendment they call for.
         </p>
       </div>
 
