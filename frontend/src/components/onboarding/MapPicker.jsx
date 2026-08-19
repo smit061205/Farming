@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
+import { reverseGeocode } from '../../utils/geo'
 
 // Fix default marker icon broken by bundlers
 delete L.Icon.Default.prototype._getIconUrl
@@ -28,25 +29,6 @@ const greenIcon = L.divIcon({
   iconAnchor: [14, 28],
   popupAnchor: [0, -28],
 })
-
-async function reverseGeocode(lat, lng) {
-  try {
-    const res = await fetch(
-      `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`,
-      { headers: { 'Accept-Language': 'en' } }
-    )
-    const data = await res.json()
-    const a = data.address || {}
-    const parts = [
-      a.village || a.town || a.city || a.county,
-      a.state_district || a.state,
-      a.country,
-    ].filter(Boolean)
-    return parts.join(', ')
-  } catch {
-    return `${lat.toFixed(4)}° N, ${lng.toFixed(4)}° E`
-  }
-}
 
 export default function MapPicker({ value, onChange }) {
   const mapRef = useRef(null)

@@ -252,12 +252,9 @@ async def _call_groq(system_prompt: str, user_prompt: str, json_mode: bool = Fal
     
     client = AsyncGroq(api_key=api_key)
     
-    kwargs = {}
+    kwargs = {"model": "groq/compound-mini"}
     if json_mode:
         kwargs["response_format"] = {"type": "json_object"}
-        kwargs["model"] = "llama-3.3-70b-versatile"
-    else:
-        kwargs["model"] = "llama-3.3-70b-versatile"
 
     chat_completion = await client.chat.completions.create(
         messages=[
@@ -879,12 +876,14 @@ async def ai_consultation_chat(req: ChatRequest, current_user = Depends(get_curr
     if not api_key or not _groq_available:
         return {"status": "error", "reply": "System offline: Groq API credentials missing."}
 
-    # Extract user context wrapper
-    soil = current_user.get("soil_data", {})
+    # Extract user context wrapper — coordinates/soil_data may be stored as
+    # explicit None (not just absent), so `.get(key, {})` alone isn't enough.
+    soil = current_user.get("soil_data") or {}
+    coordinates = current_user.get("coordinates") or {}
     context_str = f"""
     FARMER PROFILE CONTEXT:
     - Name: Farmer
-    - Location Coordinate Info: {current_user.get('coordinates', {}).get('label', 'Unknown')}
+    - Location Coordinate Info: {coordinates.get('label', 'Unknown')}
     - Latest Soil Scan: pH={soil.get('ph', 'N/A')}, N={soil.get('nitrogen', 'N/A')}ppm, P={soil.get('phosphorus', 'N/A')}ppm, K={soil.get('potassium', 'N/A')}ppm.
     - Crop: {soil.get('cropType', 'N/A')}, Field Size: {soil.get('fieldSize', 'N/A')} {soil.get('fieldSizeUnit', '')}, Growth Stage: {soil.get('growthStage', 'N/A')}.
     """
@@ -911,7 +910,7 @@ Do not offer generalities. Use the exact data below to answer their questions.
         from groq import AsyncGroq
         client = AsyncGroq(api_key=api_key)
         response = await client.chat.completions.create(
-            model="llama-3.3-70b-versatile", 
+            model="groq/compound-mini",
             messages=payload,
             temperature=0.6,
             max_tokens=600

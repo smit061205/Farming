@@ -1,6 +1,6 @@
 # Roadmap: Technological Terroir → AI-Powered Precision Fertilizer Recommendation
 
-> **Status: Phases 0–7 below are complete.** Brand is now **AgriSense**, Loans/Lender is gone, the precision engine (`fertilizer_engine.py` + `sustainability_engine.py`) is live, login/signup are simplified, and copy is de-jargoned. See **Part 2** below for the current focus/cleanup audit.
+> **Status: Phases 0–7 below are complete.** Brand is now **AgriSense**, Loans/Lender is gone, the precision engine (`fertilizer_engine.py` + `sustainability_engine.py`) is live, login/signup are simplified, and copy is de-jargoned. See **Part 2** for the focus/cleanup audit, and **Part 3** for the data-flow audit and redesign.
 
 **Problem statement:** Excessive/improper fertilizer use degrades soil and cuts farmer income. Build a data-driven app that recommends optimal fertilizer **type and quantity** from soil health, crop type, and weather patterns — driving sustainable practice, better yield, better income.
 
@@ -165,3 +165,76 @@ Collapse the app around the actual problem statement — soil + crop + weather i
 3. **Decide on the Diagnostic Risk Profile panel** — either wire `derive-soil-metrics` into `InputPage.jsx`'s save so it's real again, or remove the panel. Don't leave it showing fake defaults.
 4. **Consolidate nav** — trim `Navbar.jsx` to the 6-item structure above.
 5. **Merge Dashboard + Fertilizer Hub's precision section into one "Home"** if you want the tightest possible pitch (bigger change, optional — the current two-screen version still works, it's just one more click than necessary).
+
+---
+
+# Part 3 — Data Flow Audit & Redesign
+
+**The question asked:** how does data actually get loaded and demanded right now, and what would a real professional precision-ag product's data flow look like?
+
+## What I traced
+
+Followed one user end to end: `OnboardingPage.jsx` → `AuthContext` → `DashboardPage.jsx` → `InputPage.jsx` → `ProfilePage.jsx`, plus the backend paths each one hits (`auth_routes.py`, `user_routes.py`, `engine_routes.py`).
+
+### What signup actually collects
+
+`OnboardingPage.jsx` (single-page signup) collects exactly: **name, email-or-phone, password.** Nothing about the farm — no location, no crop, no field size, no soil reading. `UserRegister` in `schemas.py` accepts `coordinates`, `focuses`, `soil_data` as optional fields, but the signup form never sends them. A brand-new account has `coordinates: null` and no `soil_data` key at all.
+
+### What happens the instant that new user lands on the Dashboard
+
+`DashboardPage.jsx` immediately fires three requests: `/api/engine/insights`, `/api/engine/precision-recommendation`, `/api/engine/fetch-telemetry`. All three are built to **never fail and never come back empty** — each one has a silent fallback baked in server-side:
+
+- `engine_routes.py`'s `_resolve_field_inputs()` (line 622): if the user has no `soil_data`, it invents `pH 6.5`, `Nitrogen 100 ppm`, derives P and K from a formula off that pH, and defaults `crop_type` to `"Wheat"` and field size to `2 acres`. This isn't a documented placeholder — it's indistinguishable in the API response from a real lab reading.
+- `/insights` (line 328) does the same pH/N/P/K fabrication, and if Groq is unreachable it falls back further to a **hardcoded `MOCK_INSIGHTS` object** (fixed crop names, fixed scores, fixed AI-sounding "reasoning" text) — again with no flag telling the frontend "this is canned."
+- `fetch-telemetry` is the one honest exception: it requires real `coordinates` and returns nothing without them, so the Dashboard correctly shows moisture/temp as `—` / "Sync Required" for a new user.
+
+The practical effect: **a farmer who has entered nothing sees a fully-populated "Your Fertilizer Plan" card — a specific crop, specific kg totals, an AI-written headline — computed from numbers nobody measured.** `DashboardPage.jsx` already has the right empty state built for this (`precision?.dose ? <plan card> : <"No Plan Yet, Analyze Now">`, line 342), but it can never fire, because the backend always returns a fabricated `dose` instead of `null`. The empty state is dead code.
+
+### The second place this happens: `InputPage.jsx`
+
+The soil-entry form itself (`InputPage.jsx` line 33) initializes its fields to a hardcoded literal — `N: 96, P: 48, K: 194, pH: 6.8, cropType: 'Wheat', soilType: 'Clay Loam', fieldSize: 2` — whenever there's no `localStorage` cache and no saved profile. So a first-time visitor opens "Analyze Your Field" and sees a form that *looks* already filled in with plausible lab numbers, with no visual distinction from a form holding their own real, previously-saved data. Nothing prompts them to actually enter their soil's numbers — the path of least resistance is to just hit "Get My Fertilizer Plan" on data that was never theirs.
+
+### Where real data *can* enter the system (but isn't asked for)
+
+- **Location** — only settable via `MapPicker` on `ProfilePage.jsx`, a page with no entry point from the signup flow or the Dashboard's empty states. A farmer has to discover the profile dropdown themselves.
+- **Soil chemistry** — three real paths exist and are good: manual entry on `InputPage.jsx`, OCR lab-report upload (`SoilOCRUploader`, already wired to real extraction), and a "Sync" button that pulls a satellite-derived pH/moisture estimate once coordinates exist. The problem isn't that these paths are missing — it's that **none of them are demanded**, so a user can skip straight to seeing a "personalized" plan without ever touching any of them.
+- **Crop type, field size** — same story: real dropdown/input on `InputPage.jsx`, never asked for anywhere before the Dashboard shows results as if they were.
+
+### What's genuinely organic already (leave alone)
+
+Weather (`fetch_rain_forecast`, Open-Meteo) and satellite moisture/NDVI telemetry are correctly zero-input — they derive entirely from `coordinates`, which is the one thing worth asking for early. This part already behaves like a real product: give it a location, it goes and gets real external data with no further demands on the farmer.
+
+## Why this reads as "not organic"
+
+A professional data-driven app's contract is: **the depth of the answer must be visibly bounded by the depth of the input.** Right now that contract is broken in both directions — deep-looking answers (specific kg doses, AI narratives, crop-match scores) are shown on zero real input, with no visual difference between a measured value and an invented one. That's what makes the whole experience feel synthetic even when the underlying engine (`fertilizer_engine.py`) is legitimate and well-built.
+
+## Proposed redesign: a staged, honest demand model
+
+**Tier 1 — Identity (signup, unchanged).** Name + email/phone + password. Correctly minimal; don't add anything here.
+
+**Tier 2 — Essential Field Facts (new: a mandatory one-screen step immediately after signup, before the first Dashboard view).** Three things every farmer already knows without measuring anything:
+   - **Location** — a map tap or a "Use My Current Location" GPS button (mirrors the existing `MapPicker`, just surfaced at the right moment instead of buried in Profile).
+   - **Crop type** — the existing dropdown.
+   - **Field size** — the existing input.
+
+   This is not a return to the old multi-step wizard — it's one screen, three fields, all quick-pick/tap inputs, no typing required beyond field size. It's the minimum a real recommendation needs to not be generic.
+
+**Tier 3 — Soil Chemistry (explicitly optional at setup, demanded contextually).** Present as a real choice, not a hidden default:
+   - "I have a lab report" → OCR upload (already built).
+   - "Enter my own numbers" → the existing N/P/K/pH inputs.
+   - "I don't have this yet" → proceed without it. The plan that results must say so.
+
+**The rule that fixes the core problem:** every number the app displays carries a provenance, and the UI shows it. Concretely:
+   - Backend: `_resolve_field_inputs()` returns a `data_source` per field (`"measured"` / `"estimated"` / `"regional_default"`) instead of silently blending them into one number.
+   - Frontend: any card built from `"regional_default"` values gets a visible "Estimated — add your soil data for an exact dose" chip, and downgrades its own language ("approximate range" instead of "your fertilizer plan").
+   - The Dashboard's already-built `precision?.dose ? plan : "No Plan Yet"` branch becomes reachable again: it should key off whether Tier 2 is complete, not off whether the backend *could* invent numbers.
+   - `InputPage.jsx`'s hardcoded `{N: 96, P: 48, ...}` seed is replaced with either a genuinely empty form (placeholders, not values) for first-time users, or the user's real saved data — never a look-alike fake filled in silently.
+   - `MOCK_INSIGHTS` stays as a last-resort fallback only for genuine Groq outages, but gets a `"source": "fallback"` flag so the frontend can label it rather than presenting it as personalized AI reasoning.
+
+## Suggested execution order
+
+1. Add `data_source` provenance to `_resolve_field_inputs()` and `/insights`, and thread it through to the frontend cards (highest-leverage fix — turns every downstream screen honest without redesigning them).
+2. Build the Tier 2 "Set Up Your Field" single-screen step, inserted between signup and first Dashboard load (reuses `MapPicker`, the crop dropdown, and the field-size input already built for `InputPage.jsx`/`ProfilePage.jsx` — no new components, just relocated ones).
+3. Gate the Dashboard's plan/crop-recommendation cards on Tier 2 completion instead of on `precision?.dose` truthiness, so the existing "No Plan Yet" empty state actually fires for incomplete profiles.
+4. Replace `InputPage.jsx`'s hardcoded seed values with an honest empty/placeholder first-visit state.
+5. Add the "Estimated" / "Add your soil data" chip treatment wherever `data_source !== "measured"`.

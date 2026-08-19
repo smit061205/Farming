@@ -5,17 +5,42 @@ import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
 import { useAuth } from '../context/AuthContext'
 import FieldMap from '../components/FieldMap'
+import { getDeviceLocation } from '../utils/geo'
 
 const NUTRIENT_SHORT = { nitrogen: 'N', phosphorus: 'P', potassium: 'K' }
 
 export default function DashboardPage() {
   const navigate = useNavigate()
-  const { token, user } = useAuth()
+  const { token, user, refreshUser } = useAuth()
   const [insights, setInsights] = useState(() => {
     try { return JSON.parse(localStorage.getItem('cached_insights')) || {} } catch { return {} }
   })
   const [telemetry, setTelemetry] = useState(null)
   const [precision, setPrecision] = useState(null)
+  const [isLocating, setIsLocating] = useState(false)
+  const [locationError, setLocationError] = useState('')
+
+  const handleEnableLocation = async () => {
+    setIsLocating(true)
+    setLocationError('')
+    try {
+      const loc = await getDeviceLocation()
+      await fetch(`${API_BASE}/api/users/me`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ coordinates: loc }),
+      })
+      await refreshUser()
+    } catch (err) {
+      setLocationError(
+        err.code === 1
+          ? 'Location access denied — enable it in your browser settings, or pin it manually in your profile.'
+          : 'Could not get your location. Please try again.'
+      )
+    } finally {
+      setIsLocating(false)
+    }
+  }
 
   // Read the last analysis the user submitted from InputPage
   const lastAnalysis = (() => {
@@ -143,10 +168,28 @@ export default function DashboardPage() {
           <div className="col-span-12 lg:col-span-4 lg:col-start-9 relative">
             <div className="rounded-[2rem] overflow-hidden relative" style={{ boxShadow: '0 20px 40px rgba(29,28,13,0.06)', height: '220px', isolation: 'isolate' }}>
               <FieldMap coordinates={coords} zoom={12} height="100%" showLabel={true} />
-              <div className="absolute top-3 left-3 flex items-center gap-2 bg-[#173809]/80 backdrop-blur-sm px-3 py-1.5 rounded-full" style={{ zIndex: 400 }}>
-                <div className="w-2 h-2 rounded-full bg-[#c5efad]" style={{ boxShadow: '0 0 8px 2px rgba(197,239,173,0.8)' }}></div>
-                <span className="font-headline font-bold text-white uppercase tracking-widest text-[10px]">Field Locked</span>
-              </div>
+              {coords?.lat ? (
+                <div className="absolute top-3 left-3 flex items-center gap-2 bg-[#173809]/80 backdrop-blur-sm px-3 py-1.5 rounded-full" style={{ zIndex: 400 }}>
+                  <div className="w-2 h-2 rounded-full bg-[#c5efad]" style={{ boxShadow: '0 0 8px 2px rgba(197,239,173,0.8)' }}></div>
+                  <span className="font-headline font-bold text-white uppercase tracking-widest text-[10px]">Field Locked</span>
+                </div>
+              ) : (
+                <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-[#173809]/70 backdrop-blur-sm px-6 text-center" style={{ zIndex: 400 }}>
+                  <span className="material-symbols-outlined text-white text-3xl">location_off</span>
+                  <p className="text-white/80 text-xs font-medium">No location set — satellite &amp; weather data need it</p>
+                  <button
+                    onClick={handleEnableLocation}
+                    disabled={isLocating}
+                    className="flex items-center gap-2 bg-[#c5efad] text-[#173809] text-xs font-label uppercase tracking-widest font-bold px-5 py-2.5 rounded-full hover:bg-white active:scale-95 transition-all disabled:opacity-60"
+                  >
+                    <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>
+                      {isLocating ? 'progress_activity' : 'my_location'}
+                    </span>
+                    {isLocating ? 'Locating…' : 'Enable My Location'}
+                  </button>
+                  {locationError && <p className="text-[#f5b8a8] text-[10px] max-w-[220px]">{locationError}</p>}
+                </div>
+              )}
             </div>
           </div>
         </header>

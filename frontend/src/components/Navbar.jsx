@@ -76,7 +76,7 @@ export default function Navbar() {
             </span>
           </button>
           <Link
-            to="/"
+            to={token ? "/dashboard" : "/"}
             className="text-xl sm:text-2xl font-black text-[#173809] uppercase tracking-tighter font-headline hover:opacity-80 transition-opacity truncate"
           >
             AgriSense
