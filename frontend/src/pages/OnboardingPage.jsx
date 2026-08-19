@@ -2,7 +2,9 @@ import API_BASE from "../api.js"
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Navbar from '../components/Navbar'
+import MapPicker from '../components/onboarding/MapPicker'
 import { useAuth } from '../context/AuthContext'
+import { CROP_OPTIONS } from '../constants/crops'
 
 export default function OnboardingPage() {
   const navigate = useNavigate()
@@ -18,12 +20,35 @@ export default function OnboardingPage() {
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
 
+  // Field basics — needed for every recommendation, asked once up front
+  // instead of a farmer discovering an empty dashboard later.
+  const [coordinates, setCoordinates] = useState(null)
+  const [cropType, setCropType] = useState(CROP_OPTIONS[0])
+  const [fieldSize, setFieldSize] = useState('')
+  const [fieldSizeUnit, setFieldSizeUnit] = useState('acres')
+
+  // Soil test — optional. Most farmers won't have lab numbers on hand at
+  // signup, so these are left blank-friendly; the engine falls back to a
+  // safe regional estimate until a real reading is added later.
+  const [ph, setPh] = useState('')
+  const [nitrogen, setNitrogen] = useState('')
+  const [phosphorus, setPhosphorus] = useState('')
+  const [potassium, setPotassium] = useState('')
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
 
     if (password.length < 8) { setError('Password must be at least 8 characters.'); return }
     if (password !== confirmPassword) { setError('Passwords do not match.'); return }
+    if (!coordinates?.lat) { setError('Please set your field location — tap "Use My Location" or click the map.'); return }
+    if (!fieldSize || parseFloat(fieldSize) <= 0) { setError('Please enter your field size.'); return }
+
+    const soilData = { cropType, fieldSize: parseFloat(fieldSize), fieldSizeUnit }
+    if (ph !== '') soilData.ph = parseFloat(ph)
+    if (nitrogen !== '') soilData.nitrogen = parseFloat(nitrogen)
+    if (phosphorus !== '') soilData.phosphorus = parseFloat(phosphorus)
+    if (potassium !== '') soilData.potassium = parseFloat(potassium)
 
     setIsLoading(true)
     try {
@@ -31,6 +56,8 @@ export default function OnboardingPage() {
         full_name: fullName,
         password,
         ...(mode === 'email' ? { email: identifier } : { phone: `+91${identifier}` }),
+        coordinates,
+        soil_data: soilData,
       }
       const res = await fetch(`${API_BASE}/api/auth/register`, {
         method: 'POST',
@@ -64,7 +91,7 @@ export default function OnboardingPage() {
               Create Your Account
             </h1>
             <p className="text-[#43493e]">
-              Just a few details and you're in.
+              Tell us about your field so we can give you real numbers, not guesses.
             </p>
           </div>
 
@@ -176,6 +203,105 @@ export default function OnboardingPage() {
                   required
                   className="w-full bg-white border-0 rounded-full px-6 py-4 text-base font-body text-[#173809] focus:outline-none focus:ring-2 focus:ring-[#173809]/20 transition-shadow placeholder:text-[#73796d]"
                 />
+              </div>
+
+              {/* ── Your Field (required) ── */}
+              <div className="pt-4 border-t border-[#173809]/10">
+                <h3 className="font-headline text-lg font-bold text-[#173809] mb-1">Your Field</h3>
+                <p className="text-xs text-[#43493e]/70 mb-4">This is how we tell you exactly what to apply and how much.</p>
+
+                <label className="block font-label text-xs uppercase tracking-widest text-[#43493e] mb-2 ml-2">
+                  Field Location
+                </label>
+                <MapPicker value={coordinates} onChange={setCoordinates} />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block font-label text-xs uppercase tracking-widest text-[#43493e] mb-2 ml-2">
+                    Crop
+                  </label>
+                  <select
+                    value={cropType}
+                    onChange={(e) => setCropType(e.target.value)}
+                    className="w-full bg-white border-0 rounded-full px-6 py-4 text-base font-body text-[#173809] focus:outline-none focus:ring-2 focus:ring-[#173809]/20 transition-shadow"
+                  >
+                    {CROP_OPTIONS.map(c => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block font-label text-xs uppercase tracking-widest text-[#43493e] mb-2 ml-2">
+                    Field Size
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.1"
+                      value={fieldSize}
+                      onChange={(e) => setFieldSize(e.target.value)}
+                      placeholder="2"
+                      required
+                      className="w-full min-w-0 bg-white border-0 rounded-full px-5 py-4 text-base font-body text-[#173809] focus:outline-none focus:ring-2 focus:ring-[#173809]/20 transition-shadow placeholder:text-[#73796d]"
+                    />
+                    <select
+                      value={fieldSizeUnit}
+                      onChange={(e) => setFieldSizeUnit(e.target.value)}
+                      className="bg-white border-0 rounded-full px-3 text-xs font-bold text-[#173809] focus:outline-none focus:ring-2 focus:ring-[#173809]/20 transition-shadow shrink-0"
+                    >
+                      <option value="acres">acres</option>
+                      <option value="hectares">ha</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* ── Soil Test (optional) ── */}
+              <div className="pt-4 border-t border-[#173809]/10">
+                <h3 className="font-headline text-lg font-bold text-[#173809] mb-1">Soil Test <span className="font-body font-normal text-sm text-[#43493e]/60">(optional)</span></h3>
+                <p className="text-xs text-[#43493e]/70 mb-4">Have a lab report? Add the numbers now. Don't have one yet? Leave this blank — you can add it anytime, and we'll use a safe estimate for your area until then.</p>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block font-label text-xs uppercase tracking-widest text-[#43493e] mb-2 ml-2">pH</label>
+                    <input
+                      type="number" step="0.1" min="0" max="14"
+                      value={ph}
+                      onChange={(e) => setPh(e.target.value)}
+                      placeholder="e.g. 6.5"
+                      className="w-full bg-white border-0 rounded-full px-6 py-4 text-base font-body text-[#173809] focus:outline-none focus:ring-2 focus:ring-[#173809]/20 transition-shadow placeholder:text-[#73796d]"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-label text-xs uppercase tracking-widest text-[#43493e] mb-2 ml-2">Nitrogen <span className="normal-case">(ppm)</span></label>
+                    <input
+                      type="number" step="any" min="0"
+                      value={nitrogen}
+                      onChange={(e) => setNitrogen(e.target.value)}
+                      placeholder="e.g. 120"
+                      className="w-full bg-white border-0 rounded-full px-6 py-4 text-base font-body text-[#173809] focus:outline-none focus:ring-2 focus:ring-[#173809]/20 transition-shadow placeholder:text-[#73796d]"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-label text-xs uppercase tracking-widest text-[#43493e] mb-2 ml-2">Phosphorus <span className="normal-case">(ppm)</span></label>
+                    <input
+                      type="number" step="any" min="0"
+                      value={phosphorus}
+                      onChange={(e) => setPhosphorus(e.target.value)}
+                      placeholder="e.g. 45"
+                      className="w-full bg-white border-0 rounded-full px-6 py-4 text-base font-body text-[#173809] focus:outline-none focus:ring-2 focus:ring-[#173809]/20 transition-shadow placeholder:text-[#73796d]"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-label text-xs uppercase tracking-widest text-[#43493e] mb-2 ml-2">Potassium <span className="normal-case">(ppm)</span></label>
+                    <input
+                      type="number" step="any" min="0"
+                      value={potassium}
+                      onChange={(e) => setPotassium(e.target.value)}
+                      placeholder="e.g. 200"
+                      className="w-full bg-white border-0 rounded-full px-6 py-4 text-base font-body text-[#173809] focus:outline-none focus:ring-2 focus:ring-[#173809]/20 transition-shadow placeholder:text-[#73796d]"
+                    />
+                  </div>
+                </div>
               </div>
 
               {/* Keep signed in */}

@@ -25,7 +25,7 @@ const greenIcon = L.divIcon({
  * `zoom` defaults to 12.
  * `height` controls the map box height (CSS string, default '100%').
  */
-const FieldMap = forwardRef(function FieldMap({ coordinates, zoom = 12, height = '100%', showLabel = true, geeUrlTemplate = null, popupContent = null }, ref) {
+const FieldMap = forwardRef(function FieldMap({ coordinates, zoom = 12, height = '100%', showLabel = true, geeUrlTemplate = null, popupContent = null, hideEmptyOverlay = false }, ref) {
   const containerRef = useRef(null)
   const mapRef = useRef(null)
 
@@ -134,7 +134,7 @@ const FieldMap = forwardRef(function FieldMap({ coordinates, zoom = 12, height =
       )}
 
       {/* No location message */}
-      {!hasPin && (
+      {!hasPin && !hideEmptyOverlay && (
         <div className="absolute inset-0 flex items-center justify-center bg-[#173809]/10 z-[9999] pointer-events-none">
           <div className="bg-white/80 backdrop-blur-sm px-4 py-2 rounded-full text-xs font-label uppercase tracking-widest text-[#173809]">
             No location anchored yet

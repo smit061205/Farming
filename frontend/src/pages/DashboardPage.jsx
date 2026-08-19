@@ -167,7 +167,7 @@ export default function DashboardPage() {
           </div>
           <div className="col-span-12 lg:col-span-4 lg:col-start-9 relative">
             <div className="rounded-[2rem] overflow-hidden relative" style={{ boxShadow: '0 20px 40px rgba(29,28,13,0.06)', height: '220px', isolation: 'isolate' }}>
-              <FieldMap coordinates={coords} zoom={12} height="100%" showLabel={true} />
+              <FieldMap coordinates={coords} zoom={12} height="100%" showLabel={true} hideEmptyOverlay={true} />
               {coords?.lat ? (
                 <div className="absolute top-3 left-3 flex items-center gap-2 bg-[#173809]/80 backdrop-blur-sm px-3 py-1.5 rounded-full" style={{ zIndex: 400 }}>
                   <div className="w-2 h-2 rounded-full bg-[#c5efad]" style={{ boxShadow: '0 0 8px 2px rgba(197,239,173,0.8)' }}></div>

@@ -1,4 +1,5 @@
 import os
+import re
 import json
 import math
 import base64
@@ -894,7 +895,7 @@ async def ai_consultation_chat(req: ChatRequest, current_user = Depends(get_curr
 You MUST provide concise, accurate, actionable advice tailored to the farmer's exact soil, crop, and field data below.
 Use simple, everyday words a farmer with no chemistry background would understand — avoid technical jargon.
 Stay focused on fertilizer type, quantity, timing, and sustainable practice — this is not a general farming chatbot.
-Respond natively in whatever language the user speaks. Do NOT use markdown headers, keep text formatting clean (bullet points and bold are fine).
+Respond natively in whatever language the user speaks. Write in plain text only — no markdown at all: no asterisks, no bold, no headers, no hashtags. If you need a list, start each line with a plain dash.
 Do not offer generalities. Use the exact data below to answer their questions.
 
 {context_str}
@@ -916,6 +917,8 @@ Do not offer generalities. Use the exact data below to answer their questions.
             max_tokens=600
         )
         reply = response.choices[0].message.content
+        reply = re.sub(r'\*\*(.*?)\*\*', r'\1', reply)  # **bold** -> bold
+        reply = reply.replace('*', '').replace('#', '')
         return {"status": "success", "reply": reply}
     except Exception as e:
         print(f"Chatbot Engine error: {e}")
