@@ -133,7 +133,7 @@ export default function MapPicker({ value, onChange, autoDetect = false }) {
   return (
     <div className="w-full space-y-3">
       {/* Map container */}
-      <div className="relative rounded-[1.5rem] overflow-hidden border-2 border-[#173809]/10" style={{ height: '260px', boxShadow: '0 8px 30px rgba(23,56,9,0.08)' }}>
+      <div className="relative rounded-[1.5rem] overflow-hidden border-2 border-[#173809]/10" style={{ height: '260px', boxShadow: '0 8px 30px rgba(23,56,9,0.08)', isolation: 'isolate' }}>
         <div ref={mapContainerRef} style={{ height: '100%', width: '100%' }} />
 
         {/* Geocoding overlay */}
