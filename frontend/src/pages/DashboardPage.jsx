@@ -1,5 +1,5 @@
 import API_BASE from "../api.js"
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
@@ -41,6 +41,17 @@ export default function DashboardPage() {
       setIsLocating(false)
     }
   }
+
+  // Auto-attempt geolocation once per visit for any account with no saved
+  // location — the farmer shouldn't have to find and click a button just
+  // to unlock the satellite/weather data every other part of the page needs.
+  const autoLocateAttempted = useRef(false)
+  useEffect(() => {
+    if (!user || autoLocateAttempted.current || user?.coordinates?.lat) return
+    autoLocateAttempted.current = true
+    handleEnableLocation()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user])
 
   // Read the last analysis the user submitted from InputPage
   const lastAnalysis = (() => {

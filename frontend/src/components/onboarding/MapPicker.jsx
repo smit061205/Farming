@@ -30,7 +30,7 @@ const greenIcon = L.divIcon({
   popupAnchor: [0, -28],
 })
 
-export default function MapPicker({ value, onChange }) {
+export default function MapPicker({ value, onChange, autoDetect = false }) {
   const mapRef = useRef(null)
   const markerRef = useRef(null)
   const mapContainerRef = useRef(null)
@@ -117,6 +117,18 @@ export default function MapPicker({ value, onChange }) {
       { timeout: 10000 }
     )
   }
+
+  // Auto-attempt geolocation once on mount (no click needed) when the
+  // caller opts in and there's no location already saved. Browsers still
+  // show their own native permission prompt — we just don't wait for a
+  // click to trigger it.
+  const autoDetectAttempted = useRef(false)
+  useEffect(() => {
+    if (!autoDetect || autoDetectAttempted.current || value?.lat) return
+    autoDetectAttempted.current = true
+    handleUseMyLocation()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoDetect])
 
   return (
     <div className="w-full space-y-3">

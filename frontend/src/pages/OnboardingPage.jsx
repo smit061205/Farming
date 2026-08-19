@@ -213,7 +213,7 @@ export default function OnboardingPage() {
                 <label className="block font-label text-xs uppercase tracking-widest text-[#43493e] mb-2 ml-2">
                   Field Location
                 </label>
-                <MapPicker value={coordinates} onChange={setCoordinates} />
+                <MapPicker value={coordinates} onChange={setCoordinates} autoDetect />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
