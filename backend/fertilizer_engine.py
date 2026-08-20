@@ -15,18 +15,32 @@ from typing import Optional
 
 import httpx
 
-# Standard reference nutrient uptake targets (kg/ha) per crop — approximate
-# general recommendations drawn from common Indian agricultural extension
-# guidance. Kept in sync with frontend/src/constants/crops.js CROP_OPTIONS.
+# Reference nutrient uptake targets (kg/ha) per crop.
+#
+# rice/wheat/maize/soybean/groundnut/sugarcane are ICAR general recommended
+# doses (all-India, irrigated/normal condition), cross-checked Aug 2026:
+#   rice      60-30-30   (irrigated Kharif, most common cultivation method)
+#   wheat     120-60-40  (ICAR general recommendation)
+#   maize     135-62.5-50 (+ 37.5 kg/ha ZnSO4 — Zn not yet modeled, see roadmap)
+#   soybean   20-60-20
+#   groundnut 20-50-30   (ICAR-CCARI Goa trial; used as best-available general reference)
+#   sugarcane 250-125-150
+# Real ICAR doses vary further by state, irrigation status, and variety
+# (e.g. rainfed rice is 40-20-20, hybrid rice is 100-60-60) — this table is
+# the general/all-India figure, not yet state- or condition-aware. See
+# ROADMAP.md Part 4 "Next" tier.
+# cotton/chickpea/potato/tomato/mustard/sunflower/onion are still the
+# original generic placeholders — not yet cross-checked against a citable
+# ICAR source.
 CROP_NUTRIENT_TARGETS = {
-    "rice":       {"n": 120, "p": 60, "k": 40},
+    "rice":       {"n": 60,  "p": 30, "k": 30},
     "wheat":      {"n": 120, "p": 60, "k": 40},
-    "maize":      {"n": 120, "p": 60, "k": 40},
-    "sugarcane":  {"n": 280, "p": 90, "k": 90},
+    "maize":      {"n": 135, "p": 62.5, "k": 50},
+    "sugarcane":  {"n": 250, "p": 125, "k": 150},
     "cotton":     {"n": 100, "p": 50, "k": 50},
-    "soybean":    {"n": 30,  "p": 60, "k": 40},
+    "soybean":    {"n": 20,  "p": 60, "k": 20},
     "chickpea":   {"n": 20,  "p": 50, "k": 20},
-    "groundnut":  {"n": 25,  "p": 50, "k": 75},
+    "groundnut":  {"n": 20,  "p": 50, "k": 30},
     "potato":     {"n": 150, "p": 80, "k": 100},
     "tomato":     {"n": 120, "p": 80, "k": 60},
     "mustard":    {"n": 80,  "p": 40, "k": 40},
@@ -42,11 +56,16 @@ PPM_TO_KG_HA = 2.24
 
 ACRE_TO_HECTARE = 0.4047
 
-# Single-nutrient carrier products used to correct each deficit — chosen for
-# being the most concentrated, widely available source of that nutrient.
+# Carrier products used to correct each deficit — the actual dominant,
+# NBS-subsidized product Indian farmers buy for that nutrient (verified
+# Aug 2026; TSP was previously modeled for phosphorus but is a minor,
+# unsubsidized product in the Indian retail market — DAP is what's
+# actually sold and priced under the government scheme).
+# DAP also contains ~18% N; that secondary contribution isn't yet
+# subtracted from the nitrogen deficit — see ROADMAP.md Part 4 "Next" tier.
 NUTRIENT_CARRIER = {
     "n": {"name": "Granular Urea", "npk_fraction": 0.46},
-    "p": {"name": "Triple Superphosphate (TSP)", "npk_fraction": 0.46},
+    "p": {"name": "DAP (Diammonium Phosphate)", "npk_fraction": 0.46},
     "k": {"name": "Muriate of Potash (MOP)", "npk_fraction": 0.60},
 }
 

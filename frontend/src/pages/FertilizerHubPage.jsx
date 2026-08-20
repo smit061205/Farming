@@ -73,6 +73,7 @@ export default function FertilizerHubPage() {
   const { token } = useAuth()
   const [precision, setPrecision] = useState(null)
   const [isLoadingPrecision, setIsLoadingPrecision] = useState(true)
+  const [cost, setCost] = useState(null)
   const [encyclopedia, setEncyclopedia] = useState(() => {
     try { return JSON.parse(localStorage.getItem('cached_fert_encyc')) || [] } catch { return [] }
   })
@@ -88,6 +89,11 @@ export default function FertilizerHubPage() {
         setIsLoadingPrecision(false)
       })
       .catch(() => setIsLoadingPrecision(false))
+
+    fetch(`${API_BASE}/api/engine/sustainability-impact`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(res => res.json())
+      .then(data => { if (data.status === 'success') setCost(data.impact.cost) })
+      .catch(() => {})
 
     setIsLoadingEncyc(encyclopedia.length === 0)
     fetch(`${API_BASE}/api/engine/fertilizer-encyclopedia`, { headers: { Authorization: `Bearer ${token}` } })
@@ -204,6 +210,18 @@ export default function FertilizerHubPage() {
                         </div>
                       ))}
                     </div>
+                  </div>
+                )}
+
+                {cost && (
+                  <div className="mt-6 pt-6 border-t border-[#173809]/6 flex items-center justify-between gap-4">
+                    <div>
+                      <p className="text-[10px] uppercase tracking-widest text-[#173809]/40 font-bold mb-1">Estimated Cost</p>
+                      <p className="text-2xl font-headline font-bold text-[#173809]">₹{cost.recommended_inr.toLocaleString('en-IN')}</p>
+                    </div>
+                    <p className="text-[10px] text-[#173809]/40 text-right max-w-[220px] leading-relaxed">
+                      Priced at India's NBS Kharif 2026 notified MRP for Urea, DAP &amp; MOP — government rates change seasonally.
+                    </p>
                   </div>
                 )}
               </div>

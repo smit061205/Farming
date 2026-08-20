@@ -31,11 +31,18 @@ CROP_YIELD_PRICE = {
 }
 DEFAULT_YIELD_PRICE = {"yield_kg_ha": 2500, "price_per_kg": 20}
 
-# Illustrative retail price per kg of each carrier product (INR)
+# Government-notified retail MRP per kg of each carrier product (INR),
+# under India's Nutrient Based Subsidy (NBS) scheme — Kharif 2026 notified
+# rates, cross-checked Aug 2026. Farmers pay this MRP; the government pays
+# the per-nutrient subsidy directly to fertilizer companies.
+#   Urea: ₹242 / 45kg bag · DAP: ₹1,350 / 50kg bag · MOP: ₹1,670 / 50kg bag
+# These are set by government notification and do change between seasons —
+# worth re-checking against the current Dept. of Fertilizers notification
+# if this drifts far from what a farmer reports paying.
 PRODUCT_PRICE_PER_KG = {
-    "Granular Urea": 6,
-    "Triple Superphosphate (TSP)": 28,
-    "Muriate of Potash (MOP)": 34,
+    "Granular Urea": 5.38,
+    "DAP (Diammonium Phosphate)": 27.00,
+    "Muriate of Potash (MOP)": 33.40,
 }
 
 # Typical over-application: without a soil test, farmers commonly blanket-apply

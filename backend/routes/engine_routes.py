@@ -185,7 +185,7 @@ async def fetch_telemetry(lat: float, lng: float):
         f"?latitude={lat}&longitude={lng}"
         f"&current=temperature_2m,soil_temperature_0cm,soil_moisture_0_to_1cm"
     )
-    telemetry = {"moisture": None, "temperature": None, "ph": None, "nitrogen": None}
+    telemetry = {"moisture": None, "temperature": None, "ph": None, "nitrogen": None, "source": "unavailable"}
 
     try:
         async with httpx.AsyncClient(timeout=3.0) as client:
@@ -198,15 +198,10 @@ async def fetch_telemetry(lat: float, lng: float):
                 telemetry["temperature"] = (
                     current.get("soil_temperature_0cm") or current.get("temperature_2m")
                 )
+                if telemetry["moisture"] is not None or telemetry["temperature"] is not None:
+                    telemetry["source"] = "open-meteo"
     except Exception:
-        pass  # fall through to defaults below
-
-    # If real data unavailable, return realistic fallback instantly
-    if telemetry["moisture"] is None:
-        import random
-        random.seed(int(abs(lat * 100) + abs(lng * 100)) % 1000)
-        telemetry["moisture"]    = round(random.uniform(28.0, 52.0), 1)
-        telemetry["temperature"] = round(random.uniform(21.0, 34.0), 1)
+        pass  # telemetry stays None/"unavailable" — never synthesize a sensor reading
 
     _telemetry_cache[cache_key] = (_time.time(), telemetry)
     return {"status": "success", "data": telemetry}

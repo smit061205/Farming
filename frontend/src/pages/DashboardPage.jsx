@@ -227,7 +227,7 @@ export default function DashboardPage() {
               color: '#7a2a1a', light: '#f5b8a8'
             },
             {
-              icon: 'grass', label: 'Soil Health',
+              icon: 'grass', label: 'AgriSense Score',
               value: healthScore,
               sub: healthLabel,
               color: healthScore >= 80 ? '#173809' : healthScore >= 60 ? '#7a4a00' : '#7a2a1a',

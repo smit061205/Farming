@@ -123,7 +123,7 @@ export default function SensorNetworkView() {
         {/* 4-Column Symmetrical KPI Grid */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
           <div className="bg-[#e7e3ca] rounded-3xl p-6 soil-shadow relative overflow-hidden flex flex-col justify-between">
-            <span className="text-[#173809] font-bold text-xs uppercase tracking-widest mb-4">Soil Health</span>
+            <span className="text-[#173809] font-bold text-xs uppercase tracking-widest mb-4">AgriSense Score</span>
             <div className="flex items-baseline gap-2 z-10">
               <span className="text-5xl font-headline font-bold text-[#173809]">{vitality}%</span>
               <span className="text-[#2d4f1e] font-bold text-sm tracking-wide">{vitality > 85 ? 'Optimal' : vitality > 60 ? 'Stable' : 'Critical'}</span>

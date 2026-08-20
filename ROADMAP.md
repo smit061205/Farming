@@ -238,3 +238,27 @@ A professional data-driven app's contract is: **the depth of the answer must be 
 3. Gate the Dashboard's plan/crop-recommendation cards on Tier 2 completion instead of on `precision?.dose` truthiness, so the existing "No Plan Yet" empty state actually fires for incomplete profiles.
 4. Replace `InputPage.jsx`'s hardcoded seed values with an honest empty/placeholder first-visit state.
 5. Add the "Estimated" / "Add your soil data" chip treatment wherever `data_source !== "measured"`.
+
+---
+
+# Part 4 — Industry-Grade Data Roadmap
+
+Full parameter-by-parameter audit (what's live, what's computed-on-generic-constants, what's fabricated) plus a phased plan to replace every fabricated value with a real source — starting with the Fertilizer page. Published as an artifact rather than duplicated here in full; see the "Now / Next / Later" tiers below for the condensed version.
+
+**Now (free, no new integration):**
+- Delete the dead `/api/users/soil-data/upload` endpoint — returns `random.uniform()` dressed as AI-extracted lab data, unused by the frontend but live in the codebase.
+- Replace `fetch-telemetry`'s `random.seed(lat/lng)` moisture/temperature fallback with an honest "sync unavailable" state.
+- Add a provenance badge (Measured / Regional Estimate / Reference Average) to every computed figure in the UI.
+- Fertilizer page: swap the static ₹6/₹28/₹34 product-price table for Dept. of Fertilizers NBS notified MRP rates.
+- Fertilizer page: swap the flat national N/P/K target-per-crop for state-aware ICAR package-of-practices figures (the app already knows the farmer's state from their pinned location).
+
+**Next (free public APIs, real integration):**
+- ISRIC SoilGrids REST API for the "no soil test on hand" regional pH/N/P/K baseline, replacing the invented pH-6.5 formula.
+- Agmarknet (data.gov.in) live mandi prices, replacing the static `CROP_YIELD_PRICE` table behind the income-impact numbers.
+- Model common blended fertilizer products (20:20:0:13, 10:26:26) alongside the raw Urea/TSP/MOP carriers.
+
+**Later (needs a working vision model, partnership, or access request):**
+- Re-point the lab-report OCR upload at a working vision-capable model (currently broken — no vision model available on the Groq key).
+- Research India's Soil Health Card government lookup — real lab-tested farmer data if reachable, the single highest-value source on this list.
+- Micronutrients (Zn, S, B) once core NPK provenance is solid.
+- Dealer inventory / "buy near me" — needs a retail-side data partner.
