@@ -9,18 +9,13 @@ export default function SensorNetworkView() {
   const { user } = useAuth()
   const navigate = useNavigate()
   
-  // Try to load any actively analyzed data
-  let lastAnalysis = null
-  try {
-    const saved = localStorage.getItem('last_analysis')
-    if (saved) lastAnalysis = JSON.parse(saved)
-  } catch {}
-
-  // Parse metrics
-  const soilPh = parseFloat(lastAnalysis?.pH ?? user?.soil_data?.ph ?? 6.5)
-  const soilN = parseFloat(lastAnalysis?.N ?? user?.soil_data?.nitrogen ?? 120)
-  const soilP = parseFloat(lastAnalysis?.P ?? user?.soil_data?.phosphorus ?? 45)
-  const soilK = parseFloat(lastAnalysis?.K ?? user?.soil_data?.potassium ?? 180)
+  // Parse metrics — the farmer's saved profile is the single source of truth
+  // (a localStorage cache here used to let this page show different numbers
+  // than the Dashboard and Fertilizer Hub for the same account).
+  const soilPh = parseFloat(user?.soil_data?.ph ?? 6.5)
+  const soilN = parseFloat(user?.soil_data?.nitrogen ?? 120)
+  const soilP = parseFloat(user?.soil_data?.phosphorus ?? 45)
+  const soilK = parseFloat(user?.soil_data?.potassium ?? 180)
   
   const om = parseFloat(user?.soil_data?.organic_matter_pct ?? 4.2).toFixed(1)
   const cec = parseFloat(user?.soil_data?.cec ?? 15.0).toFixed(1)

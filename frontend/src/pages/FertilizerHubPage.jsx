@@ -81,6 +81,7 @@ export default function FertilizerHubPage() {
   const [precision, setPrecision] = useState(null)
   const [isLoadingPrecision, setIsLoadingPrecision] = useState(true)
   const [cost, setCost] = useState(null)
+  const [history, setHistory] = useState([])
   const [encyclopedia, setEncyclopedia] = useState(() => {
     try { return JSON.parse(localStorage.getItem('cached_fert_encyc')) || [] } catch { return [] }
   })
@@ -100,6 +101,11 @@ export default function FertilizerHubPage() {
     fetch(`${API_BASE}/api/engine/sustainability-impact`, { headers: { Authorization: `Bearer ${token}` } })
       .then(res => res.json())
       .then(data => { if (data.status === 'success') setCost(data.impact.cost) })
+      .catch(() => {})
+
+    fetch(`${API_BASE}/api/engine/recommendation-history?limit=6`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(res => res.json())
+      .then(data => { if (data.status === 'success') setHistory(data.history || []) })
       .catch(() => {})
 
     setIsLoadingEncyc(encyclopedia.length === 0)
@@ -169,15 +175,20 @@ export default function FertilizerHubPage() {
                 <div className="space-y-4">
                   {Object.entries(precision.dose.nutrients).map(([label, data]) => {
                     const meta = NUTRIENT_META[label]
-                    const needsApplication = data.product_kg_total > 0
+                    const status = data.status || (data.product_kg_total > 0 ? 'deficient' : 'sufficient')
                     const barMax = Math.max(data.target_kg_ha, data.available_kg_ha, 1)
                     const availablePct = Math.min(100, (data.available_kg_ha / barMax) * 100)
                     const targetPct = Math.min(100, (data.target_kg_ha / barMax) * 100)
                     const bagSize = BAG_SIZE_KG[data.product]
                     const bagCount = bagSize && data.product_kg_total > 0 ? Math.ceil(data.product_kg_total / bagSize) : null
+                    const barColor = status === 'deficient' ? '#9f402d' : status === 'excess' ? '#b8862e' : '#173809'
+                    const pillClass = status === 'deficient' ? 'bg-[#9f402d]/10 text-[#9f402d]'
+                                     : status === 'excess'    ? 'bg-[#b8862e]/12 text-[#8a641c]'
+                                     : 'bg-[#173809]/8 text-[#173809]'
+                    const pillLabel = status === 'deficient' ? 'Apply Now' : status === 'excess' ? 'Over-Supplied' : 'Sufficient'
 
                     return (
-                      <div key={label} className="rounded-2xl border border-[#173809]/8 p-5">
+                      <div key={label} className={`rounded-2xl border p-5 ${status === 'excess' ? 'border-[#b8862e]/30 bg-[#b8862e]/5' : 'border-[#173809]/8'}`}>
                         <div className="flex items-center gap-4 mb-4">
                           <div
                             className="w-11 h-11 rounded-xl flex items-center justify-center font-bold text-base shrink-0"
@@ -189,10 +200,9 @@ export default function FertilizerHubPage() {
                             <span className="font-bold text-[#173809] capitalize block">{label}</span>
                             <span className="text-[11px] text-[#173809]/40">{data.available_kg_ha} of {data.target_kg_ha} kg/ha target</span>
                           </div>
-                          <span className={`text-[10px] font-bold uppercase tracking-widest px-3 py-1.5 rounded-full shrink-0 ${
-                            needsApplication ? 'bg-[#9f402d]/10 text-[#9f402d]' : 'bg-[#173809]/8 text-[#173809]'
-                          }`}>
-                            {needsApplication ? 'Apply Now' : 'Sufficient'}
+                          <span className={`text-[10px] font-bold uppercase tracking-widest px-3 py-1.5 rounded-full shrink-0 flex items-center gap-1 ${pillClass}`}>
+                            {status === 'excess' && <span className="material-symbols-outlined text-[13px]">warning</span>}
+                            {pillLabel}
                           </span>
                         </div>
 
@@ -200,7 +210,7 @@ export default function FertilizerHubPage() {
                         <div className="relative h-2.5 bg-[#173809]/8 rounded-full mb-1">
                           <div
                             className="absolute top-0 left-0 h-full rounded-full transition-all duration-500"
-                            style={{ width: `${availablePct}%`, backgroundColor: needsApplication ? '#9f402d' : '#173809' }}
+                            style={{ width: `${availablePct}%`, backgroundColor: barColor }}
                           />
                           <div
                             className="absolute top-1/2 -translate-y-1/2 w-1 h-4 bg-[#1d1c0d]/50 rounded-full"
@@ -210,7 +220,7 @@ export default function FertilizerHubPage() {
                         </div>
                         <p className="text-[10px] text-[#173809]/30 mb-4">Bar shows what's already in your soil · the mark is the target</p>
 
-                        {needsApplication ? (
+                        {status === 'deficient' ? (
                           <div className="flex items-center justify-between gap-3 pt-3 border-t border-[#173809]/6 text-sm">
                             <span className="text-[#43493e]">
                               <span className="font-bold text-[#173809]">{data.product_kg_total} kg</span> of <span className="font-bold">{data.product}</span>
@@ -220,6 +230,10 @@ export default function FertilizerHubPage() {
                               <span className="font-bold text-[#173809] shrink-0">₹{data.cost_inr.toLocaleString('en-IN')}</span>
                             )}
                           </div>
+                        ) : status === 'excess' ? (
+                          <p className="text-sm text-[#8a641c] font-medium pt-3 border-t border-[#b8862e]/20">
+                            {data.surplus_kg_ha} kg/ha more than needed — stop applying {label}. Continuing risks runoff into water and soil damage.
+                          </p>
                         ) : (
                           <p className="text-sm text-[#173809]/50 pt-3 border-t border-[#173809]/6">Soil already meets target — no application needed</p>
                         )}
@@ -232,6 +246,13 @@ export default function FertilizerHubPage() {
                   <div className="mt-6 flex gap-3 bg-[#173809]/5 rounded-xl p-4 text-sm text-[#173809]">
                     <span className="material-symbols-outlined text-[18px] shrink-0">compare_arrows</span>
                     {precision.ai.current_practice_note}
+                  </div>
+                )}
+
+                {precision.ai?.trend_note && (
+                  <div className="mt-3 flex gap-3 bg-[#b8862e]/8 rounded-xl p-4 text-sm text-[#8a641c]">
+                    <span className="material-symbols-outlined text-[18px] shrink-0">trending_up</span>
+                    {precision.ai.trend_note}
                   </div>
                 )}
 
@@ -275,6 +296,44 @@ export default function FertilizerHubPage() {
             </div>
           )}
         </section>
+
+        {history.length > 0 && (
+          <section className="mb-24 max-w-7xl mx-auto">
+            <header className="mb-8">
+              <span className="font-label uppercase tracking-[0.3em] text-[#173809]/40 text-sm font-bold mb-2 block">Your Field, Over Time</span>
+              <h2 className="font-headline text-3xl md:text-4xl font-bold text-[#173809] tracking-tighter">Fertilizer History</h2>
+              <p className="text-[#173809]/50 text-sm mt-2 max-w-2xl">Every recommendation run for this field, most recent first — so a repeated pattern (like staying in excess) is easy to spot.</p>
+            </header>
+            <div className="bg-white rounded-[2rem] border border-[#173809]/8 divide-y divide-[#173809]/6 overflow-hidden">
+              {history.map((run) => {
+                const date = run.created_at ? new Date(run.created_at * 1000).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : ''
+                return (
+                  <div key={run.id} className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6 px-6 py-4">
+                    <span className="text-xs font-bold text-[#173809]/40 uppercase tracking-widest w-28 shrink-0">{date}</span>
+                    <span className="text-sm font-bold text-[#173809] w-32 shrink-0 capitalize">{run.crop_type}</span>
+                    <div className="flex gap-2 shrink-0">
+                      {Object.entries(run.nutrients || {}).map(([label, d]) => {
+                        const meta = NUTRIENT_META[label]
+                        const dotColor = d.status === 'deficient' ? '#9f402d' : d.status === 'excess' ? '#b8862e' : '#173809'
+                        return (
+                          <span
+                            key={label}
+                            title={`${label}: ${d.status || 'sufficient'}`}
+                            className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold text-white shrink-0"
+                            style={{ backgroundColor: dotColor }}
+                          >
+                            {meta.short}
+                          </span>
+                        )
+                      })}
+                    </div>
+                    <p className="text-sm text-[#43493e] flex-grow min-w-0 truncate">{run.headline}</p>
+                  </div>
+                )
+              })}
+            </div>
+          </section>
+        )}
 
         <div className="w-full h-px bg-[#173809]/10 my-20 max-w-7xl mx-auto" />
 

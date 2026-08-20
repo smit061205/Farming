@@ -74,6 +74,12 @@ RAIN_RISK_MM_5D = 25.0
 # Average max temp above this is treated as urea volatilization risk
 HEAT_RISK_C = 35.0
 
+# Available nutrient above this multiple of the crop's target is flagged as
+# over-supply, not just "sufficient" — the core failure mode the problem
+# statement is about (excess fertilizer degrading soil), and one that a
+# plain deficit-only calculation silently misses.
+EXCESS_THRESHOLD = 1.5
+
 
 def field_size_to_hectares(size: float, unit: Optional[str]) -> float:
     size = size or 0
@@ -159,14 +165,24 @@ def compute_precision_dose(
         target_kg_ha = targets[key]
         available_kg_ha = round(available[key], 1)
         deficit_kg_ha = max(0.0, round(target_kg_ha - available_kg_ha, 1))
+        surplus_kg_ha = max(0.0, round(available_kg_ha - target_kg_ha, 1))
         carrier = NUTRIENT_CARRIER[key]
         product_kg_ha = round(deficit_kg_ha / carrier["npk_fraction"], 1) if deficit_kg_ha > 0 else 0.0
         product_kg_total = round(product_kg_ha * hectares, 1) if hectares else product_kg_ha
+
+        if deficit_kg_ha > 0:
+            status = "deficient"
+        elif target_kg_ha > 0 and available_kg_ha >= target_kg_ha * EXCESS_THRESHOLD:
+            status = "excess"
+        else:
+            status = "sufficient"
 
         nutrients[label] = {
             "target_kg_ha": target_kg_ha,
             "available_kg_ha": available_kg_ha,
             "deficit_kg_ha": deficit_kg_ha,
+            "surplus_kg_ha": surplus_kg_ha,
+            "status": status,
             "product": carrier["name"],
             "product_kg_per_ha": product_kg_ha,
             "product_kg_total": product_kg_total,

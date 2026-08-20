@@ -40,16 +40,12 @@ function isUnusual(key, val) {
 export default function InputPage() {
   const navigate = useNavigate()
   const { user, token, refreshUser } = useAuth()
+  // Defaults shown only until the profile-hydration effect below fills in
+  // the farmer's actual saved values — never a stale local cache.
   const [savedValues, setSavedValues] = useState(null)
-  const [values, setValues] = useState(() => {
-    try {
-      const saved = localStorage.getItem('last_analysis')
-      if (saved) return JSON.parse(saved)
-    } catch {}
-    return {
-      N: 96, P: 48, K: 194, pH: 6.8, cropType: 'Wheat', soilType: 'Clay Loam',
-      fieldSize: 2, fieldSizeUnit: 'acres', growthStage: 'sowing', currentFertilizer: '',
-    }
+  const [values, setValues] = useState({
+    N: 96, P: 48, K: 194, pH: 6.8, cropType: 'Wheat', soilType: 'Clay Loam',
+    fieldSize: 2, fieldSizeUnit: 'acres', growthStage: 'sowing', currentFertilizer: '',
   })
   const [saveStatus, setSaveStatus] = useState(null) // null | 'saving' | 'saved' | 'error'
 
@@ -129,32 +125,39 @@ export default function InputPage() {
     setValues(prev => ({ ...prev, [field]: Math.max(clamp[0], Math.min(clamp[1], val)) }))
   }
 
+  // Single persistence path — the backend profile is the only source of
+  // truth every other page reads from, so both "Save Changes" and "Get My
+  // Fertilizer Plan" go through the same real save instead of one of them
+  // quietly only writing to localStorage.
+  const persist = async () => {
+    const res = await fetch(`${API_BASE}/api/users/soil-data`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        ph: parseFloat(values.pH),
+        nitrogen: parseFloat(values.N),
+        phosphorus: parseFloat(values.P),
+        potassium: parseFloat(values.K),
+        cropType: values.cropType,
+        soilType: values.soilType,
+        fieldSize: parseFloat(values.fieldSize) || 0,
+        fieldSizeUnit: values.fieldSizeUnit,
+        growthStage: values.growthStage,
+        currentFertilizer: values.currentFertilizer || '',
+      }),
+    })
+    if (!res.ok) throw new Error('Save failed')
+    setSavedValues({ ...values })
+    await refreshUser()       // re-fetch user profile globally
+  }
+
   const handleSave = async () => {
     setSaveStatus('saving')
     try {
-      const res = await fetch(`${API_BASE}/api/users/soil-data`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          ph: parseFloat(values.pH),
-          nitrogen: parseFloat(values.N),
-          phosphorus: parseFloat(values.P),
-          potassium: parseFloat(values.K),
-          cropType: values.cropType,
-          soilType: values.soilType,
-          fieldSize: parseFloat(values.fieldSize) || 0,
-          fieldSizeUnit: values.fieldSizeUnit,
-          growthStage: values.growthStage,
-          currentFertilizer: values.currentFertilizer || '',
-        }),
-      })
-      if (!res.ok) throw new Error('Save failed')
-      localStorage.setItem('last_analysis', JSON.stringify(values))
-      setSavedValues({ ...values })
-      await refreshUser()       // re-fetch user profile globally
+      await persist()
       setSaveStatus('saved')
       setTimeout(() => setSaveStatus(null), 3000)
     } catch (e) {
@@ -164,9 +167,16 @@ export default function InputPage() {
     }
   }
 
-  const handleAnalyze = () => {
-    localStorage.setItem('last_analysis', JSON.stringify(values))
-    navigate('/dashboard', { state: { fieldData: values } })
+  const handleAnalyze = async () => {
+    setSaveStatus('saving')
+    try {
+      await persist()
+      navigate('/dashboard')
+    } catch (e) {
+      console.error(e)
+      setSaveStatus('error')
+      setTimeout(() => setSaveStatus(null), 3000)
+    }
   }
 
   const ph = parseFloat(values.pH) || 7

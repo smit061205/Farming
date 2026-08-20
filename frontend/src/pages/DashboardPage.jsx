@@ -53,19 +53,14 @@ export default function DashboardPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user])
 
-  // Read the last analysis the user submitted from InputPage
-  const lastAnalysis = (() => {
-    try { return JSON.parse(localStorage.getItem('last_analysis')) } catch { return null }
-  })()
-
   useEffect(() => {
     if (!token) return
-    // Build URL with latest analysis params so AI uses the most recent soil data
-    const la = (() => { try { return JSON.parse(localStorage.getItem('last_analysis')) } catch { return null } })()
-    const params = la
-      ? `?n=${la.N}&p=${la.P}&k=${la.K}&ph=${la.pH}&crop_type=${encodeURIComponent(la.cropType || '')}&soil_type=${encodeURIComponent(la.soilType || '')}`
-      : ''
-    fetch(`${API_BASE}/api/engine/insights${params}`, {
+    // No query params — the backend reads the farmer's saved profile, the
+    // same single source of truth every other page (Fertilizer Hub, the
+    // precision plan below) already uses. A local-only override here was
+    // letting this page show different numbers than the rest of the app
+    // for the same account whenever Analyze Field hadn't been saved yet.
+    fetch(`${API_BASE}/api/engine/insights`, {
       headers: { Authorization: `Bearer ${token}` }
     })
       .then(res => res.json())
@@ -97,12 +92,8 @@ export default function DashboardPage() {
         headers: { Authorization: `Bearer ${token}` }
       })
     } catch {}
-    const la = (() => { try { return JSON.parse(localStorage.getItem('last_analysis')) } catch { return null } })()
-    const params = la
-      ? `?n=${la.N}&p=${la.P}&k=${la.K}&ph=${la.pH}&crop_type=${encodeURIComponent(la.cropType || '')}&soil_type=${encodeURIComponent(la.soilType || '')}`
-      : ''
     try { localStorage.removeItem('cached_insights') } catch {}
-    fetch(`${API_BASE}/api/engine/insights${params}`, {
+    fetch(`${API_BASE}/api/engine/insights`, {
       headers: { Authorization: `Bearer ${token}` }
     })
       .then(res => res.json())
@@ -135,19 +126,17 @@ export default function DashboardPage() {
 
 
 
-  const soilPh = lastAnalysis?.pH ?? user?.soil_data?.ph
-  const soilN = lastAnalysis?.N ?? user?.soil_data?.nitrogen
-  // Read P and K from last analysis, then profile (now stored from Phase 3), then derive
-  const soilP = lastAnalysis?.P
-    ?? user?.soil_data?.phosphorus
+  const soilPh = user?.soil_data?.ph
+  const soilN = user?.soil_data?.nitrogen
+  const soilP = user?.soil_data?.phosphorus
     ?? (soilN ? Math.round(50 + (parseFloat(soilPh || 7) - 7) * 10) : null)
-  const soilK = lastAnalysis?.K
-    ?? user?.soil_data?.potassium
+  const soilK = user?.soil_data?.potassium
     ?? (soilN ? Math.round(200 + (parseFloat(soilPh || 7) - 7) * 30) : null)
-  const soilType = lastAnalysis?.soilType ?? user?.soil_data?.soil_type ?? null
-  const hasAnalysis = !!lastAnalysis
+  const soilType = user?.soil_data?.soilType ?? null
+  const cropType = user?.soil_data?.cropType ?? null
+  const hasAnalysis = soilN != null
   const dataSource = hasAnalysis
-    ? lastAnalysis.cropType ? `${lastAnalysis.cropType} · ${lastAnalysis.soilType}` : 'Analyzed Values'
+    ? cropType ? [cropType, soilType].filter(Boolean).join(' · ') : 'Analyzed Values'
     : user?.soil_data?.data_source === 'ocr' ? 'OCR Lab Report' : 'Profile Baseline'
   const coords = user?.coordinates
 

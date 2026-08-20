@@ -675,6 +675,26 @@ async def get_precision_recommendation(
         nutrient["cost_inr"] = round(nutrient["product_kg_total"] * price_per_kg)
 
     current_fertilizer = (user.get("soil_data") or {}).get("currentFertilizer") or None
+    excess_nutrients = [label for label, d in dose["nutrients"].items() if d["status"] == "excess"]
+
+    # Pull the farmer's last few recommendations so the AI can spot a pattern
+    # (e.g. nitrogen has been in excess for three visits running) instead of
+    # only ever judging this one snapshot in isolation.
+    history_line = ""
+    try:
+        hist_db = get_db()
+        past_cursor = hist_db["recommendation_history"].find(
+            {"user_id": user["_id"]}
+        ).sort("created_at", -1).limit(3)
+        past_runs = [doc async for doc in past_cursor]
+        if past_runs:
+            summaries = []
+            for doc in past_runs:
+                statuses = {label: d.get("status", "?") for label, d in doc.get("dose", {}).get("nutrients", {}).items()}
+                summaries.append(f"- {doc.get('crop_type', '?')}: {statuses}")
+            history_line = "Farmer's last few recommendations (oldest pattern first):\n" + "\n".join(summaries)
+    except Exception:
+        pass  # history is a nice-to-have — never block the recommendation on it
 
     narrative = None
     if api_key and _groq_available:
@@ -682,7 +702,12 @@ async def get_precision_recommendation(
             "You are a friendly farm advisor for the AgriSense app, explaining a fertilizer plan to a farmer. "
             "Use simple, everyday words — no technical jargon. "
             "You are given ALREADY-COMPUTED dosing numbers — do not invent different figures, "
-            "only explain and contextualize the ones given. Return ONLY valid JSON, no markdown."
+            "only explain and contextualize the ones given. "
+            "Each nutrient has a status: 'deficient' (needs product), 'sufficient' (at target, no action), "
+            "or 'excess' (well above target — this is over-application, the exact problem this app exists to "
+            "prevent; a farmer with excess nutrients has likely been over-fertilizing and needs to be told "
+            "plainly to STOP applying that nutrient, not just that 'no more is needed'). "
+            "Return ONLY valid JSON, no markdown."
         )
         current_fert_line = (
             f'The farmer says they are currently applying: "{current_fertilizer}". '
@@ -690,6 +715,12 @@ async def get_precision_recommendation(
             "add to, or stop it, and why."
             if current_fertilizer else
             "The farmer did not say what they currently apply — do not assume, just give the plan."
+        )
+        excess_line = (
+            f"IMPORTANT: {', '.join(excess_nutrients)} are in EXCESS (well above target) — the headline and "
+            "explanation MUST lead with this over-supply and its risk (nutrient leaching, wasted past spending, "
+            "soil/water harm), not just say the deficit is zero."
+            if excess_nutrients else ""
         )
         user_prompt = f"""
 Computed precision fertilizer plan for {crop} on a {dose['field_size']} {dose['field_size_unit']} field (pH {soil_ph}):
@@ -699,13 +730,17 @@ Weather outlook: {json.dumps(dose['weather'])}
 Application plan: {json.dumps(dose['application_plan'])}
 
 {current_fert_line}
+{excess_line}
+
+{history_line}
 
 Return ONLY this JSON:
 {{
-    "headline": "<one short sentence stating the single most important action>",
-    "explanation": "<2-3 sentences explaining WHY these specific quantities were chosen, referencing the actual deficit numbers above>",
+    "headline": "<one short sentence stating the single most important action — lead with over-supply if any nutrient status is 'excess'>",
+    "explanation": "<2-3 sentences explaining WHY, referencing the actual deficit/surplus numbers above — call out excess nutrients by name and how far over target they are>",
     "sustainability_note": "<1-2 sentences on how following this exact dose (vs. guessing/over-applying) protects soil health and avoids waste>",
-    "current_practice_note": "<1-2 sentences comparing this plan to what the farmer currently applies, or null if they didn't say>"
+    "current_practice_note": "<1-2 sentences comparing this plan to what the farmer currently applies, or null if they didn't say>",
+    "trend_note": "<1 sentence noting a pattern across their past recommendations if one exists (e.g. repeated excess), or null if there's no history or no pattern>"
 }}
 """
         try:
@@ -720,6 +755,7 @@ Return ONLY this JSON:
             "explanation": "AI narrative unavailable — showing computed agronomy figures only.",
             "sustainability_note": "Applying only the calculated deficit avoids the over-fertilization that degrades soil and wastes input cost.",
             "current_practice_note": None,
+            "trend_note": None,
         }
 
     result = {"status": "success", "dose": dose, "ai": narrative}
