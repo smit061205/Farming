@@ -47,7 +47,7 @@ function emptyCrop() {
 // list can't name. Whether the text field is showing is its own local UI
 // state — decoupled from the string value itself, so there's no need to
 // smuggle a "custom mode" flag through the value (e.g. a sentinel space).
-function FertilizerSelect({ label, value, onChange, placeholder }) {
+function FertilizerSelect({ label, value, onChange, placeholder, required }) {
   const [customMode, setCustomMode] = useState(() => value !== '' && !FERTILIZER_OPTIONS.includes(value))
   const selectValue = customMode ? 'Other / a mix' : value
 
@@ -56,12 +56,13 @@ function FertilizerSelect({ label, value, onChange, placeholder }) {
       <label className="block font-label text-xs uppercase tracking-widest text-[#43493e] mb-2 ml-2">{label}</label>
       <select
         value={selectValue}
+        required={required}
         onChange={(e) => {
           if (e.target.value === 'Other / a mix') { setCustomMode(true); return }
           setCustomMode(false)
           onChange(e.target.value)
         }}
-        className="w-full bg-white border-0 rounded-full px-6 py-4 text-base font-body text-[#173809] focus:outline-none focus:ring-2 focus:ring-[#173809]/20 transition-shadow"
+        className="w-full bg-white border-0 rounded-full px-6 py-4 text-base font-body text-[#173809] focus:outline-none focus:ring-2 focus:ring-[#173809]/20 transition-shadow shadow-sm"
       >
         <option value="">Select…</option>
         {FERTILIZER_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
@@ -72,6 +73,7 @@ function FertilizerSelect({ label, value, onChange, placeholder }) {
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
+          required={required}
           autoFocus
           className="w-full mt-2 bg-white border border-[#173809]/15 rounded-full px-6 py-3 text-sm font-body text-[#173809] focus:outline-none focus:ring-2 focus:ring-[#173809]/20 transition-shadow placeholder:text-[#73796d]"
         />
@@ -87,11 +89,14 @@ function FertilizerSelect({ label, value, onChange, placeholder }) {
 function CropCard({ title, subtitle, values, onChange, onRemove }) {
   const set = (patch) => onChange({ ...values, ...patch })
   return (
-    <div className="bg-white/60 rounded-3xl p-5 space-y-4 border border-[#173809]/8">
+    <div className="bg-[#173809]/[0.05] rounded-[1.75rem] p-6 space-y-5">
       <div className="flex items-center justify-between">
-        <div>
-          <h3 className="font-headline text-base font-bold text-[#173809]">{title}</h3>
-          {subtitle && <p className="text-xs text-[#43493e]/60">{subtitle}</p>}
+        <div className="flex items-center gap-3">
+          <span className="material-symbols-outlined text-[#173809]/50 text-xl">agriculture</span>
+          <div>
+            <h3 className="font-headline text-base font-bold text-[#173809]">{title}</h3>
+            {subtitle && <p className="text-xs text-[#43493e]/60">{subtitle}</p>}
+          </div>
         </div>
         {onRemove && (
           <button type="button" onClick={onRemove} className="text-[#9f402d]/60 hover:text-[#9f402d]">
@@ -101,11 +106,11 @@ function CropCard({ title, subtitle, values, onChange, onRemove }) {
       </div>
 
       {/* Crop + size */}
-      <div className="grid grid-cols-2 gap-3">
+      <div className="space-y-3">
         <select
           value={values.cropType}
           onChange={(e) => set({ cropType: e.target.value })}
-          className="w-full bg-white border border-[#173809]/10 rounded-full px-5 py-3.5 text-sm font-body text-[#173809] focus:outline-none focus:ring-2 focus:ring-[#173809]/20"
+          className="w-full bg-white border-0 rounded-full px-5 py-3.5 text-sm font-body text-[#173809] focus:outline-none focus:ring-2 focus:ring-[#173809]/20 shadow-sm"
         >
           {CROP_OPTIONS.map(c => <option key={c} value={c}>{c}</option>)}
         </select>
@@ -114,25 +119,27 @@ function CropCard({ title, subtitle, values, onChange, onRemove }) {
             type="number" min="0" step="0.1" value={values.fieldSize}
             onChange={(e) => set({ fieldSize: e.target.value })}
             placeholder="Field size" required
-            className="w-full min-w-0 bg-white border border-[#173809]/10 rounded-full px-4 py-3.5 text-sm font-body text-[#173809] focus:outline-none focus:ring-2 focus:ring-[#173809]/20 placeholder:text-[#73796d]"
+            className="w-full min-w-0 bg-white border-0 rounded-full px-5 py-3.5 text-sm font-body text-[#173809] focus:outline-none focus:ring-2 focus:ring-[#173809]/20 placeholder:text-[#73796d] shadow-sm"
           />
           <select
             value={values.fieldSizeUnit}
             onChange={(e) => set({ fieldSizeUnit: e.target.value })}
-            className="bg-white border border-[#173809]/10 rounded-full px-3 text-xs font-bold text-[#173809] focus:outline-none focus:ring-2 focus:ring-[#173809]/20 shrink-0"
+            className="bg-white border-0 rounded-full px-4 text-xs font-bold text-[#173809] focus:outline-none focus:ring-2 focus:ring-[#173809]/20 shrink-0 shadow-sm"
           >
             <option value="acres">acres</option>
-            <option value="hectares">ha</option>
+            <option value="hectares">hectares</option>
           </select>
         </div>
       </div>
 
       {/* Soil test */}
-      <div className="pt-3 border-t border-[#173809]/8">
-        <p className="text-[10px] font-bold uppercase tracking-widest text-[#173809]/40 mb-3">Soil Test <span className="normal-case font-normal">— optional, we'll estimate until you add one</span></p>
+      <div className="pt-4 border-t border-[#173809]/10">
+        <p className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-[#173809]/45 mb-3">
+          <span className="material-symbols-outlined text-[13px]">science</span> Soil Test
+        </p>
         <div className="grid grid-cols-2 gap-3">
           {[
-            { key: 'ph', label: 'pH', flagKey: 'pH', ph: true },
+            { key: 'ph', label: 'pH', flagKey: 'pH' },
             { key: 'nitrogen', label: 'Nitrogen (ppm)', flagKey: 'N' },
             { key: 'phosphorus', label: 'Phosphorus (ppm)', flagKey: 'P' },
             { key: 'potassium', label: 'Potassium (ppm)', flagKey: 'K' },
@@ -141,12 +148,12 @@ function CropCard({ title, subtitle, values, onChange, onRemove }) {
             return (
               <div key={key}>
                 <input
-                  type="number" step={key === 'ph' ? '0.1' : 'any'} min="0"
+                  type="number" step={key === 'ph' ? '0.1' : 'any'} min="0" required
                   value={values[key]}
                   onChange={(e) => set({ [key]: e.target.value })}
                   placeholder={label}
-                  className={`w-full bg-white border rounded-full px-5 py-3 text-sm font-body text-[#173809] focus:outline-none focus:ring-2 transition-shadow placeholder:text-[#73796d] ${
-                    unusual ? 'border-[#9f402d]/50 focus:ring-[#9f402d]/20' : 'border-[#173809]/10 focus:ring-[#173809]/20'
+                  className={`w-full bg-white rounded-full px-5 py-3 text-sm font-body text-[#173809] focus:outline-none focus:ring-2 transition-shadow placeholder:text-[#73796d] shadow-sm border ${
+                    unusual ? 'border-[#9f402d]/50 focus:ring-[#9f402d]/20' : 'border-transparent focus:ring-[#173809]/20'
                   }`}
                 />
                 {unusual && <p className="text-[9px] text-[#9f402d] font-bold mt-1 ml-2">Unusual — double-check</p>}
@@ -157,11 +164,13 @@ function CropCard({ title, subtitle, values, onChange, onRemove }) {
       </div>
 
       {/* Fertilizer use */}
-      <div className="pt-3 border-t border-[#173809]/8">
-        <p className="text-[10px] font-bold uppercase tracking-widest text-[#173809]/40 mb-3">Fertilizer Use <span className="normal-case font-normal">— optional</span></p>
+      <div className="pt-4 border-t border-[#173809]/10">
+        <p className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-[#173809]/45 mb-3">
+          <span className="material-symbols-outlined text-[13px]">eco</span> Fertilizer Use
+        </p>
         <div className="grid grid-cols-2 gap-3">
-          <FertilizerSelect label="Currently Applying" value={values.currentFertilizer} onChange={(v) => set({ currentFertilizer: v })} placeholder="Describe the mix" />
-          <FertilizerSelect label="Used Previously" value={values.pastFertilizer} onChange={(v) => set({ pastFertilizer: v })} placeholder="Describe the mix" />
+          <FertilizerSelect label="Currently Applying" value={values.currentFertilizer} onChange={(v) => set({ currentFertilizer: v })} placeholder="Describe the mix" required />
+          <FertilizerSelect label="Used Previously" value={values.pastFertilizer} onChange={(v) => set({ pastFertilizer: v })} placeholder="Describe the mix" required />
         </div>
       </div>
     </div>
@@ -202,6 +211,18 @@ export default function OnboardingPage() {
   const removeCropRow = (idx) => setAdditionalCrops(prev => prev.filter((_, i) => i !== idx))
   const updateCropRow = (idx, values) => setAdditionalCrops(prev => prev.map((row, i) => i === idx ? values : row))
 
+  // Soil test and fertilizer use are mandatory per crop — "None yet" is a
+  // valid, selectable answer for fertilizer use, so this never blocks a
+  // farmer who genuinely hasn't applied anything, only one who hasn't
+  // answered at all.
+  const validateCrop = (row, label) => {
+    if (!row.fieldSize || parseFloat(row.fieldSize) <= 0) return `Enter ${label}'s field size.`
+    if (row.ph === '' || row.nitrogen === '' || row.phosphorus === '' || row.potassium === '') return `Fill in ${label}'s full soil test (pH, N, P, K).`
+    if (parseFloat(row.ph) < 0 || parseFloat(row.ph) > 14) return `${label}'s pH is measured on a 0–14 scale — please check that reading.`
+    if (row.currentFertilizer === '' || row.pastFertilizer === '') return `Select what ${label} is currently applying and used previously — "None yet" is fine if that's true.`
+    return null
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
@@ -209,19 +230,20 @@ export default function OnboardingPage() {
     if (password.length < 8) { setError('Password must be at least 8 characters.'); return }
     if (password !== confirmPassword) { setError('Passwords do not match.'); return }
     if (!coordinates?.lat) { setError('Please set your field location — tap "Use My Location" or click the map.'); return }
-    if (!primaryCrop.fieldSize || parseFloat(primaryCrop.fieldSize) <= 0) { setError('Please enter your field size.'); return }
-    if (primaryCrop.ph !== '' && (parseFloat(primaryCrop.ph) < 0 || parseFloat(primaryCrop.ph) > 14)) { setError('pH is measured on a 0–14 scale — please check that reading.'); return }
 
-    const badCropRow = additionalCrops.find(row => !row.fieldSize || parseFloat(row.fieldSize) <= 0)
-    if (badCropRow) { setError('Enter a field size for each additional crop, or remove it.'); return }
+    const primaryError = validateCrop(primaryCrop, 'your primary crop')
+    if (primaryError) { setError(primaryError); return }
+    for (let i = 0; i < additionalCrops.length; i++) {
+      const rowError = validateCrop(additionalCrops[i], `crop ${i + 2}`)
+      if (rowError) { setError(rowError); return }
+    }
 
-    const soilData = { cropType: primaryCrop.cropType, fieldSize: parseFloat(primaryCrop.fieldSize), fieldSizeUnit: primaryCrop.fieldSizeUnit }
-    if (primaryCrop.ph !== '') soilData.ph = parseFloat(primaryCrop.ph)
-    if (primaryCrop.nitrogen !== '') soilData.nitrogen = parseFloat(primaryCrop.nitrogen)
-    if (primaryCrop.phosphorus !== '') soilData.phosphorus = parseFloat(primaryCrop.phosphorus)
-    if (primaryCrop.potassium !== '') soilData.potassium = parseFloat(primaryCrop.potassium)
-    if (primaryCrop.currentFertilizer !== '') soilData.currentFertilizer = primaryCrop.currentFertilizer
-    if (primaryCrop.pastFertilizer !== '') soilData.pastFertilizer = primaryCrop.pastFertilizer
+    const soilData = {
+      cropType: primaryCrop.cropType, fieldSize: parseFloat(primaryCrop.fieldSize), fieldSizeUnit: primaryCrop.fieldSizeUnit,
+      ph: parseFloat(primaryCrop.ph), nitrogen: parseFloat(primaryCrop.nitrogen),
+      phosphorus: parseFloat(primaryCrop.phosphorus), potassium: parseFloat(primaryCrop.potassium),
+      currentFertilizer: primaryCrop.currentFertilizer, pastFertilizer: primaryCrop.pastFertilizer,
+    }
 
     setIsLoading(true)
     try {
@@ -252,12 +274,10 @@ export default function OnboardingPage() {
         try {
           const fieldPayload = {
             cropType: row.cropType, fieldSize: parseFloat(row.fieldSize), fieldSizeUnit: row.fieldSizeUnit,
-            currentFertilizer: row.currentFertilizer || '', pastFertilizer: row.pastFertilizer || '',
+            ph: parseFloat(row.ph), nitrogen: parseFloat(row.nitrogen),
+            phosphorus: parseFloat(row.phosphorus), potassium: parseFloat(row.potassium),
+            currentFertilizer: row.currentFertilizer, pastFertilizer: row.pastFertilizer,
           }
-          if (row.ph !== '') fieldPayload.ph = parseFloat(row.ph)
-          if (row.nitrogen !== '') fieldPayload.nitrogen = parseFloat(row.nitrogen)
-          if (row.phosphorus !== '') fieldPayload.phosphorus = parseFloat(row.phosphorus)
-          if (row.potassium !== '') fieldPayload.potassium = parseFloat(row.potassium)
           await fetch(`${API_BASE}/api/users/fields`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${data.access_token}` },
