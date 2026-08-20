@@ -412,15 +412,24 @@ export default function FertilizerHubPage() {
                       {Object.entries(run.nutrients || {}).map(([label, d]) => {
                         const meta = NUTRIENT_META[label]
                         const dotColor = d.status === 'deficient' ? '#9f402d' : d.status === 'excess' ? '#b8862e' : '#173809'
+                        const statusText = d.status === 'deficient' ? 'Deficient' : d.status === 'excess' ? 'Over-supplied' : 'Sufficient'
                         return (
-                          <span
-                            key={label}
-                            title={`${label}: ${d.status || 'sufficient'}`}
-                            className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold text-white shrink-0"
-                            style={{ backgroundColor: dotColor }}
-                          >
-                            {meta.short}
-                          </span>
+                          <div key={label} className="relative group/dot">
+                            <span
+                              className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold text-white shrink-0 cursor-default"
+                              style={{ backgroundColor: dotColor }}
+                            >
+                              {meta.short}
+                            </span>
+                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover/dot:block z-20 w-max max-w-[220px]">
+                              <div className="bg-[#1d1c0d] text-white text-xs rounded-xl px-3 py-2 shadow-xl">
+                                <p className="font-bold capitalize mb-0.5">{label} on {date}</p>
+                                <p className="text-white/70">{d.available_kg_ha} kg/ha inserted · target {d.target_kg_ha} kg/ha</p>
+                                <p className="font-bold mt-0.5" style={{ color: dotColor === '#173809' ? '#c5efad' : dotColor }}>{statusText}</p>
+                              </div>
+                              <div className="w-2 h-2 bg-[#1d1c0d] rotate-45 mx-auto -mt-1" />
+                            </div>
+                          </div>
                         )
                       })}
                     </div>
@@ -491,8 +500,17 @@ export default function FertilizerHubPage() {
                   return (
                     <div key={label} className={`rounded-2xl border p-5 ${status === 'excess' ? 'border-[#b8862e]/30 bg-[#b8862e]/5' : 'border-[#173809]/8'}`}>
                       <div className="flex items-center gap-4 mb-4">
-                        <div className="w-11 h-11 rounded-xl flex items-center justify-center font-bold text-base shrink-0" style={{ backgroundColor: `${meta.color}14`, color: meta.color }}>
-                          {meta.short}
+                        <div className="relative group/badge">
+                          <div className="w-11 h-11 rounded-xl flex items-center justify-center font-bold text-base shrink-0 cursor-default" style={{ backgroundColor: `${meta.color}14`, color: meta.color }}>
+                            {meta.short}
+                          </div>
+                          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover/badge:block z-20 w-max max-w-[220px]">
+                            <div className="bg-[#1d1c0d] text-white text-xs rounded-xl px-3 py-2 shadow-xl">
+                              <p className="font-bold capitalize mb-0.5">{label} today</p>
+                              <p className="text-white/70">{data.available_kg_ha} kg/ha inserted · target {data.target_kg_ha} kg/ha</p>
+                            </div>
+                            <div className="w-2 h-2 bg-[#1d1c0d] rotate-45 mx-auto -mt-1" />
+                          </div>
                         </div>
                         <div className="flex-grow min-w-0">
                           <span className="font-bold text-[#173809] capitalize block">{label}</span>

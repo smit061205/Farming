@@ -47,11 +47,16 @@ export default function OnboardingPage() {
   const [currentFertilizer, setCurrentFertilizer] = useState('')
   const [pastFertilizer, setPastFertilizer] = useState('')
 
-  // Other crops — most real farms grow more than one. Kept lightweight here
-  // (just crop + size); a full soil test per extra crop can be added later
-  // from the Fertilizer Dashboard's "Add Field".
+  // Other crops — most real farms grow more than one. Each one carries its
+  // own fertilizer use too, the same way a field on the Fertilizer
+  // Dashboard's "Add Field" does — a soil test per extra crop can still be
+  // added later, but fertilizer use shouldn't wait, since it's exactly
+  // what lets day-one advice say keep, switch, or stop per crop.
   const [additionalCrops, setAdditionalCrops] = useState([])
-  const addCropRow = () => setAdditionalCrops(prev => [...prev, { cropType: CROP_OPTIONS[0], fieldSize: '', fieldSizeUnit: 'acres' }])
+  const addCropRow = () => setAdditionalCrops(prev => [...prev, {
+    cropType: CROP_OPTIONS[0], fieldSize: '', fieldSizeUnit: 'acres',
+    currentFertilizer: '', pastFertilizer: '',
+  }])
   const removeCropRow = (idx) => setAdditionalCrops(prev => prev.filter((_, i) => i !== idx))
   const updateCropRow = (idx, patch) => setAdditionalCrops(prev => prev.map((row, i) => i === idx ? { ...row, ...patch } : row))
 
@@ -106,7 +111,10 @@ export default function OnboardingPage() {
           await fetch(`${API_BASE}/api/users/fields`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${data.access_token}` },
-            body: JSON.stringify({ cropType: row.cropType, fieldSize: parseFloat(row.fieldSize), fieldSizeUnit: row.fieldSizeUnit }),
+            body: JSON.stringify({
+              cropType: row.cropType, fieldSize: parseFloat(row.fieldSize), fieldSizeUnit: row.fieldSizeUnit,
+              currentFertilizer: row.currentFertilizer || '', pastFertilizer: row.pastFertilizer || '',
+            }),
           })
         } catch { /* one failed crop shouldn't block account creation */ }
       }
@@ -296,35 +304,51 @@ export default function OnboardingPage() {
                 </div>
               </div>
 
-              {/* ── Other Crops — most real farms grow more than one ── */}
+              {/* ── Other Crops — most real farms grow more than one, each with its own fertilizer use ── */}
               {additionalCrops.length > 0 && (
                 <div className="space-y-3">
                   {additionalCrops.map((row, idx) => (
-                    <div key={idx} className="flex items-center gap-2 bg-[#e7e3ca]/50 rounded-full pl-2 pr-3 py-2">
-                      <select
-                        value={row.cropType}
-                        onChange={(e) => updateCropRow(idx, { cropType: e.target.value })}
-                        className="flex-1 min-w-0 bg-white border-0 rounded-full px-4 py-2.5 text-sm font-body text-[#173809] focus:outline-none focus:ring-2 focus:ring-[#173809]/20"
-                      >
-                        {CROP_OPTIONS.map(c => <option key={c} value={c}>{c}</option>)}
-                      </select>
-                      <input
-                        type="number" min="0" step="0.1" value={row.fieldSize}
-                        onChange={(e) => updateCropRow(idx, { fieldSize: e.target.value })}
-                        placeholder="Size" required
-                        className="w-20 bg-white border-0 rounded-full px-3 py-2.5 text-sm font-body text-[#173809] focus:outline-none focus:ring-2 focus:ring-[#173809]/20 placeholder:text-[#73796d]"
-                      />
-                      <select
-                        value={row.fieldSizeUnit}
-                        onChange={(e) => updateCropRow(idx, { fieldSizeUnit: e.target.value })}
-                        className="bg-white border-0 rounded-full px-2 text-xs font-bold text-[#173809] focus:outline-none focus:ring-2 focus:ring-[#173809]/20 shrink-0"
-                      >
-                        <option value="acres">ac</option>
-                        <option value="hectares">ha</option>
-                      </select>
-                      <button type="button" onClick={() => removeCropRow(idx)} className="text-[#9f402d]/60 hover:text-[#9f402d] shrink-0">
-                        <span className="material-symbols-outlined text-[18px]">close</span>
-                      </button>
+                    <div key={idx} className="bg-[#e7e3ca]/50 rounded-3xl p-4 space-y-3">
+                      <div className="flex items-center gap-2">
+                        <select
+                          value={row.cropType}
+                          onChange={(e) => updateCropRow(idx, { cropType: e.target.value })}
+                          className="flex-1 min-w-0 bg-white border-0 rounded-full px-4 py-2.5 text-sm font-body text-[#173809] focus:outline-none focus:ring-2 focus:ring-[#173809]/20"
+                        >
+                          {CROP_OPTIONS.map(c => <option key={c} value={c}>{c}</option>)}
+                        </select>
+                        <input
+                          type="number" min="0" step="0.1" value={row.fieldSize}
+                          onChange={(e) => updateCropRow(idx, { fieldSize: e.target.value })}
+                          placeholder="Size" required
+                          className="w-20 bg-white border-0 rounded-full px-3 py-2.5 text-sm font-body text-[#173809] focus:outline-none focus:ring-2 focus:ring-[#173809]/20 placeholder:text-[#73796d]"
+                        />
+                        <select
+                          value={row.fieldSizeUnit}
+                          onChange={(e) => updateCropRow(idx, { fieldSizeUnit: e.target.value })}
+                          className="bg-white border-0 rounded-full px-2 text-xs font-bold text-[#173809] focus:outline-none focus:ring-2 focus:ring-[#173809]/20 shrink-0"
+                        >
+                          <option value="acres">ac</option>
+                          <option value="hectares">ha</option>
+                        </select>
+                        <button type="button" onClick={() => removeCropRow(idx)} className="text-[#9f402d]/60 hover:text-[#9f402d] shrink-0">
+                          <span className="material-symbols-outlined text-[18px]">close</span>
+                        </button>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <input
+                          type="text" value={row.currentFertilizer}
+                          onChange={(e) => updateCropRow(idx, { currentFertilizer: e.target.value })}
+                          placeholder="Currently applying"
+                          className="w-full bg-white border-0 rounded-full px-4 py-2.5 text-xs font-body text-[#173809] focus:outline-none focus:ring-2 focus:ring-[#173809]/20 placeholder:text-[#73796d]"
+                        />
+                        <input
+                          type="text" value={row.pastFertilizer}
+                          onChange={(e) => updateCropRow(idx, { pastFertilizer: e.target.value })}
+                          placeholder="Used previously"
+                          className="w-full bg-white border-0 rounded-full px-4 py-2.5 text-xs font-body text-[#173809] focus:outline-none focus:ring-2 focus:ring-[#173809]/20 placeholder:text-[#73796d]"
+                        />
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -397,7 +421,7 @@ export default function OnboardingPage() {
 
               {/* ── Fertilizer Use — so day-one advice can say keep, switch, or stop ── */}
               <div className="pt-4 border-t border-[#173809]/10">
-                <h3 className="font-headline text-lg font-bold text-[#173809] mb-1">Fertilizer Use <span className="font-body font-normal text-sm text-[#43493e]/60">(optional)</span></h3>
+                <h3 className="font-headline text-lg font-bold text-[#173809] mb-1">Fertilizer Use for {cropType} <span className="font-body font-normal text-sm text-[#43493e]/60">(optional)</span></h3>
                 <p className="text-xs text-[#43493e]/70 mb-4">Helps your first recommendation compare against what you're already doing, not just start from zero.</p>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
