@@ -44,6 +44,16 @@ export default function OnboardingPage() {
   const [nitrogen, setNitrogen] = useState('')
   const [phosphorus, setPhosphorus] = useState('')
   const [potassium, setPotassium] = useState('')
+  const [currentFertilizer, setCurrentFertilizer] = useState('')
+  const [pastFertilizer, setPastFertilizer] = useState('')
+
+  // Other crops — most real farms grow more than one. Kept lightweight here
+  // (just crop + size); a full soil test per extra crop can be added later
+  // from the Fertilizer Dashboard's "Add Field".
+  const [additionalCrops, setAdditionalCrops] = useState([])
+  const addCropRow = () => setAdditionalCrops(prev => [...prev, { cropType: CROP_OPTIONS[0], fieldSize: '', fieldSizeUnit: 'acres' }])
+  const removeCropRow = (idx) => setAdditionalCrops(prev => prev.filter((_, i) => i !== idx))
+  const updateCropRow = (idx, patch) => setAdditionalCrops(prev => prev.map((row, i) => i === idx ? { ...row, ...patch } : row))
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -55,11 +65,16 @@ export default function OnboardingPage() {
     if (!fieldSize || parseFloat(fieldSize) <= 0) { setError('Please enter your field size.'); return }
     if (ph !== '' && (parseFloat(ph) < 0 || parseFloat(ph) > 14)) { setError('pH is measured on a 0–14 scale — please check that reading.'); return }
 
+    const badCropRow = additionalCrops.find(row => !row.fieldSize || parseFloat(row.fieldSize) <= 0)
+    if (badCropRow) { setError('Enter a field size for each additional crop, or remove it.'); return }
+
     const soilData = { cropType, fieldSize: parseFloat(fieldSize), fieldSizeUnit }
     if (ph !== '') soilData.ph = parseFloat(ph)
     if (nitrogen !== '') soilData.nitrogen = parseFloat(nitrogen)
     if (phosphorus !== '') soilData.phosphorus = parseFloat(phosphorus)
     if (potassium !== '') soilData.potassium = parseFloat(potassium)
+    if (currentFertilizer !== '') soilData.currentFertilizer = currentFertilizer
+    if (pastFertilizer !== '') soilData.pastFertilizer = pastFertilizer
 
     setIsLoading(true)
     try {
@@ -82,6 +97,20 @@ export default function OnboardingPage() {
         }
         throw new Error(data.detail || 'Could not create your account.')
       }
+
+      // Any additional crops become their own independent fields, created
+      // right after the account so they're there the moment the farmer
+      // lands on the dashboard — not a separate discovery later.
+      for (const row of additionalCrops) {
+        try {
+          await fetch(`${API_BASE}/api/users/fields`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${data.access_token}` },
+            body: JSON.stringify({ cropType: row.cropType, fieldSize: parseFloat(row.fieldSize), fieldSizeUnit: row.fieldSizeUnit }),
+          })
+        } catch { /* one failed crop shouldn't block account creation */ }
+      }
+
       login(data.access_token, keepSignedIn)
       navigate('/dashboard')
     } catch (err) {
@@ -267,6 +296,48 @@ export default function OnboardingPage() {
                 </div>
               </div>
 
+              {/* ── Other Crops — most real farms grow more than one ── */}
+              {additionalCrops.length > 0 && (
+                <div className="space-y-3">
+                  {additionalCrops.map((row, idx) => (
+                    <div key={idx} className="flex items-center gap-2 bg-[#e7e3ca]/50 rounded-full pl-2 pr-3 py-2">
+                      <select
+                        value={row.cropType}
+                        onChange={(e) => updateCropRow(idx, { cropType: e.target.value })}
+                        className="flex-1 min-w-0 bg-white border-0 rounded-full px-4 py-2.5 text-sm font-body text-[#173809] focus:outline-none focus:ring-2 focus:ring-[#173809]/20"
+                      >
+                        {CROP_OPTIONS.map(c => <option key={c} value={c}>{c}</option>)}
+                      </select>
+                      <input
+                        type="number" min="0" step="0.1" value={row.fieldSize}
+                        onChange={(e) => updateCropRow(idx, { fieldSize: e.target.value })}
+                        placeholder="Size" required
+                        className="w-20 bg-white border-0 rounded-full px-3 py-2.5 text-sm font-body text-[#173809] focus:outline-none focus:ring-2 focus:ring-[#173809]/20 placeholder:text-[#73796d]"
+                      />
+                      <select
+                        value={row.fieldSizeUnit}
+                        onChange={(e) => updateCropRow(idx, { fieldSizeUnit: e.target.value })}
+                        className="bg-white border-0 rounded-full px-2 text-xs font-bold text-[#173809] focus:outline-none focus:ring-2 focus:ring-[#173809]/20 shrink-0"
+                      >
+                        <option value="acres">ac</option>
+                        <option value="hectares">ha</option>
+                      </select>
+                      <button type="button" onClick={() => removeCropRow(idx)} className="text-[#9f402d]/60 hover:text-[#9f402d] shrink-0">
+                        <span className="material-symbols-outlined text-[18px]">close</span>
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <button
+                type="button"
+                onClick={addCropRow}
+                className="flex items-center gap-1.5 text-sm font-bold text-[#173809]/60 hover:text-[#173809] px-2"
+              >
+                <span className="material-symbols-outlined text-[18px]">add_circle</span>
+                Grow another crop too?
+              </button>
+
               {/* ── Soil Test (optional) ── */}
               <div className="pt-4 border-t border-[#173809]/10">
                 <h3 className="font-headline text-lg font-bold text-[#173809] mb-1">Soil Test <span className="font-body font-normal text-sm text-[#43493e]/60">(optional)</span></h3>
@@ -320,6 +391,30 @@ export default function OnboardingPage() {
                       }`}
                     />
                     {isUnusual('K', parseFloat(potassium)) && <p className="text-[10px] text-[#9f402d] font-bold mt-1.5 ml-2">Unusual for a lab test — double-check this reading</p>}
+                  </div>
+                </div>
+              </div>
+
+              {/* ── Fertilizer Use — so day-one advice can say keep, switch, or stop ── */}
+              <div className="pt-4 border-t border-[#173809]/10">
+                <h3 className="font-headline text-lg font-bold text-[#173809] mb-1">Fertilizer Use <span className="font-body font-normal text-sm text-[#43493e]/60">(optional)</span></h3>
+                <p className="text-xs text-[#43493e]/70 mb-4">Helps your first recommendation compare against what you're already doing, not just start from zero.</p>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block font-label text-xs uppercase tracking-widest text-[#43493e] mb-2 ml-2">Currently Applying</label>
+                    <input
+                      type="text" value={currentFertilizer} onChange={(e) => setCurrentFertilizer(e.target.value)}
+                      placeholder="e.g. Urea only"
+                      className="w-full bg-white border-0 rounded-full px-6 py-4 text-base font-body text-[#173809] focus:outline-none focus:ring-2 focus:ring-[#173809]/20 transition-shadow placeholder:text-[#73796d]"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-label text-xs uppercase tracking-widest text-[#43493e] mb-2 ml-2">Used Previously</label>
+                    <input
+                      type="text" value={pastFertilizer} onChange={(e) => setPastFertilizer(e.target.value)}
+                      placeholder="e.g. DAP last season"
+                      className="w-full bg-white border-0 rounded-full px-6 py-4 text-base font-body text-[#173809] focus:outline-none focus:ring-2 focus:ring-[#173809]/20 transition-shadow placeholder:text-[#73796d]"
+                    />
                   </div>
                 </div>
               </div>

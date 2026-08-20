@@ -82,7 +82,10 @@ const PLANTING_METHODS = [
   'Direct Seeding', 'Drip / Fertigation', 'SRI (System of Rice Intensification)',
 ]
 
-const FERTILIZER_METHODS_HELP_URL = 'https://aicrp.icar.gov.in/fim/salient-achievements/intercultural-and-fertilizer-application-equipments/'
+// Connects to ICAR's Krishi Vigyan Kendra network — the real, local channel
+// through which Indian farmers get hands-on training on application
+// methods (broadcasting, banding, fertigation) — verified reachable.
+const FERTILIZER_METHODS_HELP_URL = 'https://icar.org.in/en/agricultural-extension-division/krishi-vigyan-kendra-kvk-farm-science-centre'
 
 const PLAUSIBLE_RANGE = {
   pH: { low: 3.5, high: 9.5 },
@@ -346,7 +349,7 @@ export default function FertilizerHubPage() {
               className="flex items-center gap-2 bg-white border border-[#173809]/15 text-[#173809] px-4 py-2.5 rounded-full text-xs font-bold uppercase tracking-widest hover:bg-[#173809]/5 transition-colors shrink-0"
             >
               <span className="material-symbols-outlined text-[16px]">help</span>
-              Application Methods Guide
+              Get Hands-On Help Nearby
             </a>
           </div>
 
