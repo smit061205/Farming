@@ -97,6 +97,10 @@ async def update_soil_data(
         "cached_insights": "",
         "cached_insights_key": "",
         "cached_soil_report": "",
+        "cached_soil_report_lang": "",
+        "cached_soil_report_field_id": "",
+        "cached_soil_report_ph": "",
+        "cached_soil_report_n": "",
     }
 
     await db["users"].update_one(
@@ -156,9 +160,25 @@ async def add_field(payload: FieldPayload, current_user: dict = Depends(get_curr
     field["id"] = uuid.uuid4().hex
     field["created_at"] = time.time()
 
+    # Compute the same derived diagnostics (organic matter, CEC, lime
+    # requirement, salinity risk, ...) the primary field gets, so a new
+    # field's Soil Health numbers are real from the moment it's created,
+    # not just after its first edit.
+    if field.get("ph") is not None and field.get("nitrogen") is not None:
+        diagnostics = fertilizer_engine.compute_soil_diagnostics(
+            field["ph"], field["nitrogen"], field.get("phosphorus"), field.get("potassium"), field.get("soilType"),
+        )
+        field.update(diagnostics)
+
     await db["users"].update_one(
         {"_id": current_user["_id"]},
-        {"$push": {"fields": field}},
+        {
+            "$push": {"fields": field},
+            "$unset": {
+                "cached_soil_report": "", "cached_soil_report_lang": "",
+                "cached_soil_report_field_id": "", "cached_soil_report_ph": "", "cached_soil_report_n": "",
+            },
+        },
     )
     updated = await db["users"].find_one({"_id": current_user["_id"]})
     return {"status": "saved", "fields": updated.get("fields", [])}
@@ -185,7 +205,13 @@ async def update_field(field_id: str, payload: FieldUpdatePayload, current_user:
 
     await db["users"].update_one(
         {"_id": current_user["_id"]},
-        {"$set": patch},
+        {
+            "$set": patch,
+            "$unset": {
+                "cached_soil_report": "", "cached_soil_report_lang": "",
+                "cached_soil_report_field_id": "", "cached_soil_report_ph": "", "cached_soil_report_n": "",
+            },
+        },
         array_filters=[{"elem.id": field_id}],
     )
     updated = await db["users"].find_one({"_id": current_user["_id"]})

@@ -4,6 +4,8 @@ import { motion, AnimatePresence } from 'framer-motion'
 import Footer from '../components/Footer'
 import { useReactToPrint } from 'react-to-print'
 import PageTransitionLoader from '../components/PageTransitionLoader'
+import { useAuth } from '../context/AuthContext'
+import { resolveField, buildFieldTabs } from '../utils/fields'
 
 import SensorNetworkView  from './soil-views/SensorNetworkView'
 import ArchiveView        from './soil-views/ArchiveView'
@@ -18,11 +20,19 @@ const VIEW_MAP = {
 }
 
 export default function SoilHealthPage() {
+  const { user } = useAuth()
   const reportRef = useRef(null)
   const [activeTab, setActiveTab]       = useState('sensor')
   const [displayTab, setDisplayTab]     = useState('sensor')   // what's actually rendered
   const [isTabLoading, setIsTabLoading] = useState(false)
   const [isGenerating, setIsGenerating] = useState(false)
+  const [activeFieldId, setActiveFieldId] = useState(null)     // null = primary field
+
+  const fieldTabs = buildFieldTabs(user)
+  const activeField = resolveField(user, activeFieldId)
+  const activeFieldSize = activeField.fieldSize
+    ? `${activeField.fieldSize} ${activeField.fieldSizeUnit || 'acres'}`
+    : 'No field size set'
 
   const tabs = [
     { id: 'sensor',      icon: 'sensors',     label: 'Sensor Network' },
@@ -68,9 +78,25 @@ export default function SoilHealthPage() {
       {/* ── Side Navigation ── */}
       <aside className="h-screen w-72 fixed left-0 top-0 bg-[#fefae0] flex-col p-8 gap-8 pt-32 hidden lg:flex border-r border-[#173809]/10 z-40">
         <div className="flex flex-col gap-1">
-          <h3 className="font-headline font-bold text-[#173809] text-xl tracking-tight">North Vineyard</h3>
-          <p className="text-[#1d1c0d]/40 text-sm font-semibold">Block A-12</p>
+          <h3 className="font-headline font-bold text-[#173809] text-xl tracking-tight capitalize">{activeField.cropType || 'Your Field'}</h3>
+          <p className="text-[#1d1c0d]/40 text-sm font-semibold">{activeFieldSize}</p>
         </div>
+
+        {fieldTabs.length > 1 && (
+          <div className="flex flex-wrap gap-1.5">
+            {fieldTabs.map(tab => (
+              <button
+                key={tab.id || 'primary'}
+                onClick={() => setActiveFieldId(tab.id)}
+                className={`px-3 py-1.5 rounded-full text-xs font-bold capitalize transition-colors ${
+                  activeFieldId === tab.id ? 'bg-[#173809] text-white' : 'bg-[#173809]/6 text-[#173809]/50 hover:text-[#173809]'
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+        )}
 
         <nav className="flex flex-col gap-1 relative">
           {tabs.map((tab) => {
@@ -152,7 +178,7 @@ export default function SoilHealthPage() {
               exit={{ opacity: 0, y: -8 }}
               transition={{ duration: 0.35, ease: [0.4, 0, 0.2, 1] }}
             >
-              {ActiveComponent && <ActiveComponent />}
+              {ActiveComponent && <ActiveComponent fieldId={activeFieldId} />}
             </motion.div>
           )}
         </AnimatePresence>
@@ -190,7 +216,7 @@ export default function SoilHealthPage() {
           style={{ position: 'fixed', top: '-9999px', left: '-9999px', width: '1200px', pointerEvents: 'none', zIndex: -1 }}
           aria-hidden="true"
         >
-          <PrintableReport reportRef={reportRef} />
+          <PrintableReport reportRef={reportRef} fieldId={activeFieldId} />
         </div>
       )}
     </div>

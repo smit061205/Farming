@@ -232,15 +232,6 @@ MOCK_INSIGHTS = {
     ]
 }
 
-MOCK_SOIL_REPORT = (
-    "Based on your geological anchor, your soil profile indicates a robust foundation for deep-rooting varietals. "
-    "The pH balance sits within an optimal margin for bioavailability, though the available nitrogen is currently "
-    "acting as a limiting factor for vegetative vigor. We detect strong microbial baseline vitality naturally "
-    "suppressing pathogenic fungal buildup. To achieve peak phenological development this season, supplementing "
-    "the upper horizons with targeted nitrogen before the first dew will dramatically improve canopy density."
-)
-
-
 async def _call_groq(system_prompt: str, user_prompt: str, json_mode: bool = False) -> str:
     """Calls the Groq API asynchronously."""
     if not _groq_available or not api_key:
@@ -410,16 +401,32 @@ Return ONLY this JSON structure (no markdown, no backticks):
 
 
 @router.get("/soil-report")
-async def get_soil_report(lang: str = "en", user: dict = Depends(get_current_user)):
-    """Returns an AI-generated soil analysis natively in the requested language."""
-    if "cached_soil_report" in user and user.get("cached_soil_report_lang") == lang:
-        return {"report": user["cached_soil_report"]}
+async def get_soil_report(lang: str = "en", field_id: str = None, user: dict = Depends(get_current_user)):
+    """Returns an AI-generated soil analysis natively in the requested language, for
+    the given field (or the primary field if none given). Never falls back to
+    invented soil-science copy — if there's no soil test yet, or the AI call
+    fails, that's reported honestly so the UI can say so instead of showing a
+    generic paragraph as if it were a real personalized reading."""
+    resolved_field_id = field_id or "primary"
+    soil = _get_soil_source(user, field_id)
+    soil_ph = soil.get("ph")
+    soil_n = soil.get("nitrogen")
+    crop_type = soil.get("cropType") or "your crop"
+
+    if soil_ph is None or soil_n is None:
+        return {"status": "no_data", "report": None}
+
+    if (
+        user.get("cached_soil_report_field_id") == resolved_field_id
+        and user.get("cached_soil_report_lang") == lang
+        and user.get("cached_soil_report_ph") == soil_ph
+        and user.get("cached_soil_report_n") == soil_n
+    ):
+        return {"status": "ok", "report": user["cached_soil_report"]}
 
     if not api_key or not _groq_available:
-        return {"report": MOCK_SOIL_REPORT}
+        return {"status": "unavailable", "report": None}
 
-    soil_ph = user.get("soil_data", {}).get("ph", "6.5")
-    soil_n = user.get("soil_data", {}).get("nitrogen", "300")
     raw_coords = user.get("coordinates", {})
     if isinstance(raw_coords, dict):
         coords = raw_coords.get("label") or f"{raw_coords.get('lat', '')}° N, {raw_coords.get('lng', '')}° E"
@@ -442,7 +449,7 @@ async def get_soil_report(lang: str = "en", user: dict = Depends(get_current_use
 
     system_prompt = f"Act as a friendly farm advisor explaining a soil test to a smallholder farmer. Use simple, everyday words and short sentences — avoid technical jargon. Write no markdown. YOU MUST WRITE THE ENTIRE RESPONSE NATIVELY IN {native_lang.upper()}."
     user_prompt = f"""
-Write a short, simple paragraph (max 4 sentences) explaining what pH {soil_ph} and Nitrogen {soil_n} ppm mean for a field located in {coords}.
+Write a short, simple paragraph (max 4 sentences) explaining what pH {soil_ph} and Nitrogen {soil_n} ppm mean for {crop_type} in a field located in {coords}.
 Cover: whether the soil is in good shape, what the nitrogen level means for the crop in plain terms, and exactly what amendment is needed.
 Do NOT use markdown. Write in plain, easy-to-understand {native_lang}.
 """
@@ -452,16 +459,19 @@ Do NOT use markdown. Write in plain, easy-to-understand {native_lang}.
         report = report.strip()
         db = get_db()
         await db["users"].update_one(
-            {"_id": user["_id"]}, 
+            {"_id": user["_id"]},
             {"$set": {
                 "cached_soil_report": report,
-                "cached_soil_report_lang": lang
+                "cached_soil_report_lang": lang,
+                "cached_soil_report_field_id": resolved_field_id,
+                "cached_soil_report_ph": soil_ph,
+                "cached_soil_report_n": soil_n,
             }}
         )
-        return {"report": report}
+        return {"status": "ok", "report": report}
     except Exception as e:
         print(f"Groq soil report error: {e}")
-        return {"report": MOCK_SOIL_REPORT}
+        return {"status": "unavailable", "report": None}
 
 
 @router.delete("/cache")
@@ -470,7 +480,11 @@ async def clear_cache(user: dict = Depends(get_current_user)):
     db = get_db()
     await db["users"].update_one(
         {"_id": user["_id"]},
-        {"$unset": {"cached_insights": "", "cached_soil_report": ""}}
+        {"$unset": {
+            "cached_insights": "", "cached_insights_key": "",
+            "cached_soil_report": "", "cached_soil_report_lang": "",
+            "cached_soil_report_field_id": "", "cached_soil_report_ph": "", "cached_soil_report_n": "",
+        }}
     )
     return {"message": "Cache cleared. Fresh insights will be generated on next load."}
 

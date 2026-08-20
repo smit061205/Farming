@@ -4,23 +4,25 @@ import { useAuth } from '../../context/AuthContext'
 import SoilTrendsChart from '../../components/SoilTrendsChart'
 import FieldMap from '../../components/FieldMap'
 import API_BASE from '../../api'
+import { resolveField } from '../../utils/fields'
 
-export default function SensorNetworkView() {
+export default function SensorNetworkView({ fieldId }) {
   const { user } = useAuth()
   const navigate = useNavigate()
-  
+
   // Parse metrics — the farmer's saved profile is the single source of truth
   // (a localStorage cache here used to let this page show different numbers
   // than the Dashboard and Fertilizer Hub for the same account).
-  const soilPh = parseFloat(user?.soil_data?.ph ?? 6.5)
-  const soilN = parseFloat(user?.soil_data?.nitrogen ?? 120)
-  const soilP = parseFloat(user?.soil_data?.phosphorus ?? 45)
-  const soilK = parseFloat(user?.soil_data?.potassium ?? 180)
-  
-  const om = parseFloat(user?.soil_data?.organic_matter_pct ?? 4.2).toFixed(1)
-  const cec = parseFloat(user?.soil_data?.cec ?? 15.0).toFixed(1)
-  const salinity = user?.soil_data?.salinity_risk ?? "Low"
-  const limeReq = user?.soil_data?.lime_requirement_kg_ha ?? 0
+  const soil = resolveField(user, fieldId)
+  const soilPh = parseFloat(soil.ph ?? 6.5)
+  const soilN = parseFloat(soil.nitrogen ?? 120)
+  const soilP = parseFloat(soil.phosphorus ?? 45)
+  const soilK = parseFloat(soil.potassium ?? 180)
+
+  const om = parseFloat(soil.organic_matter_pct ?? 4.2).toFixed(1)
+  const cec = parseFloat(soil.cec ?? 15.0).toFixed(1)
+  const salinity = soil.salinity_risk ?? "Low"
+  const limeReq = soil.lime_requirement_kg_ha ?? 0
 
   const phScore = Math.max(0, Math.min(100, Math.round(100 - Math.abs(soilPh - 6.5) * 20)))
   const nScore = Math.max(0, Math.min(100, Math.round((soilN / 300) * 100)))
@@ -313,12 +315,12 @@ export default function SensorNetworkView() {
             </div>
             <div>
                <p className="text-[#c5efad] text-xs font-bold uppercase tracking-widest mb-1">pH Status</p>
-              <p className="text-3xl font-headline font-bold text-white mb-2 capitalize">{user?.soil_data?.ph_adequacy || 'Unknown'}</p>
+              <p className="text-3xl font-headline font-bold text-white mb-2 capitalize">{soil.ph_adequacy || 'Unknown'}</p>
               <p className="text-xs text-white/50">Calculated from your soil test</p>
             </div>
             <div>
                <p className="text-[#c5efad] text-xs font-bold uppercase tracking-widest mb-1">Soil Texture</p>
-              <p className="text-3xl font-headline font-bold text-white mb-2 capitalize">{user?.soil_data?.soil_type || 'Loam'}</p>
+              <p className="text-3xl font-headline font-bold text-white mb-2 capitalize">{soil.soil_type || soil.soilType || 'Loam'}</p>
               <p className="text-xs text-white/50">Water retention benchmark</p>
             </div>
           </div>

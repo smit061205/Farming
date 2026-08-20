@@ -1,7 +1,15 @@
 import React from 'react';
 import SensorNetworkView from '../pages/soil-views/SensorNetworkView';
+import AIInterpreterView from '../pages/soil-views/AIInterpreterView';
+import { useAuth } from '../context/AuthContext';
+import { resolveField } from '../utils/fields';
 
-export default function PrintableReport({ reportRef }) {
+export default function PrintableReport({ reportRef, fieldId }) {
+  const { user } = useAuth()
+  const field = resolveField(user, fieldId)
+  const fieldLabel = field.cropType || 'Your Field'
+  const sizeLabel = field.fieldSize ? `${field.fieldSize} ${field.fieldSizeUnit || 'acres'}` : ''
+
   return (
     <div
       ref={reportRef}
@@ -18,12 +26,17 @@ export default function PrintableReport({ reportRef }) {
       {/* Cover Page / Header */}
       <div className="p-16 border-b border-[#173809]/10 mb-16 bg-[#173809] text-white">
         <h1 className="text-6xl font-headline font-bold mb-4 tracking-tighter">Soil & Fertilizer Report</h1>
-        <p className="text-xl font-medium text-[#c5efad]">North Vineyard • Block A-12 • {new Date().toLocaleDateString()}</p>
+        <p className="text-xl font-medium text-[#c5efad] capitalize">
+          {fieldLabel}{sizeLabel && ` • ${sizeLabel}`} • {new Date().toLocaleDateString()}
+        </p>
       </div>
 
       <div className="p-16 space-y-32">
         <div className="report-section">
-          <SensorNetworkView />
+          <SensorNetworkView fieldId={fieldId} />
+        </div>
+        <div className="report-section">
+          <AIInterpreterView fieldId={fieldId} />
         </div>
       </div>
 
