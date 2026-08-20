@@ -612,9 +612,20 @@ _precision_cache: dict = {}   # {user_id: (timestamp, cache_key, response)}
 _PRECISION_TTL = 1800  # 30 minutes — weather/soil don't change faster than this
 
 
-def _resolve_field_inputs(user: dict, n, p, k, ph, crop_type, field_size, field_size_unit) -> dict:
-    """Merge explicit query overrides with the user's saved soil profile."""
-    soil = user.get("soil_data", {})
+def _get_soil_source(user: dict, field_id: str = None) -> dict:
+    """Resolve which field's data to use: the primary field (soil_data,
+    field_id None or 'primary') or one of the farmer's additional fields
+    by id. Falls back to the primary field if the id isn't found."""
+    if field_id and field_id != "primary":
+        for f in (user.get("fields") or []):
+            if f.get("id") == field_id:
+                return f
+    return user.get("soil_data") or {}
+
+
+def _resolve_field_inputs(user: dict, n, p, k, ph, crop_type, field_size, field_size_unit, field_id: str = None) -> dict:
+    """Merge explicit query overrides with the resolved field's saved data."""
+    soil = _get_soil_source(user, field_id)
     soil_ph = ph if ph is not None else float(soil.get("ph", 6.5))
     soil_n  = n  if n  is not None else float(soil.get("nitrogen", 100))
     soil_p  = p  if p  is not None else float(soil.get("phosphorus") or max(0, round(50 + (soil_ph - 7) * 10)))
@@ -624,11 +635,14 @@ def _resolve_field_inputs(user: dict, n, p, k, ph, crop_type, field_size, field_
         "crop": crop_type or soil.get("cropType") or "Wheat",
         "size": field_size if field_size is not None else float(soil.get("fieldSize") or 2),
         "size_unit": field_size_unit or soil.get("fieldSizeUnit") or "acres",
+        "current_fertilizer": soil.get("currentFertilizer") or None,
+        "past_fertilizer": soil.get("pastFertilizer") or None,
+        "planting_method": soil.get("plantingMethod") or None,
     }
 
 
-async def _compute_dose_for_user(user: dict, n, p, k, ph, crop_type, field_size, field_size_unit) -> dict:
-    f = _resolve_field_inputs(user, n, p, k, ph, crop_type, field_size, field_size_unit)
+async def _compute_dose_for_user(user: dict, n, p, k, ph, crop_type, field_size, field_size_unit, field_id: str = None) -> dict:
+    f = _resolve_field_inputs(user, n, p, k, ph, crop_type, field_size, field_size_unit, field_id)
     coords = user.get("coordinates", {})
     weather = None
     if isinstance(coords, dict) and coords.get("lat") and coords.get("lng"):
@@ -650,22 +664,26 @@ async def get_precision_recommendation(
     crop_type: str = None,
     field_size: float = None,
     field_size_unit: str = None,
+    field_id: str = None,
 ):
     """
     The core endpoint: computes exact fertilizer type + quantity for this field,
     adjusted for the 5-day rain/heat forecast, then asks the AI to explain it.
+    field_id selects which of the farmer's fields to compute for — omitted or
+    'primary' uses the main field (soil_data); any other id looks it up in
+    the farmer's additional fields[] list.
     """
-    f = _resolve_field_inputs(user, n, p, k, ph, crop_type, field_size, field_size_unit)
+    f = _resolve_field_inputs(user, n, p, k, ph, crop_type, field_size, field_size_unit, field_id)
     soil_ph, soil_n, soil_p, soil_k = f["ph"], f["n"], f["p"], f["k"]
     crop, size, size_unit = f["crop"], f["size"], f["size_unit"]
 
     cache_key = f"{soil_ph}_{soil_n}_{soil_p}_{soil_k}_{crop}_{size}_{size_unit}"
-    user_id = str(user.get("_id", ""))
+    user_id = f"{user.get('_id', '')}_{field_id or 'primary'}"
     cached = _precision_cache.get(user_id)
     if cached and cached[1] == cache_key and (_time.time() - cached[0]) < _PRECISION_TTL:
         return cached[2]
 
-    dose, _ = await _compute_dose_for_user(user, n, p, k, ph, crop_type, field_size, field_size_unit)
+    dose, _ = await _compute_dose_for_user(user, n, p, k, ph, crop_type, field_size, field_size_unit, field_id)
 
     # Attach real per-nutrient cost (NBS-notified MRP, see sustainability_engine.py)
     # directly onto the dose so the Fertilizer Hub can show a cost breakdown per
@@ -674,7 +692,9 @@ async def get_precision_recommendation(
         price_per_kg = sustainability_engine.PRODUCT_PRICE_PER_KG.get(nutrient["product"], 10)
         nutrient["cost_inr"] = round(nutrient["product_kg_total"] * price_per_kg)
 
-    current_fertilizer = (user.get("soil_data") or {}).get("currentFertilizer") or None
+    current_fertilizer = f["current_fertilizer"]
+    past_fertilizer = f["past_fertilizer"]
+    planting_method = f["planting_method"]
     excess_nutrients = [label for label, d in dose["nutrients"].items() if d["status"] == "excess"]
 
     # Pull the farmer's last few recommendations so the AI can spot a pattern
@@ -683,8 +703,15 @@ async def get_precision_recommendation(
     history_line = ""
     try:
         hist_db = get_db()
+        # Entries saved before multi-field support have no field_id at all —
+        # treat those as belonging to the primary field, same as they always did.
+        field_filter = (
+            {"$or": [{"field_id": "primary"}, {"field_id": {"$exists": False}}]}
+            if not field_id or field_id == "primary"
+            else {"field_id": field_id}
+        )
         past_cursor = hist_db["recommendation_history"].find(
-            {"user_id": user["_id"]}
+            {"user_id": user["_id"], **field_filter}
         ).sort("created_at", -1).limit(3)
         past_runs = [doc async for doc in past_cursor]
         if past_runs:
@@ -716,6 +743,8 @@ async def get_precision_recommendation(
             if current_fertilizer else
             "The farmer did not say what they currently apply — do not assume, just give the plan."
         )
+        past_fert_line = f'They previously used: "{past_fertilizer}".' if past_fertilizer else ""
+        planting_line = f'Planting method: {planting_method}.' if planting_method else ""
         excess_line = (
             f"IMPORTANT: {', '.join(excess_nutrients)} are in EXCESS (well above target) — the headline and "
             "explanation MUST lead with this over-supply and its risk (nutrient leaching, wasted past spending, "
@@ -730,6 +759,8 @@ Weather outlook: {json.dumps(dose['weather'])}
 Application plan: {json.dumps(dose['application_plan'])}
 
 {current_fert_line}
+{past_fert_line}
+{planting_line}
 {excess_line}
 
 {history_line}
@@ -766,6 +797,7 @@ Return ONLY this JSON:
         db = get_db()
         await db["recommendation_history"].insert_one({
             "user_id": user["_id"],
+            "field_id": field_id or "primary",
             "created_at": _time.time(),
             "crop_type": crop,
             "field_size": size,
@@ -781,14 +813,20 @@ Return ONLY this JSON:
 
 
 @router.get("/recommendation-history")
-async def get_recommendation_history(user: dict = Depends(get_current_user), limit: int = 20):
-    """Past precision-recommendation runs for this user, newest first."""
+async def get_recommendation_history(user: dict = Depends(get_current_user), limit: int = 20, field_id: str = None):
+    """Past precision-recommendation runs for this user, newest first. Omit
+    field_id to see every field's history together (each entry carries its
+    own field_id/crop so the frontend can still distinguish them)."""
     db = get_db()
-    cursor = db["recommendation_history"].find({"user_id": user["_id"]}).sort("created_at", -1).limit(limit)
+    query = {"user_id": user["_id"]}
+    if field_id:
+        query["field_id"] = field_id if field_id != "primary" else {"$in": ["primary", None]}
+    cursor = db["recommendation_history"].find(query).sort("created_at", -1).limit(limit)
     history = []
     async for doc in cursor:
         history.append({
             "id": str(doc["_id"]),
+            "field_id": doc.get("field_id") or "primary",
             "created_at": doc.get("created_at"),
             "crop_type": doc.get("crop_type"),
             "field_size": doc.get("field_size"),
@@ -809,13 +847,14 @@ async def get_sustainability_impact(
     crop_type: str = None,
     field_size: float = None,
     field_size_unit: str = None,
+    field_id: str = None,
 ):
     """
     Quantifies what following the precision dose (vs. typical blanket over-application)
     means for fertilizer savings, avoided emissions, and projected yield/income —
     the "sustainable practice + farmer income" half of the problem statement.
     """
-    dose, f = await _compute_dose_for_user(user, n, p, k, ph, crop_type, field_size, field_size_unit)
+    dose, f = await _compute_dose_for_user(user, n, p, k, ph, crop_type, field_size, field_size_unit, field_id)
     impact = sustainability_engine.compute_sustainability_impact(dose, f["ph"], f["n"], f["p"], f["k"])
     return {"status": "success", "impact": impact}
 

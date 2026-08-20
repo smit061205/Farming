@@ -6,6 +6,16 @@ import MapPicker from '../components/onboarding/MapPicker'
 import { useAuth } from '../context/AuthContext'
 import { CROP_OPTIONS } from '../constants/crops'
 
+// Same plausible-range check used on the Analyze Field page — still
+// accepted (real outliers exist), just flagged so a mistyped value gets a
+// second look instead of silently going into the fertilizer math.
+const PLAUSIBLE_RANGE = { N: { low: 0, high: 400 }, P: { low: 0, high: 150 }, K: { low: 0, high: 600 } }
+function isUnusual(key, val) {
+  const r = PLAUSIBLE_RANGE[key]
+  if (!r || val === '' || val == null || isNaN(val)) return false
+  return val < r.low || val > r.high
+}
+
 export default function OnboardingPage() {
   const navigate = useNavigate()
   const { login } = useAuth()
@@ -43,6 +53,7 @@ export default function OnboardingPage() {
     if (password !== confirmPassword) { setError('Passwords do not match.'); return }
     if (!coordinates?.lat) { setError('Please set your field location — tap "Use My Location" or click the map.'); return }
     if (!fieldSize || parseFloat(fieldSize) <= 0) { setError('Please enter your field size.'); return }
+    if (ph !== '' && (parseFloat(ph) < 0 || parseFloat(ph) > 14)) { setError('pH is measured on a 0–14 scale — please check that reading.'); return }
 
     const soilData = { cropType, fieldSize: parseFloat(fieldSize), fieldSizeUnit }
     if (ph !== '') soilData.ph = parseFloat(ph)
@@ -278,8 +289,11 @@ export default function OnboardingPage() {
                       value={nitrogen}
                       onChange={(e) => setNitrogen(e.target.value)}
                       placeholder="e.g. 120"
-                      className="w-full bg-white border-0 rounded-full px-6 py-4 text-base font-body text-[#173809] focus:outline-none focus:ring-2 focus:ring-[#173809]/20 transition-shadow placeholder:text-[#73796d]"
+                      className={`w-full bg-white border rounded-full px-6 py-4 text-base font-body text-[#173809] focus:outline-none focus:ring-2 transition-shadow placeholder:text-[#73796d] ${
+                        isUnusual('N', parseFloat(nitrogen)) ? 'border-[#9f402d]/50 focus:ring-[#9f402d]/20' : 'border-transparent focus:ring-[#173809]/20'
+                      }`}
                     />
+                    {isUnusual('N', parseFloat(nitrogen)) && <p className="text-[10px] text-[#9f402d] font-bold mt-1.5 ml-2">Unusual for a lab test — double-check this reading</p>}
                   </div>
                   <div>
                     <label className="block font-label text-xs uppercase tracking-widest text-[#43493e] mb-2 ml-2">Phosphorus <span className="normal-case">(ppm)</span></label>
@@ -288,8 +302,11 @@ export default function OnboardingPage() {
                       value={phosphorus}
                       onChange={(e) => setPhosphorus(e.target.value)}
                       placeholder="e.g. 45"
-                      className="w-full bg-white border-0 rounded-full px-6 py-4 text-base font-body text-[#173809] focus:outline-none focus:ring-2 focus:ring-[#173809]/20 transition-shadow placeholder:text-[#73796d]"
+                      className={`w-full bg-white border rounded-full px-6 py-4 text-base font-body text-[#173809] focus:outline-none focus:ring-2 transition-shadow placeholder:text-[#73796d] ${
+                        isUnusual('P', parseFloat(phosphorus)) ? 'border-[#9f402d]/50 focus:ring-[#9f402d]/20' : 'border-transparent focus:ring-[#173809]/20'
+                      }`}
                     />
+                    {isUnusual('P', parseFloat(phosphorus)) && <p className="text-[10px] text-[#9f402d] font-bold mt-1.5 ml-2">Unusual for a lab test — double-check this reading</p>}
                   </div>
                   <div>
                     <label className="block font-label text-xs uppercase tracking-widest text-[#43493e] mb-2 ml-2">Potassium <span className="normal-case">(ppm)</span></label>
@@ -298,8 +315,11 @@ export default function OnboardingPage() {
                       value={potassium}
                       onChange={(e) => setPotassium(e.target.value)}
                       placeholder="e.g. 200"
-                      className="w-full bg-white border-0 rounded-full px-6 py-4 text-base font-body text-[#173809] focus:outline-none focus:ring-2 focus:ring-[#173809]/20 transition-shadow placeholder:text-[#73796d]"
+                      className={`w-full bg-white border rounded-full px-6 py-4 text-base font-body text-[#173809] focus:outline-none focus:ring-2 transition-shadow placeholder:text-[#73796d] ${
+                        isUnusual('K', parseFloat(potassium)) ? 'border-[#9f402d]/50 focus:ring-[#9f402d]/20' : 'border-transparent focus:ring-[#173809]/20'
+                      }`}
                     />
+                    {isUnusual('K', parseFloat(potassium)) && <p className="text-[10px] text-[#9f402d] font-bold mt-1.5 ml-2">Unusual for a lab test — double-check this reading</p>}
                   </div>
                 </div>
               </div>
