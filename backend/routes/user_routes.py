@@ -19,9 +19,48 @@ PLANTING_METHODS = [
 ]
 
 
+def _needs_diagnostics(source: dict) -> bool:
+    return source.get("ph") is not None and source.get("nitrogen") is not None and "overall_health_score" not in source
+
+
 @router.get("/me")
 async def get_me(current_user: dict = Depends(get_current_user)):
-    """Return full user profile including all onboarding fields."""
+    """Return full user profile including all onboarding fields.
+
+    Also backfills soil diagnostics (organic matter, CEC, health score, ...)
+    for any field that has a soil test but predates the fix that computes
+    them at save time — otherwise those fields keep showing the Soil
+    Health page's placeholder defaults forever instead of real numbers.
+    """
+    db = get_db()
+    soil_data = current_user.get("soil_data") or {}
+    fields = current_user.get("fields") or []
+    patch = {}
+
+    if _needs_diagnostics(soil_data):
+        diagnostics = fertilizer_engine.compute_soil_diagnostics(
+            soil_data["ph"], soil_data["nitrogen"], soil_data.get("phosphorus"), soil_data.get("potassium"), soil_data.get("soilType"),
+        )
+        soil_data = {**soil_data, **diagnostics}
+        for key, value in diagnostics.items():
+            patch[f"soil_data.{key}"] = value
+
+    fields_changed = False
+    backfilled_fields = []
+    for f in fields:
+        if _needs_diagnostics(f):
+            diagnostics = fertilizer_engine.compute_soil_diagnostics(
+                f["ph"], f["nitrogen"], f.get("phosphorus"), f.get("potassium"), f.get("soilType"),
+            )
+            f = {**f, **diagnostics}
+            fields_changed = True
+        backfilled_fields.append(f)
+    if fields_changed:
+        patch["fields"] = backfilled_fields
+
+    if patch:
+        await db["users"].update_one({"_id": current_user["_id"]}, {"$set": patch})
+
     return {
         "id": str(current_user["_id"]),
         "full_name": current_user.get("full_name", ""),
@@ -33,8 +72,8 @@ async def get_me(current_user: dict = Depends(get_current_user)):
         "coordinates": current_user.get("coordinates", ""),
         "focuses": current_user.get("focuses", []),
         "profile_photo": current_user.get("profile_photo", ""),
-        "soil_data": current_user.get("soil_data", {}),
-        "fields": current_user.get("fields", []),
+        "soil_data": soil_data,
+        "fields": backfilled_fields,
         "notification_prefs": current_user.get("notification_prefs", {
             "satellite_alerts": True,
             "biweekly_reports": True,

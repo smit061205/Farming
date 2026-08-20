@@ -24,9 +24,10 @@ export default function SensorNetworkView({ fieldId }) {
   const salinity = soil.salinity_risk ?? "Low"
   const limeReq = soil.lime_requirement_kg_ha ?? 0
 
-  const phScore = Math.max(0, Math.min(100, Math.round(100 - Math.abs(soilPh - 6.5) * 20)))
-  const nScore = Math.max(0, Math.min(100, Math.round((soilN / 300) * 100)))
-  const vitality = Math.round((phScore + nScore) / 2) || 88
+  // The real score — same weighted pH/N/P/K formula the backend uses
+  // everywhere else (sustainability impact, field diagnostics), not a
+  // separately-invented pH/N-only approximation with a fake fallback.
+  const vitality = soil.overall_health_score ?? null
 
   const phStatus = soilPh < 6 ? 'Acidic' : soilPh > 7.5 ? 'Alkaline' : 'Neutral'
 
@@ -122,8 +123,10 @@ export default function SensorNetworkView({ fieldId }) {
           <div className="bg-[#e7e3ca] rounded-3xl p-6 soil-shadow relative overflow-hidden flex flex-col justify-between">
             <span className="text-[#173809] font-bold text-xs uppercase tracking-widest mb-4">AgriSense Score</span>
             <div className="flex items-baseline gap-2 z-10">
-              <span className="text-5xl font-headline font-bold text-[#173809]">{vitality}%</span>
-              <span className="text-[#2d4f1e] font-bold text-sm tracking-wide">{vitality > 85 ? 'Optimal' : vitality > 60 ? 'Stable' : 'Critical'}</span>
+              <span className="text-5xl font-headline font-bold text-[#173809]">{vitality != null ? `${vitality}%` : '—'}</span>
+              <span className="text-[#2d4f1e] font-bold text-sm tracking-wide">
+                {vitality == null ? 'No Data' : vitality > 85 ? 'Optimal' : vitality > 60 ? 'Stable' : 'Critical'}
+              </span>
             </div>
             <div className="absolute -right-4 -bottom-4 w-24 h-24 bg-[#c5efad]/40 rounded-full blur-2xl"></div>
           </div>

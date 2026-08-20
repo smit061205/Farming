@@ -141,11 +141,13 @@ export default function DashboardPage() {
   const coords = user?.coordinates
 
 
-  const phScore = soilPh ? Math.max(0, Math.min(100, Math.round(100 - Math.abs(parseFloat(soilPh) - 6.5) * 20))) : null
-  const nScore = soilN ? Math.max(0, Math.min(100, Math.round((parseFloat(soilN) / 500) * 100))) : null
-  const healthScore = phScore && nScore ? Math.round((phScore + nScore) / 2) : phScore || nScore || 72
-  const healthLabel = healthScore >= 80 ? 'Optimal' : healthScore >= 60 ? 'Moderate' : 'Needs Attention'
-  const healthColor = healthScore >= 80 ? '#c5efad' : healthScore >= 60 ? '#fb9f54' : '#9f402d'
+  // The real score — same weighted pH/N/P/K formula the backend uses
+  // everywhere else (sustainability impact, field diagnostics) — not a
+  // separately-invented approximation. Honest '—' when it hasn't been
+  // computed yet, never a made-up placeholder number.
+  const healthScore = user?.soil_data?.overall_health_score ?? null
+  const healthLabel = healthScore == null ? 'No Data' : healthScore >= 80 ? 'Optimal' : healthScore >= 60 ? 'Moderate' : 'Needs Attention'
+  const healthColor = healthScore == null ? '#e7e3ca' : healthScore >= 80 ? '#c5efad' : healthScore >= 60 ? '#fb9f54' : '#9f402d'
 
   return (
     <div className="bg-[#fefae0] text-[#1d1c0d]">
@@ -217,9 +219,9 @@ export default function DashboardPage() {
             },
             {
               icon: 'grass', label: 'AgriSense Score',
-              value: healthScore,
+              value: healthScore != null ? `${healthScore}%` : '—',
               sub: healthLabel,
-              color: healthScore >= 80 ? '#173809' : healthScore >= 60 ? '#7a4a00' : '#7a2a1a',
+              color: healthScore == null ? '#43493e' : healthScore >= 80 ? '#173809' : healthScore >= 60 ? '#7a4a00' : '#7a2a1a',
               light: healthColor
             }
           ].map(({ icon, label, value, sub, color, light }) => (

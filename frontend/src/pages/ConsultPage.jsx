@@ -45,7 +45,7 @@ export default function ConsultPage() {
       if (data.status === 'success') {
         setMessages(prev => [...prev, { role: 'assistant', content: data.reply }])
       } else {
-        setMessages(prev => [...prev, { role: 'assistant', content: "I'm having trouble connecting to the agronomy database. " + (data.reply || '') }])
+        setMessages(prev => [...prev, { role: 'assistant', content: data.reply || "I couldn't reach the AI advisor just now. Please try again shortly." }])
       }
     } catch (err) {
       console.error(err)

@@ -979,7 +979,7 @@ async def ai_consultation_chat(req: ChatRequest, current_user = Depends(get_curr
     Injects the user's soil context natively into the AI's persona.
     """
     if not api_key or not _groq_available:
-        return {"status": "error", "reply": "System offline: Groq API credentials missing."}
+        return {"status": "error", "reply": "The AI advisor is temporarily unavailable. Please try again shortly."}
 
     # Extract user context wrapper — coordinates/soil_data may be stored as
     # explicit None (not just absent), so `.get(key, {})` alone isn't enough.
@@ -1026,4 +1026,6 @@ Do not offer generalities. Use the exact data below to answer their questions.
         return {"status": "success", "reply": reply}
     except Exception as e:
         print(f"Chatbot Engine error: {e}")
-        raise HTTPException(status_code=500, detail="AI Brain unavailable. Please try again later.")
+        if "rate_limit" in str(e).lower() or "429" in str(e):
+            return {"status": "error", "reply": "I'm getting a lot of questions right now and hit today's usage limit — please try again in a little while."}
+        return {"status": "error", "reply": "I couldn't reach the AI advisor just now. Please try again shortly."}
