@@ -487,7 +487,22 @@ export default function FertilizerHubPage() {
                   {cost && (
                     <div className="text-center">
                       <span className="material-symbols-outlined text-[#173809]/40">payments</span>
-                      <p className="text-xs font-bold text-[#173809] mt-1">₹{cost.recommended_inr.toLocaleString('en-IN')}</p>
+                      {cost.recommended_inr > 0 ? (
+                        <>
+                          <p className="text-xs font-bold text-[#173809] mt-1">₹{cost.recommended_inr.toLocaleString('en-IN')}</p>
+                          <p className="text-[9px] font-bold uppercase tracking-widest text-[#173809]/35 mt-0.5">To Buy</p>
+                        </>
+                      ) : cost.savings_inr > 0 ? (
+                        <>
+                          <p className="text-xs font-bold text-[#173809] mt-1">₹{cost.savings_inr.toLocaleString('en-IN')}</p>
+                          <p className="text-[9px] font-bold uppercase tracking-widest text-[#173809]/35 mt-0.5">Saved</p>
+                        </>
+                      ) : (
+                        <>
+                          <p className="text-xs font-bold text-[#173809] mt-1">₹0</p>
+                          <p className="text-[9px] font-bold uppercase tracking-widest text-[#173809]/35 mt-0.5">To Buy</p>
+                        </>
+                      )}
                     </div>
                   )}
                 </div>
