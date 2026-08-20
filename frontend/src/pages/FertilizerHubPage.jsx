@@ -401,7 +401,7 @@ export default function FertilizerHubPage() {
               No recommendations yet — run one below to start building your field's history.
             </div>
           ) : (
-            <div className="bg-white rounded-[2rem] border border-[#173809]/8 divide-y divide-[#173809]/6 overflow-hidden">
+            <div className="bg-white rounded-[2rem] border border-[#173809]/8 divide-y divide-[#173809]/6">
               {history.map((run) => {
                 const date = run.created_at ? new Date(run.created_at * 1000).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : ''
                 return (
@@ -421,13 +421,13 @@ export default function FertilizerHubPage() {
                             >
                               {meta.short}
                             </span>
-                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover/dot:block z-20 w-max max-w-[220px]">
-                              <div className="bg-[#1d1c0d] text-white text-xs rounded-xl px-3 py-2 shadow-xl">
+                            <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 hidden group-hover/dot:block z-20 w-max max-w-[220px]">
+                              <div className="w-2 h-2 bg-[#173809] rotate-45 mx-auto mb-[-4px]" />
+                              <div className="bg-[#173809] text-white text-xs rounded-xl px-3 py-2 shadow-xl">
                                 <p className="font-bold capitalize mb-0.5">{label} on {date}</p>
-                                <p className="text-white/70">{d.available_kg_ha} kg/ha inserted · target {d.target_kg_ha} kg/ha</p>
-                                <p className="font-bold mt-0.5" style={{ color: dotColor === '#173809' ? '#c5efad' : dotColor }}>{statusText}</p>
+                                <p className="text-[#c5efad]/70">{d.available_kg_ha} kg/ha inserted · target {d.target_kg_ha} kg/ha</p>
+                                <p className="font-bold mt-0.5" style={{ color: d.status === 'deficient' ? '#f3b6a3' : d.status === 'excess' ? '#f2cb8a' : '#c5efad' }}>{statusText}</p>
                               </div>
-                              <div className="w-2 h-2 bg-[#1d1c0d] rotate-45 mx-auto -mt-1" />
                             </div>
                           </div>
                         )
@@ -504,12 +504,12 @@ export default function FertilizerHubPage() {
                           <div className="w-11 h-11 rounded-xl flex items-center justify-center font-bold text-base shrink-0 cursor-default" style={{ backgroundColor: `${meta.color}14`, color: meta.color }}>
                             {meta.short}
                           </div>
-                          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover/badge:block z-20 w-max max-w-[220px]">
-                            <div className="bg-[#1d1c0d] text-white text-xs rounded-xl px-3 py-2 shadow-xl">
+                          <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 hidden group-hover/badge:block z-20 w-max max-w-[220px]">
+                            <div className="w-2 h-2 bg-[#173809] rotate-45 mx-auto mb-[-4px]" />
+                            <div className="bg-[#173809] text-white text-xs rounded-xl px-3 py-2 shadow-xl">
                               <p className="font-bold capitalize mb-0.5">{label} today</p>
-                              <p className="text-white/70">{data.available_kg_ha} kg/ha inserted · target {data.target_kg_ha} kg/ha</p>
+                              <p className="text-[#c5efad]/70">{data.available_kg_ha} kg/ha inserted · target {data.target_kg_ha} kg/ha</p>
                             </div>
-                            <div className="w-2 h-2 bg-[#1d1c0d] rotate-45 mx-auto -mt-1" />
                           </div>
                         </div>
                         <div className="flex-grow min-w-0">
