@@ -421,12 +421,20 @@ export default function FertilizerHubPage() {
                             >
                               {meta.short}
                             </span>
-                            <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 hidden group-hover/dot:block z-20 w-max max-w-[220px]">
-                              <div className="w-2 h-2 bg-[#173809] rotate-45 mx-auto mb-[-4px]" />
-                              <div className="bg-[#173809] text-white text-xs rounded-xl px-3 py-2 shadow-xl">
-                                <p className="font-bold capitalize mb-0.5">{label} on {date}</p>
-                                <p className="text-[#c5efad]/70">{d.available_kg_ha} kg/ha inserted · target {d.target_kg_ha} kg/ha</p>
-                                <p className="font-bold mt-0.5" style={{ color: d.status === 'deficient' ? '#f3b6a3' : d.status === 'excess' ? '#f2cb8a' : '#c5efad' }}>{statusText}</p>
+                            <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2.5 hidden group-hover/dot:block z-20 w-60">
+                              <div className="w-3 h-3 rounded-[3px] bg-[#173809] rotate-45 mx-auto mb-[-6px]" />
+                              <div className="bg-[#173809] text-white rounded-2xl px-4 py-3 shadow-2xl ring-1 ring-white/10">
+                                <p className="font-bold capitalize text-sm mb-1">{label}</p>
+                                <p className="text-[#c5efad]/75 text-[11px] leading-snug">{d.available_kg_ha} kg/ha inserted · target {d.target_kg_ha} kg/ha</p>
+                                <span
+                                  className="inline-flex items-center text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-full mt-2"
+                                  style={{
+                                    backgroundColor: d.status === 'deficient' ? 'rgba(243,182,163,0.15)' : d.status === 'excess' ? 'rgba(242,203,138,0.15)' : 'rgba(197,239,173,0.15)',
+                                    color: d.status === 'deficient' ? '#f3b6a3' : d.status === 'excess' ? '#f2cb8a' : '#c5efad',
+                                  }}
+                                >
+                                  {statusText}
+                                </span>
                               </div>
                             </div>
                           </div>
@@ -504,11 +512,20 @@ export default function FertilizerHubPage() {
                           <div className="w-11 h-11 rounded-xl flex items-center justify-center font-bold text-base shrink-0 cursor-default" style={{ backgroundColor: `${meta.color}14`, color: meta.color }}>
                             {meta.short}
                           </div>
-                          <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 hidden group-hover/badge:block z-20 w-max max-w-[220px]">
-                            <div className="w-2 h-2 bg-[#173809] rotate-45 mx-auto mb-[-4px]" />
-                            <div className="bg-[#173809] text-white text-xs rounded-xl px-3 py-2 shadow-xl">
-                              <p className="font-bold capitalize mb-0.5">{label} today</p>
-                              <p className="text-[#c5efad]/70">{data.available_kg_ha} kg/ha inserted · target {data.target_kg_ha} kg/ha</p>
+                          <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2.5 hidden group-hover/badge:block z-20 w-60">
+                            <div className="w-3 h-3 rounded-[3px] bg-[#173809] rotate-45 mx-auto mb-[-6px]" />
+                            <div className="bg-[#173809] text-white rounded-2xl px-4 py-3 shadow-2xl ring-1 ring-white/10">
+                              <p className="font-bold capitalize text-sm mb-1">{label} today</p>
+                              <p className="text-[#c5efad]/75 text-[11px] leading-snug">{data.available_kg_ha} kg/ha inserted · target {data.target_kg_ha} kg/ha</p>
+                              <span
+                                className="inline-flex items-center text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-full mt-2"
+                                style={{
+                                  backgroundColor: status === 'deficient' ? 'rgba(243,182,163,0.15)' : status === 'excess' ? 'rgba(242,203,138,0.15)' : 'rgba(197,239,173,0.15)',
+                                  color: status === 'deficient' ? '#f3b6a3' : status === 'excess' ? '#f2cb8a' : '#c5efad',
+                                }}
+                              >
+                                {status === 'deficient' ? 'Apply Now' : status === 'excess' ? 'Over-Supplied' : 'Sufficient'}
+                              </span>
                             </div>
                           </div>
                         </div>
