@@ -69,6 +69,13 @@ const NUTRIENT_META = {
   potassium:  { short: 'K', color: '#4e2500' },
 }
 
+// Standard Indian retail bag sizes — Urea is sold in 45kg bags, DAP/MOP in 50kg.
+const BAG_SIZE_KG = {
+  'Granular Urea': 45,
+  'DAP (Diammonium Phosphate)': 50,
+  'Muriate of Potash (MOP)': 50,
+}
+
 export default function FertilizerHubPage() {
   const { token } = useAuth()
   const [precision, setPrecision] = useState(null)
@@ -156,37 +163,77 @@ export default function FertilizerHubPage() {
                 )}
               </div>
 
-              {/* Nutrient dosing table */}
+              {/* Nutrient dosing panel */}
               <div className="lg:col-span-7 bg-white rounded-[2.5rem] p-8 md:p-10 border border-[#173809]/8 shadow-sm">
                 <h3 className="text-xl font-bold text-[#173809] mb-6">How Much to Apply</h3>
-                <div className="space-y-5">
+                <div className="space-y-4">
                   {Object.entries(precision.dose.nutrients).map(([label, data]) => {
                     const meta = NUTRIENT_META[label]
+                    const needsApplication = data.product_kg_total > 0
+                    const barMax = Math.max(data.target_kg_ha, data.available_kg_ha, 1)
+                    const availablePct = Math.min(100, (data.available_kg_ha / barMax) * 100)
+                    const targetPct = Math.min(100, (data.target_kg_ha / barMax) * 100)
+                    const bagSize = BAG_SIZE_KG[data.product]
+                    const bagCount = bagSize && data.product_kg_total > 0 ? Math.ceil(data.product_kg_total / bagSize) : null
+
                     return (
-                      <div key={label} className="flex items-center gap-5 pb-5 border-b border-[#173809]/6 last:border-0 last:pb-0">
-                        <div
-                          className="w-12 h-12 rounded-2xl flex items-center justify-center font-bold text-lg shrink-0"
-                          style={{ backgroundColor: `${meta.color}14`, color: meta.color }}
-                        >
-                          {meta.short}
-                        </div>
-                        <div className="flex-grow min-w-0">
-                          <div className="flex items-baseline justify-between gap-2">
-                            <span className="font-bold text-[#173809] capitalize">{label}</span>
-                            <span className="text-[10px] uppercase tracking-widest text-[#173809]/40 font-bold">
-                              deficit {data.deficit_kg_ha} kg/ha
-                            </span>
+                      <div key={label} className="rounded-2xl border border-[#173809]/8 p-5">
+                        <div className="flex items-center gap-4 mb-4">
+                          <div
+                            className="w-11 h-11 rounded-xl flex items-center justify-center font-bold text-base shrink-0"
+                            style={{ backgroundColor: `${meta.color}14`, color: meta.color }}
+                          >
+                            {meta.short}
                           </div>
-                          <p className="text-sm text-[#43493e] mt-1">
-                            {data.product_kg_total > 0
-                              ? <>Apply <span className="font-bold text-[#173809]">{data.product_kg_total} kg</span> of <span className="font-bold">{data.product}</span> across the field</>
-                              : <span className="text-[#173809]/50">Soil already meets target — no application needed</span>}
-                          </p>
+                          <div className="flex-grow min-w-0">
+                            <span className="font-bold text-[#173809] capitalize block">{label}</span>
+                            <span className="text-[11px] text-[#173809]/40">{data.available_kg_ha} of {data.target_kg_ha} kg/ha target</span>
+                          </div>
+                          <span className={`text-[10px] font-bold uppercase tracking-widest px-3 py-1.5 rounded-full shrink-0 ${
+                            needsApplication ? 'bg-[#9f402d]/10 text-[#9f402d]' : 'bg-[#173809]/8 text-[#173809]'
+                          }`}>
+                            {needsApplication ? 'Apply Now' : 'Sufficient'}
+                          </span>
                         </div>
+
+                        {/* Available-vs-target bar: fill = what's already in the soil, marker = the target */}
+                        <div className="relative h-2.5 bg-[#173809]/8 rounded-full mb-1">
+                          <div
+                            className="absolute top-0 left-0 h-full rounded-full transition-all duration-500"
+                            style={{ width: `${availablePct}%`, backgroundColor: needsApplication ? '#9f402d' : '#173809' }}
+                          />
+                          <div
+                            className="absolute top-1/2 -translate-y-1/2 w-1 h-4 bg-[#1d1c0d]/50 rounded-full"
+                            style={{ left: `calc(${targetPct}% - 2px)` }}
+                            title={`Target: ${data.target_kg_ha} kg/ha`}
+                          />
+                        </div>
+                        <p className="text-[10px] text-[#173809]/30 mb-4">Bar shows what's already in your soil · the mark is the target</p>
+
+                        {needsApplication ? (
+                          <div className="flex items-center justify-between gap-3 pt-3 border-t border-[#173809]/6 text-sm">
+                            <span className="text-[#43493e]">
+                              <span className="font-bold text-[#173809]">{data.product_kg_total} kg</span> of <span className="font-bold">{data.product}</span>
+                              {bagCount && <span className="text-[#173809]/40"> · ~{bagCount} bag{bagCount > 1 ? 's' : ''} ({bagSize}kg)</span>}
+                            </span>
+                            {data.cost_inr > 0 && (
+                              <span className="font-bold text-[#173809] shrink-0">₹{data.cost_inr.toLocaleString('en-IN')}</span>
+                            )}
+                          </div>
+                        ) : (
+                          <p className="text-sm text-[#173809]/50 pt-3 border-t border-[#173809]/6">Soil already meets target — no application needed</p>
+                        )}
                       </div>
                     )
                   })}
                 </div>
+
+                {precision.ai?.current_practice_note && (
+                  <div className="mt-6 flex gap-3 bg-[#173809]/5 rounded-xl p-4 text-sm text-[#173809]">
+                    <span className="material-symbols-outlined text-[18px] shrink-0">compare_arrows</span>
+                    {precision.ai.current_practice_note}
+                  </div>
+                )}
 
                 {precision.dose.notes.length > 0 && (
                   <div className="mt-6 space-y-3">

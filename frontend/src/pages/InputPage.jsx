@@ -21,6 +21,22 @@ function getNPKStatus(key, val) {
   return 'Optimal'
 }
 
+// Values outside these bounds are still accepted — real fields can be
+// genuine outliers — but flagged so a mistyped digit gets a second look
+// instead of silently feeding the fertilizer math.
+const PLAUSIBLE_RANGE = {
+  pH: { low: 3.5, high: 9.5 },
+  N:  { low: 0, high: 400 },
+  P:  { low: 0, high: 150 },
+  K:  { low: 0, high: 600 },
+}
+
+function isUnusual(key, val) {
+  const r = PLAUSIBLE_RANGE[key]
+  if (!r || val === '' || val == null || isNaN(val)) return false
+  return val < r.low || val > r.high
+}
+
 export default function InputPage() {
   const navigate = useNavigate()
   const { user, token, refreshUser } = useAuth()
@@ -32,7 +48,7 @@ export default function InputPage() {
     } catch {}
     return {
       N: 96, P: 48, K: 194, pH: 6.8, cropType: 'Wheat', soilType: 'Clay Loam',
-      fieldSize: 2, fieldSizeUnit: 'acres', growthStage: 'sowing',
+      fieldSize: 2, fieldSizeUnit: 'acres', growthStage: 'sowing', currentFertilizer: '',
     }
   })
   const [saveStatus, setSaveStatus] = useState(null) // null | 'saving' | 'saved' | 'error'
@@ -57,6 +73,7 @@ export default function InputPage() {
       fieldSize: sd.fieldSize ?? 2,
       fieldSizeUnit: sd.fieldSizeUnit || 'acres',
       growthStage: sd.growthStage || 'sowing',
+      currentFertilizer: sd.currentFertilizer || '',
     }
     setValues(initial)
     setSavedValues(initial)
@@ -91,8 +108,13 @@ export default function InputPage() {
     }
   }
 
+  // pH, N, P, K are four independent lab readings — a real soil test never
+  // derives one from another, so editing one field only ever changes that
+  // field. (This used to auto-recompute the other three from a made-up
+  // formula whenever any single value changed, silently overwriting real
+  // farmer-entered numbers.)
   const handleChange = (field, valStr) => {
-    if (['cropType', 'soilType', 'fieldSizeUnit', 'growthStage'].includes(field)) {
+    if (['cropType', 'soilType', 'fieldSizeUnit', 'growthStage', 'currentFertilizer'].includes(field)) {
       setValues(prev => ({ ...prev, [field]: valStr }))
       return
     }
@@ -101,38 +123,10 @@ export default function InputPage() {
       return
     }
     if (valStr === '') { setValues(prev => ({ ...prev, [field]: '' })); return }
-    let val = parseFloat(valStr)
+    const val = parseFloat(valStr)
     if (isNaN(val)) return
-
-    let newPh = values.pH, n = values.N, p = values.P, k = values.K
-    if (field === 'pH') {
-      val = Math.max(0, Math.min(14, val)); newPh = val
-      n = Math.max(0, Math.round(100 + (val - 7) * 20))
-      p = Math.max(0, Math.round(50 + (val - 7) * 10))
-      k = Math.max(0, Math.round(200 + (val - 7) * 30))
-    } else if (field === 'N') {
-      n = Math.max(0, Math.min(500, val))
-      newPh = Math.max(0, Math.min(14, Math.round((7 + (n - 100) / 20) * 10) / 10))
-      p = Math.max(0, Math.round(50 + (newPh - 7) * 10))
-      k = Math.max(0, Math.round(200 + (newPh - 7) * 30))
-    } else if (field === 'P') {
-      p = Math.max(0, Math.min(300, val))
-      newPh = Math.max(0, Math.min(14, Math.round((7 + (p - 50) / 10) * 10) / 10))
-      n = Math.max(0, Math.round(100 + (newPh - 7) * 20))
-      k = Math.max(0, Math.round(200 + (newPh - 7) * 30))
-    } else if (field === 'K') {
-      k = Math.max(0, Math.min(800, val))
-      newPh = Math.max(0, Math.min(14, Math.round((7 + (k - 200) / 30) * 10) / 10))
-      n = Math.max(0, Math.round(100 + (newPh - 7) * 20))
-      p = Math.max(0, Math.round(50 + (newPh - 7) * 10))
-    }
-    setValues(prev => ({
-      ...prev,
-      pH: field === 'pH' ? valStr : newPh,
-      N: field === 'N' ? valStr : n,
-      P: field === 'P' ? valStr : p,
-      K: field === 'K' ? valStr : k,
-    }))
+    const clamp = field === 'pH' ? [0, 14] : field === 'N' ? [0, 500] : field === 'P' ? [0, 300] : [0, 800]
+    setValues(prev => ({ ...prev, [field]: Math.max(clamp[0], Math.min(clamp[1], val)) }))
   }
 
   const handleSave = async () => {
@@ -154,6 +148,7 @@ export default function InputPage() {
           fieldSize: parseFloat(values.fieldSize) || 0,
           fieldSizeUnit: values.fieldSizeUnit,
           growthStage: values.growthStage,
+          currentFertilizer: values.currentFertilizer || '',
         }),
       })
       if (!res.ok) throw new Error('Save failed')
@@ -241,6 +236,7 @@ export default function InputPage() {
                   const val = parseFloat(values[key]) || 0
                   const pct = Math.min(100, (val / max) * 100)
                   const status = getNPKStatus(key, val)
+                  const unusual = isUnusual(key, val)
                   return (
                     <div key={key} className="group">
                       <div className="flex items-center justify-between mb-3">
@@ -257,14 +253,23 @@ export default function InputPage() {
                           min={0} max={max}
                           value={values[key]}
                           onChange={e => handleChange(key, e.target.value)}
-                          className="w-full bg-[#fafaf8] border border-[#173809]/10 rounded-xl px-4 py-3 text-2xl font-headline font-bold text-[#173809] focus:outline-none focus:border-[#173809]/30 transition-colors"
+                          className={`w-full bg-[#fafaf8] border rounded-xl px-4 py-3 text-2xl font-headline font-bold text-[#173809] focus:outline-none transition-colors ${
+                            unusual ? 'border-[#9f402d]/40 focus:border-[#9f402d]' : 'border-[#173809]/10 focus:border-[#173809]/30'
+                          }`}
                         />
                         <span className="absolute right-3 bottom-3 text-[10px] font-bold text-[#173809]/30 uppercase">{unit}</span>
                       </div>
                       <div className="h-1 bg-[#173809]/8 rounded-full overflow-hidden">
                         <div className="h-full rounded-full bg-[#173809] transition-all duration-500" style={{ width: `${pct}%` }} />
                       </div>
-                      <p className="text-[10px] text-[#173809]/30 mt-1.5">{desc}</p>
+                      {unusual ? (
+                        <p className="text-[10px] text-[#9f402d] font-bold mt-1.5 flex items-center gap-1">
+                          <span className="material-symbols-outlined text-[12px]">warning</span>
+                          Unusual for a lab test — double-check this reading
+                        </p>
+                      ) : (
+                        <p className="text-[10px] text-[#173809]/30 mt-1.5">{desc}</p>
+                      )}
                     </div>
                   )
                 })}
@@ -307,6 +312,12 @@ export default function InputPage() {
               <div className="flex justify-between text-[10px] font-bold uppercase tracking-widest text-[#173809]/30">
                 <span>Acidic (3)</span><span>Neutral (7)</span><span>Alkaline (11)</span>
               </div>
+              {isUnusual('pH', ph) && (
+                <p className="text-[10px] text-[#9f402d] font-bold mt-3 flex items-center gap-1">
+                  <span className="material-symbols-outlined text-[12px]">warning</span>
+                  Unusual for a lab test — double-check this reading
+                </p>
+              )}
             </div>
 
             {/* Crop, Soil Type & Growth Stage */}
@@ -358,6 +369,19 @@ export default function InputPage() {
                   ))}
                 </div>
               </div>
+            </div>
+
+            {/* Current Fertilizer — lets the AI compare the plan against what's already being applied */}
+            <div className="bg-white rounded-3xl p-8 border border-[#173809]/8 shadow-sm">
+              <h2 className="text-xl font-bold text-[#173809]">What Are You Applying Now?</h2>
+              <p className="text-xs text-[#173809]/40 font-medium mt-0.5 mb-4">Optional — your plan will say whether to keep, switch, or stop it.</p>
+              <input
+                type="text"
+                value={values.currentFertilizer}
+                onChange={e => handleChange('currentFertilizer', e.target.value)}
+                placeholder="e.g. Urea only, or DAP + MOP, or nothing yet"
+                className="w-full bg-[#fafaf8] border border-[#173809]/10 rounded-xl px-4 py-3 text-base font-medium text-[#173809] focus:outline-none focus:border-[#173809]/30 transition-colors placeholder:text-[#173809]/30"
+              />
             </div>
 
             {/* Map Card */}

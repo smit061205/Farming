@@ -667,6 +667,15 @@ async def get_precision_recommendation(
 
     dose, _ = await _compute_dose_for_user(user, n, p, k, ph, crop_type, field_size, field_size_unit)
 
+    # Attach real per-nutrient cost (NBS-notified MRP, see sustainability_engine.py)
+    # directly onto the dose so the Fertilizer Hub can show a cost breakdown per
+    # nutrient, not just a single combined total.
+    for nutrient in dose["nutrients"].values():
+        price_per_kg = sustainability_engine.PRODUCT_PRICE_PER_KG.get(nutrient["product"], 10)
+        nutrient["cost_inr"] = round(nutrient["product_kg_total"] * price_per_kg)
+
+    current_fertilizer = (user.get("soil_data") or {}).get("currentFertilizer") or None
+
     narrative = None
     if api_key and _groq_available:
         system_prompt = (
@@ -675,6 +684,13 @@ async def get_precision_recommendation(
             "You are given ALREADY-COMPUTED dosing numbers — do not invent different figures, "
             "only explain and contextualize the ones given. Return ONLY valid JSON, no markdown."
         )
+        current_fert_line = (
+            f'The farmer says they are currently applying: "{current_fertilizer}". '
+            "Compare this plan against what they're already doing — say plainly whether to keep, switch, "
+            "add to, or stop it, and why."
+            if current_fertilizer else
+            "The farmer did not say what they currently apply — do not assume, just give the plan."
+        )
         user_prompt = f"""
 Computed precision fertilizer plan for {crop} on a {dose['field_size']} {dose['field_size_unit']} field (pH {soil_ph}):
 {json.dumps(dose['nutrients'], indent=2)}
@@ -682,11 +698,14 @@ Computed precision fertilizer plan for {crop} on a {dose['field_size']} {dose['f
 Weather outlook: {json.dumps(dose['weather'])}
 Application plan: {json.dumps(dose['application_plan'])}
 
+{current_fert_line}
+
 Return ONLY this JSON:
 {{
     "headline": "<one short sentence stating the single most important action>",
     "explanation": "<2-3 sentences explaining WHY these specific quantities were chosen, referencing the actual deficit numbers above>",
-    "sustainability_note": "<1-2 sentences on how following this exact dose (vs. guessing/over-applying) protects soil health and avoids waste>"
+    "sustainability_note": "<1-2 sentences on how following this exact dose (vs. guessing/over-applying) protects soil health and avoids waste>",
+    "current_practice_note": "<1-2 sentences comparing this plan to what the farmer currently applies, or null if they didn't say>"
 }}
 """
         try:
@@ -700,6 +719,7 @@ Return ONLY this JSON:
             "headline": f"Apply computed doses for {crop} based on current soil deficits.",
             "explanation": "AI narrative unavailable — showing computed agronomy figures only.",
             "sustainability_note": "Applying only the calculated deficit avoids the over-fertilization that degrades soil and wastes input cost.",
+            "current_practice_note": None,
         }
 
     result = {"status": "success", "dose": dose, "ai": narrative}

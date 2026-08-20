@@ -40,6 +40,7 @@ class SoilDataUpdate(BaseModel):
     fieldSize: Optional[float] = None
     fieldSizeUnit: Optional[str] = None   # 'acres' | 'hectares'
     growthStage: Optional[str] = None     # 'sowing' | 'vegetative' | 'flowering' | 'maturity'
+    currentFertilizer: Optional[str] = None  # what the farmer says they're already applying, if anything
 
 
 @router.put("/soil-data")
@@ -63,6 +64,7 @@ async def update_soil_data(
     if payload.fieldSize is not None: soil_patch["soil_data.fieldSize"]   = payload.fieldSize
     if payload.fieldSizeUnit is not None: soil_patch["soil_data.fieldSizeUnit"] = payload.fieldSizeUnit
     if payload.growthStage is not None:   soil_patch["soil_data.growthStage"]   = payload.growthStage
+    if payload.currentFertilizer is not None: soil_patch["soil_data.currentFertilizer"] = payload.currentFertilizer
 
     # Whenever a fresh soil chemistry reading comes in, recompute the derived
     # diagnostics (organic matter, CEC, lime requirement, salinity risk, ...)
