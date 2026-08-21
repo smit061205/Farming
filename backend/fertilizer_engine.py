@@ -266,16 +266,35 @@ def parse_npk(npk_str: str) -> tuple[float, float, float]:
     return tuple(float(g) / 100 for g in m.groups())
 
 
-def compute_health_score(ph: float, n: float, p: float, k: float) -> int:
-    """0-100 composite soil health score."""
+def _nutrient_score(available_ppm: float, target_kg_ha: float) -> float:
+    """0-100, peaking at the crop's actual target — not just 'more is better'.
+    Symmetric: 2x too little and 2x too much both score 0. Available-in-ppm
+    is converted to the same kg/ha basis as the target for the ratio."""
+    if not target_kg_ha:
+        return 100.0
+    target_ppm = target_kg_ha / PPM_TO_KG_HA
+    if target_ppm <= 0:
+        return 100.0
+    ratio = (available_ppm or 0) / target_ppm
+    return max(0.0, 100 - abs(ratio - 1) * 100)
+
+
+def compute_health_score(ph: float, n: float, p: float, k: float, crop_type: Optional[str] = None) -> int:
+    """0-100 composite soil health score, scored against the given crop's
+    real nutrient targets (or a generic target if no crop is known) — a
+    field with double the nitrogen it needs scores WORSE, not better, same
+    as the excess-detection logic the rest of the app already uses. Scoring
+    "more nutrients = healthier" with no ceiling would silently reward the
+    exact over-fertilization this app exists to prevent."""
+    targets = get_crop_targets(crop_type)
     ph_score = max(0, 100 - abs(ph - 6.5) * 25)
-    n_score = min(100, (n / 300) * 100)
-    p_score = min(100, (p / 60) * 100)
-    k_score = min(100, (k / 250) * 100)
+    n_score = _nutrient_score(n, targets["n"])
+    p_score = _nutrient_score(p, targets["p"])
+    k_score = _nutrient_score(k, targets["k"])
     return round((ph_score * 0.4) + (n_score * 0.3) + (p_score * 0.15) + (k_score * 0.15))
 
 
-def compute_soil_diagnostics(ph: float, n: float, p: Optional[float], k: Optional[float], soil_type: Optional[str] = "loam") -> dict:
+def compute_soil_diagnostics(ph: float, n: float, p: Optional[float], k: Optional[float], soil_type: Optional[str] = "loam", crop_type: Optional[str] = None) -> dict:
     """
     Given NPK + pH + soil type, derive organic matter, CEC, lime requirement,
     salinity risk, and related soil-health diagnostics. Standard agronomic
@@ -334,5 +353,5 @@ def compute_soil_diagnostics(ph: float, n: float, p: Optional[float], k: Optiona
         "nitrogen_status": n_status,
         "phosphorus_status": p_status,
         "ph_adequacy": "optimal" if 6.0 <= ph <= 7.5 else ("slightly off" if 5.5 <= ph <= 8.5 else "critical"),
-        "overall_health_score": compute_health_score(ph, n, p, k),
+        "overall_health_score": compute_health_score(ph, n, p, k, crop_type),
     }

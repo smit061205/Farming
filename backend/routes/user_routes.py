@@ -19,27 +19,29 @@ PLANTING_METHODS = [
 ]
 
 
-def _needs_diagnostics(source: dict) -> bool:
-    return source.get("ph") is not None and source.get("nitrogen") is not None and "overall_health_score" not in source
+def _has_soil_test(source: dict) -> bool:
+    return source.get("ph") is not None and source.get("nitrogen") is not None
 
 
 @router.get("/me")
 async def get_me(current_user: dict = Depends(get_current_user)):
     """Return full user profile including all onboarding fields.
 
-    Also backfills soil diagnostics (organic matter, CEC, health score, ...)
-    for any field that has a soil test but predates the fix that computes
-    them at save time — otherwise those fields keep showing the Soil
-    Health page's placeholder defaults forever instead of real numbers.
+    Recomputes soil diagnostics (organic matter, CEC, health score, ...) for
+    any field with a soil test on every read, rather than computing once and
+    caching forever. They're cheap, pure functions of ph/n/p/k/crop — caching
+    them only risked going stale the moment the underlying formula changed
+    (which it has, more than once), silently showing an outdated score
+    instead of picking up the fix.
     """
     db = get_db()
     soil_data = current_user.get("soil_data") or {}
     fields = current_user.get("fields") or []
     patch = {}
 
-    if _needs_diagnostics(soil_data):
+    if _has_soil_test(soil_data):
         diagnostics = fertilizer_engine.compute_soil_diagnostics(
-            soil_data["ph"], soil_data["nitrogen"], soil_data.get("phosphorus"), soil_data.get("potassium"), soil_data.get("soilType"),
+            soil_data["ph"], soil_data["nitrogen"], soil_data.get("phosphorus"), soil_data.get("potassium"), soil_data.get("soilType"), soil_data.get("cropType"),
         )
         soil_data = {**soil_data, **diagnostics}
         for key, value in diagnostics.items():
@@ -48,9 +50,9 @@ async def get_me(current_user: dict = Depends(get_current_user)):
     fields_changed = False
     backfilled_fields = []
     for f in fields:
-        if _needs_diagnostics(f):
+        if _has_soil_test(f):
             diagnostics = fertilizer_engine.compute_soil_diagnostics(
-                f["ph"], f["nitrogen"], f.get("phosphorus"), f.get("potassium"), f.get("soilType"),
+                f["ph"], f["nitrogen"], f.get("phosphorus"), f.get("potassium"), f.get("soilType"), f.get("cropType"),
             )
             f = {**f, **diagnostics}
             fields_changed = True
@@ -125,8 +127,9 @@ async def update_soil_data(
     # diagnostics (organic matter, CEC, lime requirement, salinity risk, ...)
     # so the Soil Health page's numbers stay honest instead of going stale.
     if payload.ph is not None and payload.nitrogen is not None:
+        crop_for_score = payload.cropType if payload.cropType is not None else current_user.get("soil_data", {}).get("cropType")
         diagnostics = fertilizer_engine.compute_soil_diagnostics(
-            payload.ph, payload.nitrogen, payload.phosphorus, payload.potassium, payload.soilType,
+            payload.ph, payload.nitrogen, payload.phosphorus, payload.potassium, payload.soilType, crop_for_score,
         )
         for key, value in diagnostics.items():
             soil_patch[f"soil_data.{key}"] = value
@@ -205,7 +208,7 @@ async def add_field(payload: FieldPayload, current_user: dict = Depends(get_curr
     # not just after its first edit.
     if field.get("ph") is not None and field.get("nitrogen") is not None:
         diagnostics = fertilizer_engine.compute_soil_diagnostics(
-            field["ph"], field["nitrogen"], field.get("phosphorus"), field.get("potassium"), field.get("soilType"),
+            field["ph"], field["nitrogen"], field.get("phosphorus"), field.get("potassium"), field.get("soilType"), field.get("cropType"),
         )
         field.update(diagnostics)
 
@@ -236,8 +239,10 @@ async def update_field(field_id: str, payload: FieldUpdatePayload, current_user:
 
     # Recompute diagnostics for this field the same way the primary field does
     if payload.ph is not None and payload.nitrogen is not None:
+        existing_field = next((f for f in fields if f.get("id") == field_id), {})
+        crop_for_score = payload.cropType if payload.cropType is not None else existing_field.get("cropType")
         diagnostics = fertilizer_engine.compute_soil_diagnostics(
-            payload.ph, payload.nitrogen, payload.phosphorus, payload.potassium, payload.soilType,
+            payload.ph, payload.nitrogen, payload.phosphorus, payload.potassium, payload.soilType, crop_for_score,
         )
         for key, value in diagnostics.items():
             patch[f"fields.$[elem].{key}"] = value

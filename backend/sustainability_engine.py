@@ -56,19 +56,15 @@ N_CO2E_PER_KG = 4.0
 
 def _get_yield_price(crop_type: Optional[str]) -> dict:
     key = (crop_type or "").strip().lower()
-    for crop_name, vals in CROP_YIELD_PRICE.items():
-        if crop_name in key or key in crop_name:
-            return vals
-    return DEFAULT_YIELD_PRICE
+    key = fe.CROP_ALIASES.get(key, key)
+    return CROP_YIELD_PRICE.get(key, DEFAULT_YIELD_PRICE)
 
 
-def _health_score(ph: float, n: float, p: float, k: float) -> int:
-    """0-100 composite soil health score — same formula used across the app."""
-    ph_score = max(0, 100 - abs(ph - 6.5) * 25)
-    n_score = min(100, (n / 300) * 100)
-    p_score = min(100, (p / 60) * 100)
-    k_score = min(100, (k / 250) * 100)
-    return round((ph_score * 0.4) + (n_score * 0.3) + (p_score * 0.15) + (k_score * 0.15))
+def _health_score(ph: float, n: float, p: float, k: float, crop_type: Optional[str] = None) -> int:
+    """0-100 composite soil health score — delegates to the same target-aware
+    formula used everywhere else in the app (fertilizer_engine.compute_health_score),
+    rather than keeping a second copy that could drift out of sync with it."""
+    return fe.compute_health_score(ph, n, p, k, crop_type)
 
 
 def compute_sustainability_impact(dose: dict, ph: float, n_ppm: float, p_ppm: float, k_ppm: float) -> dict:
@@ -106,7 +102,7 @@ def compute_sustainability_impact(dose: dict, ph: float, n_ppm: float, p_ppm: fl
     n_avoided_kg = max(0.0, baseline_n_kg_total - recommended_n_kg_total)
     co2e_avoided_kg = round(n_avoided_kg * N_CO2E_PER_KG, 1)
 
-    health_score = _health_score(ph, n_ppm, p_ppm, k_ppm)
+    health_score = _health_score(ph, n_ppm, p_ppm, k_ppm, dose["crop_type"])
     # More room for improvement when current soil health is worse; capped at 25%.
     yield_uplift_pct = min(25, round((100 - health_score) * 0.25))
 
@@ -115,8 +111,21 @@ def compute_sustainability_impact(dose: dict, ph: float, n_ppm: float, p_ppm: fl
     ) if hectares else 0
     net_income_impact_inr = round(gross_yield_value_inr + cost_savings_inr)
 
+    # "After" state if the farmer actually follows the roadmap: nutrients
+    # land exactly on target, and pH is corrected toward the workable
+    # midpoint if it's currently outside the 6.0-7.5 range that any crop
+    # can use — both computed with the same real formula as "before",
+    # not a separately invented number.
+    projected_ph = 6.5 if (ph < 6.0 or ph > 7.5) else ph
+    projected_n_ppm = dose["nutrients"]["nitrogen"]["target_kg_ha"] / fe.PPM_TO_KG_HA
+    projected_p_ppm = dose["nutrients"]["phosphorus"]["target_kg_ha"] / fe.PPM_TO_KG_HA
+    projected_k_ppm = dose["nutrients"]["potassium"]["target_kg_ha"] / fe.PPM_TO_KG_HA
+    projected_health_score = _health_score(projected_ph, projected_n_ppm, projected_p_ppm, projected_k_ppm, dose["crop_type"])
+    projected_yield_kg_ha = round(crop_ref["yield_kg_ha"] * (1 + yield_uplift_pct / 100))
+
     return {
         "health_score": health_score,
+        "projected_health_score": projected_health_score,
         "sustainability_score": max(0, reduction_pct),
         "fertilizer_reduction_pct": max(0, reduction_pct),
         "co2e_avoided_kg": co2e_avoided_kg,
@@ -133,6 +142,13 @@ def compute_sustainability_impact(dose: dict, ph: float, n_ppm: float, p_ppm: fl
         "reference": {
             "crop_yield_kg_ha": crop_ref["yield_kg_ha"],
             "crop_price_per_kg_inr": crop_ref["price_per_kg"],
+            "projected_yield_kg_ha": projected_yield_kg_ha,
+        },
+        "before_after": {
+            "ph": {"before": ph, "after": round(projected_ph, 1)},
+            "health_score": {"before": health_score, "after": projected_health_score},
+            "yield_kg_ha": {"before": crop_ref["yield_kg_ha"], "after": projected_yield_kg_ha},
+            "nutrients": dose["nutrients"],
         },
         "baseline_method": "Blanket full-target application without a soil test, plus a 25% typical safety margin.",
         "disclaimer": "Illustrative estimate from reference yield/price data, not a financial guarantee.",
