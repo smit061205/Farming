@@ -91,8 +91,24 @@ export default function Plan({ rec, t, lang }) {
 
       <CropRecommendations rec={rec} t={t} lang={lang} placement="plan" />
 
+      {rec.budgetNotice && (
+        <Section
+          title={t('budgetAlert')}
+          right={<Badge tone={rec.budgetNotice.provider === 'groq' ? 'leaf' : 'slate'}>
+            {rec.budgetNotice.provider === 'groq' ? 'AI · Groq' : t('budgetRuleBased')}
+          </Badge>}
+        >
+          <Card className="p-5 border-earth-300 bg-earth-50">
+            <p className="text-sm text-earth-700 leading-relaxed">{rec.budgetNotice.text}</p>
+          </Card>
+        </Section>
+      )}
+
       {/* ------------------------------------------------------ what to buy */}
-      <Section title={t('buyThis')}>
+      <Section
+        title={rec.budgetPlan?.limitedBy?.length ? t('buyWithinBudget') : t('buyThis')}
+        sub={rec.budgetPlan?.limitedBy?.length ? `${t('budgetCap')}: ${rs(rec.budgetPlan.totalCost)} / ${rs(rec.budgetPlan.spendLimit)}` : undefined}
+      >
         <div className="space-y-2">
           {rec.products.length === 0 && (
             <Card className="p-5 text-center text-leaf-700">{t('applyNone')}</Card>
@@ -144,7 +160,7 @@ export default function Plan({ rec, t, lang }) {
         <Card className="p-5">
           <CostBar
             label={t('thisPlan')}
-            value={rec.comparison.npkOnly?.planCost ?? rec.comparison.planCost}
+            value={rec.comparison.planCost}
             max={rec.comparison.blanketCost}
             tone="leaf"
           />
@@ -157,44 +173,26 @@ export default function Plan({ rec, t, lang }) {
           />
 
           {(() => {
-            const npk = rec.comparison.npkOnly ?? rec.comparison;
+            const cmp = rec.comparison;
             return (
-              <div className={`mt-5 px-5 py-4 ${npk.savedTotal > 0 ? 'bg-leaf-700' : 'bg-earth-500'} text-leaf-50`}>
-                {npk.savedTotal > 0 ? (
+              <div className={`mt-5 px-5 py-4 ${cmp.savedTotal > 0 ? 'bg-leaf-700' : 'bg-earth-500'} text-leaf-50`}>
+                {cmp.savedTotal > 0 ? (
                   <div className="flex items-baseline justify-between gap-3 flex-wrap">
                     <span className="font-semibold">{t('youSave')}</span>
                     <span className="font-display text-3xl font-bold tabular-nums tracking-tightest">
-                      {rs(npk.savedTotal)}
+                      {rs(cmp.savedTotal)}
                       <span className="text-sm font-semibold opacity-80 ml-2">
-                        ({npk.savedPct}%) {t('perSeason')}
+                        ({cmp.savedPct}%) {t('perSeason')}
                       </span>
                     </span>
                   </div>
                 ) : (
                   <p className="text-sm font-medium">{t('costsMore')}</p>
                 )}
-                <p className="text-[11px] opacity-80 mt-1.5">{t('npkOnlyNote')}</p>
+                <p className="text-[11px] opacity-80 mt-1.5">{t('priceCompareNote')}</p>
               </div>
             );
           })()}
-
-          {/* Micronutrients the blanket dose ignores entirely — shown separately,
-              because folding them into the saving would not be a fair comparison. */}
-          {rec.comparison.microCost > 0 && (
-            <div className="mt-3 border border-leaf-300 bg-white px-5 py-4">
-              <div className="flex items-baseline justify-between gap-3 flex-wrap">
-                <span className="text-sm font-bold text-leaf-800">
-                  {t('microAdd')} ({rec.comparison.microAdded.join(' + ')})
-                </span>
-                <span className="font-display text-xl font-bold tabular-nums text-leaf-800">+{rs(rec.comparison.microCost)}</span>
-              </div>
-              <p className="text-xs text-leaf-900/70 mt-1 leading-relaxed">{t('microNote')}</p>
-              <div className="flex items-baseline justify-between gap-3 mt-3 pt-3 border-t border-leaf-200">
-                <span className="text-sm font-bold text-leaf-800">{t('netTotal')}</span>
-                <span className="font-display text-xl font-bold tabular-nums text-leaf-800">{rs(rec.comparison.planCost)}</span>
-              </div>
-            </div>
-          )}
         </Card>
       </Section>
 

@@ -16,7 +16,9 @@ LIMITS = {
     "zn": (0, 50),
     "targetYield": (0.01, 1_000),
     "organicTonnes": (0, 100),
-    "budget": (0, 100_000_000),
+    # A lower budget cannot buy a meaningful, safe fertilizer package for a
+    # field. Leaving the field blank still requests the full recommendation.
+    "budget": (3_000, 100_000_000),
     "lat": (-90, 90),
     "lon": (-180, 180),
 }

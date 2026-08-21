@@ -205,15 +205,58 @@ def budget_allocate(dose: dict, classes: dict, budget: float, opts: dict = None)
             cost = trial_cost
             covers.append(k)
         else:
-            dropped.append({"nutrient": k, "severity": step["severity"], "wouldAdd": trial_cost - cost})
+            # Do not make a farmer choose between the whole dose and nothing.
+            # Find the largest safe partial amount for this priority nutrient;
+            # rounding happens inside allocate(), so the final result is checked
+            # again before it is accepted.
+            low, high = 0.0, 1.0
+            best_amount, best_cost = 0.0, cost
+            for _ in range(24):
+                fraction = (low + high) / 2
+                trial[k] = dose[k] * fraction
+                partial_cost = allocate(trial, opts)["costTotal"]
+                if partial_cost <= budget:
+                    best_amount, best_cost = trial[k], partial_cost
+                    low = fraction
+                else:
+                    high = fraction
+
+            if best_amount > 0.05 and best_cost > cost:
+                candidate = round1(best_amount)
+                # Rounding up to a tenth of a kilogram can move a line just
+                # over the cap. Step back until the purchase total is safe.
+                while candidate > 0.05:
+                    covered[k] = candidate
+                    candidate_cost = allocate(dict(covered), opts)["costTotal"]
+                    if candidate_cost <= budget:
+                        break
+                    candidate = round1(candidate - 0.1)
+                if candidate <= 0.05:
+                    covered[k] = 0
+                    dropped.append({"nutrient": k, "severity": step["severity"], "wouldAdd": trial_cost - cost, "partial": False, "coveredPct": 0})
+                    continue
+                cost = candidate_cost
+                covers.append(k)
+                dropped.append({
+                    "nutrient": k,
+                    "severity": step["severity"],
+                    "wouldAdd": trial_cost - cost,
+                    "partial": True,
+                    "coveredPct": round((covered[k] / dose[k]) * 100) if dose[k] else 0,
+                })
+            else:
+                dropped.append({"nutrient": k, "severity": step["severity"], "wouldAdd": trial_cost - cost, "partial": False, "coveredPct": 0})
 
     full = allocate(dict(dose), opts)["costTotal"]
+    # allocate() rounds line items. Keep the returned purchase plan as the
+    # source of truth and never return a rupee amount above the input cap.
     plan = allocate(dict(covered), opts)
-
+    cost = plan["costTotal"]
     return {
         "budget": budget,
         "covers": covers,
         "dropped": dropped,
+        "dose": covered,
         "plan": plan["items"],
         "cost": cost,
         "unspent": max(0, budget - cost),

@@ -123,7 +123,7 @@ const S = {
     organicNone: 'None',
     tonnesHa: 'tonnes/ha',
     budgetQ: 'Budget limit',
-    budgetHint: 'Leave blank for the full recommendation.',
+    budgetHint: '₹3,000 minimum. Leave blank for the full recommendation.',
     waterlogged: 'The field currently has standing water',
 
     // results
@@ -142,9 +142,14 @@ const S = {
     costsMore: 'Costs more — it corrects a shortage the blanket dose ignores',
     perSeason: 'per season',
     npkOnlyNote: 'Compared on N-P-K only — the blanket dose contains no sulphur or zinc.',
+    priceCompareNote: 'The total shown includes every item in this AgriSense purchase plan.',
     microAdd: 'Micronutrients your soil is short of',
     microNote: 'The blanket dose ignores these entirely. Your soil test shows a shortage — and the nutrient in shortest supply caps what all the others can do.',
     netTotal: 'Total you will spend',
+    budgetAlert: 'Your budget needs a phased plan',
+    budgetRuleBased: 'Plan safeguard',
+    buyWithinBudget: 'What to buy within your budget',
+    budgetCap: 'Purchase-plan cost',
 
     // advisory
     timing: 'When to apply',
@@ -308,7 +313,7 @@ const S = {
     m: { broadcast: 'ऊपर से छिड़काव', incorporated: 'मिट्टी में मिलाकर', banded: 'कतार में', fertigation: 'सिंचाई के साथ' },
     mHint: 'ऊपर से छिड़कने पर सबसे ज़्यादा नाइट्रोजन उड़ जाती है। मिट्टी में मिलाने से बचती है।',
     organicQ: 'गोबर खाद या कम्पोस्ट डाल रहे हैं?', organicNone: 'नहीं', tonnesHa: 'टन/हे.',
-    budgetQ: 'बजट सीमा', budgetHint: 'पूरी सिफ़ारिश के लिए खाली छोड़ें।',
+    budgetQ: 'बजट सीमा', budgetHint: 'न्यूनतम ₹3,000। पूरी सिफ़ारिश के लिए खाली छोड़ें।',
     waterlogged: 'खेत में इस समय पानी भरा है',
 
     yourPlan: 'आपकी खाद योजना', perHectare: 'प्रति हेक्टेयर', forYourField: 'पूरे खेत के लिए',
@@ -318,9 +323,12 @@ const S = {
     youSave: 'आपकी बचत', costsMore: 'थोड़ा महँगा — पर यह उस कमी को पूरा करता है जिसे सामान्य खुराक छोड़ देती है',
     perSeason: 'प्रति सीज़न',
     npkOnlyNote: 'तुलना केवल एन-पी-के पर — सामान्य खुराक में सल्फर या जिंक नहीं होता।',
+    priceCompareNote: 'दिखाया गया कुल खर्च इस एग्रीसेंस खरीद योजना की हर वस्तु को शामिल करता है।',
     microAdd: 'सूक्ष्म पोषक जिनकी मिट्टी में कमी है',
     microNote: 'सामान्य खुराक इन्हें पूरी तरह छोड़ देती है। आपकी जाँच में कमी दिखी है — और जिस पोषक की सबसे ज़्यादा कमी हो, वही बाकी सबका असर रोक देता है।',
     netTotal: 'कुल खर्च',
+    budgetAlert: 'आपके बजट के लिए चरणबद्ध योजना चाहिए', budgetRuleBased: 'योजना सुरक्षा',
+    buyWithinBudget: 'आपके बजट में क्या खरीदें', budgetCap: 'खरीद योजना की लागत',
 
     timing: 'कब डालें',
     verdictGO: 'परिस्थिति अनुकूल है', verdictMODIFY: 'ठीक है, एक बदलाव के साथ', verdictWAIT: 'रुकना बेहतर रहेगा',
@@ -457,7 +465,7 @@ const S = {
     m: { broadcast: 'ઉપરથી છાંટવું', incorporated: 'જમીનમાં ભેળવીને', banded: 'હરોળમાં', fertigation: 'પિયત સાથે' },
     mHint: 'ઉપરથી છાંટવાથી સૌથી વધુ નાઇટ્રોજન ઊડી જાય. જમીનમાં ભેળવવાથી બચે છે.',
     organicQ: 'છાણિયું ખાતર કે કમ્પોસ્ટ નાખો છો?', organicNone: 'નહીં', tonnesHa: 'ટન/હે.',
-    budgetQ: 'બજેટ મર્યાદા', budgetHint: 'પૂરી ભલામણ માટે ખાલી રાખો.',
+    budgetQ: 'બજેટ મર્યાદા', budgetHint: 'ઓછામાં ઓછું ₹3,000. સંપૂર્ણ ભલામણ માટે ખાલી રાખો.',
     waterlogged: 'ખેતરમાં અત્યારે પાણી ભરાયેલું છે',
 
     yourPlan: 'તમારી ખાતર યોજના', perHectare: 'પ્રતિ હેક્ટર', forYourField: 'આખા ખેતર માટે',
@@ -467,9 +475,12 @@ const S = {
     youSave: 'તમારી બચત', costsMore: 'થોડું મોંઘું — પણ તે ખોટ પૂરી કરે છે જે સામાન્ય માત્રા છોડી દે છે',
     perSeason: 'પ્રતિ સીઝન',
     npkOnlyNote: 'સરખામણી ફક્ત એન-પી-કે પર — સામાન્ય માત્રામાં સલ્ફર કે ઝીંક હોતું નથી.',
+    priceCompareNote: 'દર્શાવેલ કુલ ખર્ચ આ એગ્રીસેન્સ ખરીદી યોજનાની દરેક વસ્તુને સમાવે છે.',
     microAdd: 'સૂક્ષ્મ પોષક જેની જમીનમાં ખોટ છે',
     microNote: 'સામાન્ય માત્રા આને સંપૂર્ણ અવગણે છે. તમારી ચકાસણીમાં ખોટ દેખાય છે — અને જે પોષક સૌથી ઓછું હોય, તે જ બાકી બધાની અસર રોકે છે.',
     netTotal: 'કુલ ખર્ચ',
+    budgetAlert: 'તમારા બજેટ માટે તબક્કાવાર યોજના જોઈએ', budgetRuleBased: 'યોજના સુરક્ષા',
+    buyWithinBudget: 'તમારા બજેટમાં શું ખરીદવું', budgetCap: 'ખરીદી યોજનાનો ખર્ચ',
 
     timing: 'ક્યારે નાખવું',
     verdictGO: 'પરિસ્થિતિ અનુકૂળ છે', verdictMODIFY: 'ઠીક છે, એક ફેરફાર સાથે', verdictWAIT: 'રાહ જોવી સારી રહેશે',

@@ -25,7 +25,7 @@ const QUINTAL_PER_UNIT = { quintal: 1, tonne: 10, kg: 0.01 };
 const LIMITS = {
   areaHa: [0.01, 10000],
   ph: [0, 14], oc: [0, 5], n: [0, 2000], p: [0, 500], k: [0, 2000],
-  ec: [0, 20], s: [0, 200], zn: [0, 50], organicTonnes: [0, 100], budget: [0, 100000000],
+  ec: [0, 20], s: [0, 200], zn: [0, 50], organicTonnes: [0, 100], budget: [3000, 100000000],
 };
 
 const inRange = (value, [min, max], optional = false) => {
@@ -386,7 +386,7 @@ export default function Wizard({ meta, t, lang, onSubmit, busy, error }) {
           <div className="space-y-5">
             <Head title={t('s4Title')} sub={t('s4Sub')} />
 
-            <Field label={t('applyMethod')} hint={t('mHint')}>
+    <Field label={t('applyMethod')} hint={t('mHint')}>
               <Toggle
                 cols={2}
                 value={form.method}

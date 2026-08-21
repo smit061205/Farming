@@ -20,7 +20,7 @@ from dosing import compute_dose
 from allocate import allocate, allocate_blanket, comparison, spending_priority, budget_allocate, alternatives_for, price_source
 from weather import fetch_forecast, evaluate, build_calendar
 from impact import soil_health_score, trajectory, environment, ratio_check, income
-from ai import chat as ai_chat, template_explain, ai_status
+from ai import chat as ai_chat, template_explain, ai_status, explain_budget_constraint
 from extract import extract_from_image, parse_soil_text, sanitise, vision_available
 from crop_recommendation import recommend_crops
 from validation import validate_wizard_payload
@@ -149,18 +149,76 @@ async def recommend(body: dict):
         # 1. Dose
         d = compute_dose(crop, slopes, zone, soil_num, yield_target, organic_spec)
 
-        # 2. Products
-        plan = allocate(d["dose"], {"sDeficient": d["sDeficient"], "phBand": d["phBand"], "areaHa": area_ha})
+        # 2. Products and price guard. The displayed products, dose cards and
+        # total are always the same purchase plan. A budget is a hard cap, not
+        # merely a what-if fact shown to the chat later.
+        alloc_opts = {"sDeficient": d["sDeficient"], "phBand": d["phBand"], "areaHa": area_ha}
+        full_plan = allocate(d["dose"], alloc_opts)
         blanket_plan = allocate_blanket(d["blanket"], {"areaHa": area_ha})
-        cmp = comparison(plan, blanket_plan)
+        budget_num = float(budget) if budget not in (None, "") else None
 
-        # Like-for-like: the blanket dose contains no sulphur or zinc, so compare N-P-K
-        # alone, then report the micronutrient correction as a separate, deliberate add.
-        npk_only_plan = allocate({**d["dose"], "S": 0, "Zn": 0}, {"sDeficient": False, "phBand": d["phBand"], "areaHa": area_ha})
-        npk_cmp = comparison(npk_only_plan, blanket_plan)
-        cmp["npkOnly"] = {"planCost": npk_cmp["planCost"], "savedTotal": npk_cmp["savedTotal"], "savedPct": npk_cmp["savedPct"]}
-        cmp["microCost"] = plan["costTotal"] - npk_only_plan["costTotal"]
-        cmp["microAdded"] = (["S"] if d["dose"]["S"] > 0 else []) + (["Zn"] if d["dose"]["Zn"] > 0 else [])
+        organic_line = None
+        organic_cost = 0
+        if organic_spec:
+            organic_cost = round(organic_spec["source"]["pricePerTonne"] * organic_spec["tonnesPerHa"] * area_ha)
+            organic_line = {
+                "id": organic["id"], "name": organic_spec["source"]["name"],
+                "tonnesPerHa": organic_spec["tonnesPerHa"], "totalTonnes": organic_spec["tonnesPerHa"] * area_ha,
+                "cost": organic_cost, "credit": d["organicCredit"],
+                "ocGain": round(organic_spec["source"]["ocPerTonne"] * organic_spec["tonnesPerHa"] * 1000) / 1000,
+            }
+
+        full_total = full_plan["costTotal"] + organic_cost
+        # Keep a genuine price comparison: do not label a plan as cheaper than
+        # the blanket dose if it is not. The normal budget, when supplied, is
+        # also honoured after any selected organic input has been costed.
+        blanket_ceiling = max(0, blanket_plan["costTotal"] - 1)
+        requested_ceiling = budget_num if budget_num is not None else float("inf")
+        total_ceiling = min(requested_ceiling, blanket_ceiling) if blanket_plan["costTotal"] > 0 else requested_ceiling
+        needs_cap = full_total > total_ceiling
+        budget_plan = None
+        budget_notice = None
+        active_dose = dict(d["dose"])
+
+        if needs_cap:
+            chemical_ceiling = max(0, total_ceiling - organic_cost)
+            budget_plan = budget_allocate(d["dose"], d["classes"], chemical_ceiling, alloc_opts)
+            active_dose = budget_plan["dose"]
+            budget_plan.update({
+                "requestedBudget": budget_num,
+                "spendLimit": total_ceiling,
+                "organicCost": organic_cost,
+                "totalCost": budget_plan["cost"] + organic_cost,
+                "fullTotalCost": full_total,
+                "limitedBy": (["budget"] if budget_num is not None and full_total > budget_num else []) + (["blanketComparison"] if full_total >= blanket_plan["costTotal"] else []),
+            })
+            if budget_num is not None and full_total > budget_num:
+                partial = [row["nutrient"] for row in budget_plan["dropped"] if row.get("partial")]
+                missing = [row["nutrient"] for row in budget_plan["dropped"] if not row.get("partial")]
+                budget_notice = await explain_budget_constraint({
+                    "requestedBudget": budget_num,
+                    "cap": total_ceiling,
+                    "fullCost": full_total,
+                    "planCost": budget_plan["totalCost"],
+                    "partial": partial,
+                    "missing": missing,
+                }, lang)
+        elif budget_num is not None:
+            budget_plan = {
+                "budget": budget_num, "requestedBudget": budget_num, "spendLimit": budget_num,
+                "covers": [k for k, v in d["dose"].items() if v > 0], "dropped": [], "dose": dict(d["dose"]),
+                "plan": full_plan["items"], "cost": full_plan["costTotal"], "organicCost": organic_cost,
+                "totalCost": full_total, "fullCost": full_plan["costTotal"], "fullTotalCost": full_total,
+                "shortfall": 0, "unspent": max(0, budget_num - full_total), "enough": True, "limitedBy": [],
+            }
+
+        plan = allocate(active_dose, alloc_opts)
+        plan_total = plan["costTotal"] + organic_cost
+        cmp = comparison({"costTotal": plan_total}, blanket_plan)
+        npk_only_plan = allocate({**active_dose, "S": 0, "Zn": 0}, {**alloc_opts, "sDeficient": False})
+        npk_cost = npk_only_plan["costTotal"] + organic_cost
+        cmp["microCost"] = plan_total - npk_cost
+        cmp["microAdded"] = (["S"] if active_dose["S"] > 0 else []) + (["Zn"] if active_dose["Zn"] > 0 else [])
 
         # 3. Weather
         if lat is not None and lon is not None:
@@ -172,38 +230,24 @@ async def recommend(body: dict):
         calendar = []
         if fc["blocks"]:
             advisory = evaluate(fc["blocks"], {
-                "doseN": d["dose"]["N"] * area_ha, "doseP": d["dose"]["P"] * area_ha,
+                "doseN": active_dose["N"] * area_ha, "doseP": active_dose["P"] * area_ha,
                 "method": method, "phBand": d["phBand"], "soilTexture": soil_texture,
                 "waterlogged": waterlogged, "criticalStage": False,
             })
             if sowing_date:
                 pattern = split_patterns.get(crop["split"]) or split_patterns["cereal3"]
-                calendar = build_calendar(crop, pattern, sowing_date, d["dose"], fc["blocks"], {"method": method, "phBand": d["phBand"], "soilTexture": soil_texture})
+                calendar = build_calendar(crop, pattern, sowing_date, active_dose, fc["blocks"], {"method": method, "phBand": d["phBand"], "soilTexture": soil_texture})
 
         # 3b. What-if facts — deterministic, so the advisor never has to invent them
-        alloc_opts = {"sDeficient": d["sDeficient"], "phBand": d["phBand"], "areaHa": area_ha}
         priority = spending_priority(d["dose"], d["classes"], alloc_opts)
         alternatives = alternatives_for(d["dose"], alloc_opts)
-        budget_num = float(budget) if budget not in (None, "") else 0
-        budget_plan = budget_allocate(d["dose"], d["classes"], budget_num, alloc_opts) if budget_num > 0 else None
 
         # 4. Impact
         health = soil_health_score(soil_num)
-        traj = trajectory(soil_num, d["dose"], d["blanket"], crop, yield_target)
-        env = environment(d["dose"], d["blanket"], area_ha)
-        ratio = ratio_check(d["dose"], d["blanket"])
+        traj = trajectory(soil_num, active_dose, d["blanket"], crop, yield_target)
+        env = environment(active_dose, d["blanket"], area_ha)
+        ratio = ratio_check(active_dose, d["blanket"])
         inc = income(cmp, (advisory or {}).get("risk"), area_ha)
-
-        # Organic cost, if the farmer is substituting
-        organic_line = None
-        if organic_spec:
-            cost = round(organic_spec["source"]["pricePerTonne"] * organic_spec["tonnesPerHa"] * area_ha)
-            organic_line = {
-                "id": organic["id"], "name": organic_spec["source"]["name"],
-                "tonnesPerHa": organic_spec["tonnesPerHa"], "totalTonnes": organic_spec["tonnesPerHa"] * area_ha,
-                "cost": cost, "credit": d["organicCredit"],
-                "ocGain": round(organic_spec["source"]["ocPerTonne"] * organic_spec["tonnesPerHa"] * 1000) / 1000,
-            }
 
         recommendation = {
             "id": f"rec_{int(time.time() * 1000):x}",
@@ -218,14 +262,14 @@ async def recommend(body: dict):
                 {"tier": "B", "key": "tierBLabel", "params": {}, "label": "ICAR general recommendation — not zone-calibrated"}
             ),
             "soil": soil_num, "classes": d["classes"], "phBand": d["phBand"], "ecBand": d["ecBand"],
-            "dose": d["dose"],
+            "dose": active_dose, "fullDose": d["dose"],
             "dosePerField": {
-                "N": r1(d["dose"]["N"] * area_ha), "P": r1(d["dose"]["P"] * area_ha), "K": r1(d["dose"]["K"] * area_ha),
-                "S": r1(d["dose"]["S"] * area_ha), "Zn": r1(d["dose"]["Zn"] * area_ha),
+                "N": r1(active_dose["N"] * area_ha), "P": r1(active_dose["P"] * area_ha), "K": r1(active_dose["K"] * area_ha),
+                "S": r1(active_dose["S"] * area_ha), "Zn": r1(active_dose["Zn"] * area_ha),
             },
             "blanket": d["blanket"], "method_explain": d["method"], "zeroDoseReasons": d["zeroDoseReasons"],
             "warnings": d["warnings"], "amendments": d["amendments"],
-            "products": plan["items"], "priority": priority, "alternatives": alternatives, "budgetPlan": budget_plan,
+            "products": plan["items"], "priority": priority, "alternatives": alternatives, "budgetPlan": budget_plan, "budgetNotice": budget_notice,
             "blanketProducts": blanket_plan["items"], "comparison": cmp,
             "organic": organic_line,
             "weather": {"source": fc["source"], "note": fc.get("note"), "place": fc.get("place"), "blocks": fc["blocks"][:40]},
