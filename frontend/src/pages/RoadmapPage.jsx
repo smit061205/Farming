@@ -199,7 +199,7 @@ export default function RoadmapPage() {
   }, [token, activeFieldId])
 
   const costData = impact ? [
-    { name: 'Blanket Application', value: impact.cost.baseline_inr, fill: '#e7e3ca' },
+    { name: `Average ${activeCrop || 'Crop'} Approach`, value: impact.cost.baseline_inr, fill: '#e7e3ca' },
     { name: 'This Plan', value: impact.cost.recommended_inr, fill: '#173809' },
   ] : []
 
@@ -295,18 +295,18 @@ export default function RoadmapPage() {
                 </div>
               </div>
 
-              {/* ── Previous approach vs. this plan ── */}
+              {/* ── Average approach vs. this plan ── */}
               <div className="bg-white rounded-[2.5rem] p-8 md:p-10 border border-[#173809]/8 shadow-sm mb-8">
                 <div className="mb-2">
                   <span className="text-[#9f402d] font-headline font-bold tracking-widest text-xs uppercase mb-1 block">The Comparison</span>
-                  <h3 className="text-2xl font-headline font-bold text-[#173809]">Previous Approach vs. This Plan</h3>
+                  <h3 className="text-2xl font-headline font-bold text-[#173809]">Average {activeCrop || 'Crop'} Approach vs. This Plan</h3>
                   <p className="text-[#43493e] text-sm mt-2 max-w-2xl">
-                    What a blanket application without a soil test would have cost this field, against what following this plan actually gets you.
+                    What a typical blanket application without a soil test costs a {activeCrop || 'this crop'} field, against what following this plan actually gets you. Not your own history — the app has no record of that.
                   </p>
                 </div>
                 <div className="grid grid-cols-3 gap-4 pt-6 pb-2">
                   <span></span>
-                  <span className="text-center text-[10px] font-bold uppercase tracking-widest text-[#173809]/40">Previous Approach</span>
+                  <span className="text-center text-[10px] font-bold uppercase tracking-widest text-[#173809]/40">Average Approach</span>
                   <span className="text-center text-[10px] font-bold uppercase tracking-widest text-[#9f402d]">This Plan</span>
                 </div>
                 <div className="divide-y divide-[#173809]/8">
@@ -373,12 +373,12 @@ export default function RoadmapPage() {
               {/* ── Cost comparison ── */}
               <div className="bg-white rounded-[2.5rem] p-8 md:p-10 border border-[#173809]/8 shadow-sm">
                 <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
-                  <h3 className="text-xl font-bold text-[#173809]">Fertilizer Cost: Blanket vs. This Plan</h3>
+                  <h3 className="text-xl font-bold text-[#173809]">Fertilizer Cost: Average {activeCrop || 'Crop'} Approach vs. This Plan</h3>
                 </div>
                 <p className="text-sm text-[#43493e] mb-6">
                   {impact.cost.recommended_inr === 0
                     ? "This plan costs you nothing this season — your soil already meets or exceeds every target, so there's nothing worth buying."
-                    : `This plan costs ${inr(impact.cost.recommended_inr)} against ${inr(impact.cost.baseline_inr)} for a blanket application without a soil test.`}
+                    : `This plan costs ${inr(impact.cost.recommended_inr)} against ${inr(impact.cost.baseline_inr)} for the average blanket application on a ${activeCrop || 'this crop'} field without a soil test.`}
                 </p>
                 <div className="space-y-5">
                   {costData.map((entry) => {

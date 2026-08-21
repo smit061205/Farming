@@ -157,7 +157,7 @@ def compute_sustainability_impact(dose: dict, ph: float, n_ppm: float, p_ppm: fl
             "yield_kg_ha": {"before": crop_ref["yield_kg_ha"], "after": projected_yield_kg_ha},
             "nutrients": dose["nutrients"],
         },
-        "baseline_method": "Blanket full-target application without a soil test, plus a 25% typical safety margin.",
+        "baseline_method": "\"Average approach\" models a typical blanket application for this crop without a soil test — full crop target plus a 25% typical over-application margin, priced at the same real fertilizer rates — not this farmer's actual past spending, which the app has no record of.",
         "disclaimer": "Illustrative estimate from reference yield/price data, not a financial guarantee.",
     }
 
