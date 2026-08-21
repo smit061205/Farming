@@ -277,8 +277,10 @@ def _fallback_answer(messages: list, rec: dict, lang: str) -> str:
         parts = [f"{key}: {rec['method'][key]}" for key in ("N", "P", "K") if rec.get("method", {}).get(key)]
         return f"{template_explain(rec, lang)} {'. '.join(parts)}."
     if has("cost", "price", "rupee", "₹", "कीमत", "दाम", "ભાવ", "કિંમત"):
-        products_list = ", ".join(f"{p['name']['en']} {p['bags']} bag (₹{p['costTotal']})" for p in (rec.get("products") or []))
-        return f"{products_list}. Total ₹{(rec.get('comparison') or {}).get('planCost')}. Blanket dose would cost ₹{(rec.get('comparison') or {}).get('blanketCost')}."
+        # grounding's products are already flattened (name is a plain string,
+        # cost not costTotal) — this is the /chat shape, not the full /recommend one.
+        products_list = ", ".join(f"{p.get('name')} {p.get('bags')} bag (₹{p.get('cost')})" for p in (rec.get("products") or []))
+        return f"{products_list}. Total ₹{(rec.get('comparison') or {}).get('planCost')}. Blanket dose would cost ₹{(rec.get('comparison') or {}).get('blanketCost')}." if products_list else t["noinfo"]
     if has("when", "time", "rain", "weather", "कब", "बारिश", "ક્યારે", "વરસાદ"):
         w = ((rec.get("advisory") or {}).get("windows") or [None])[0]
         if w:
@@ -287,7 +289,7 @@ def _fallback_answer(messages: list, rec: dict, lang: str) -> str:
             return f"{prefix} {t['window'](when, ', '.join((w.get('reasons') or [])[:2]))}".strip()
         return t["noinfo"]
     if has("dap", "urea", "potash", "mop", "ssp", "खाद", "ખાતર"):
-        lst = ". ".join(f"{p['name']['en']}: {p['totalKg']} kg ({p['bags']} bag) — {p.get('whyKey', '')}" for p in (rec.get("products") or []))
+        lst = ". ".join(f"{p.get('name')}: {p.get('totalKg')} kg ({p.get('bags')} bag) — {p.get('why', '')}" for p in (rec.get("products") or []))
         return lst or t["noinfo"]
     if has("soil", "health", "मिट्टी", "જમીન"):
         sh = rec.get("soilHealth")
