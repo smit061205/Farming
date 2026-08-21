@@ -333,48 +333,19 @@ async def chat_route(body: dict):
         raise HTTPException(status_code=400, detail="recommendation required")
 
     try:
-        # Trim the payload the model sees — it only needs the decided numbers.
-        grounding = {
-            "crop": recommendation.get("cropName"),
-            "areaHa": recommendation.get("areaHa"),
-            "location": recommendation.get("place") or (recommendation.get("zoneName") or {}).get(lang) or (recommendation.get("zoneName") or {}).get("en"),
-            "tier": recommendation.get("tier"),
-            "confidence": (recommendation.get("confidence") or {}).get("label"),
-            "soil": recommendation.get("soil"),
-            "classes": recommendation.get("classes"),
-            "dose": recommendation.get("dose"),
-            "dosePerField": recommendation.get("dosePerField"),
-            "blanket": recommendation.get("blanket"),
-            "zeroDoseReasons": recommendation.get("zeroDoseReasons"),
-            "method": recommendation.get("method_explain"),
-            "products": [
-                {"name": (p.get("name") or {}).get("en"), "totalKg": p.get("totalKg"), "bags": p.get("bags"), "cost": p.get("costTotal"), "why": p.get("whyKey")}
-                for p in (recommendation.get("products") or [])
-            ],
-            "comparison": recommendation.get("comparison"),
-            "phBand": recommendation.get("phBand"),
-            "ecBand": recommendation.get("ecBand"),
-            "amendments": recommendation.get("amendments"),
-            # Which nutrient to fund first when money is short, and what each step costs
-            "spendingPriority": recommendation.get("priority"),
-            # Every product that could supply each nutrient, already costed
-            "alternatives": recommendation.get("alternatives"),
-            "budgetPlan": recommendation.get("budgetPlan"),
-            "nutrientBalance": recommendation.get("ratio"),
-            "advisory": (lambda a: a and {
-                "verdict": a.get("verdict"),
-                "reasons": [r.get("message") for r in (a.get("rulesFired") or [])],
-                "bestWindows": [{"when": w.get("t"), "why": w.get("reasons")} for w in (a.get("windows") or [])],
-                "risk": a.get("risk"),
-            })(recommendation.get("advisory")),
-            "calendar": [
-                {"stage": (c.get("stage") or {}).get("en"), "daysAfterSowing": c.get("daysAfterSowing"), "amounts": c.get("amounts")}
-                for c in (recommendation.get("calendar") or [])
-            ],
-            "soilHealth": (lambda h: h and {"score": h.get("score"), "grade": h.get("grade")})(recommendation.get("soilHealth")),
-            "environment": recommendation.get("environment"),
-            "income": recommendation.get("income"),
-            "warnings": [w.get("key") for w in (recommendation.get("warnings") or [])],
+        # The advisor is intentionally grounded on the *entire* finished
+        # recommendation, not a hand-picked subset. The old compact shape
+        # omitted data displayed in Plan, Timing, Season, and Soil (including
+        # the exact forecast windows), which made valid questions look
+        # unanswerable. The engine has already calculated every field here;
+        # the model may explain them but may not invent replacements.
+        grounding = dict(recommendation)
+        grounding["chatContext"] = {
+            "requestedLanguage": lang,
+            "location": recommendation.get("place")
+            or (recommendation.get("zoneName") or {}).get(lang)
+            or (recommendation.get("zoneName") or {}).get("en"),
+            "rule": "Use every field in this recommendation when relevant. Never invent a number or a date.",
         }
 
         # If the farmer names an amount of money, work out what it actually buys rather

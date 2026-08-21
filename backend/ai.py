@@ -51,9 +51,16 @@ Refusing a question you can answer from the JSON is a failure, not caution. In p
 - "What if I only have Rs X?" -> spendingPriority gives the order to buy in and the cost of
   each step; budgetPlan, when present, gives the answer outright. Name what the money covers
   and what it does not.
-- "When should I apply?" -> advisory.bestWindows and the calendar.
+- "When should I apply?" -> advisory.windows and the calendar. Give the first
+  window's exact day and time when it exists, plus any relevant timing condition.
 - "Is this good for my soil?" -> soilHealth, nutrientBalance, environment.
 - "Where is this for?" / "which location?" -> the location field names the place.
+
+The JSON also contains the full live weather blocks, crop-season calendar, organic
+input, amendments, product list, cost comparison, budget notice, nutrient ratio,
+soil-health parts, environmental impact, income estimate, warnings, and crop
+alternatives. Use those fields when the farmer asks about them. Do not claim data
+is absent when a relevant field is present.
 
 If the JSON genuinely does not contain what was asked, say so plainly in one sentence and
 suggest the nearest Krishi Vigyan Kendra. Do not pad it out.
@@ -312,29 +319,59 @@ def _fallback_answer(messages: list, rec: dict, lang: str) -> str:
     def has(*words):
         return any(w in q for w in words)
 
+    def label(value):
+        """Read a localized engine label from either full or compact grounding."""
+        if isinstance(value, dict):
+            return value.get(lang) or value.get("en") or next((v for v in value.values() if isinstance(v, str)), "")
+        return value or ""
+
+    def product_name(product):
+        return label(product.get("name")) or product.get("id") or "fertilizer"
+
+    def product_cost(product):
+        return product.get("costTotal", product.get("cost"))
+
+    def timing_window():
+        advisory = rec.get("advisory") or {}
+        # Full recommendation: windows: [{t, reasons}]. Older compact
+        # grounding: bestWindows: [{when, why}]. Support both so an AI quota
+        # outage never turns a valid timing question into "no information".
+        full = (advisory.get("windows") or [None])[0]
+        if full:
+            return full.get("t"), full.get("reasons") or []
+        compact = (advisory.get("bestWindows") or [None])[0]
+        if compact:
+            return compact.get("when"), compact.get("why") or []
+        return None, []
+
     if has("why", "क्यों", "કેમ", "reason"):
-        parts = [f"{key}: {rec['method'][key]}" for key in ("N", "P", "K") if rec.get("method", {}).get(key)]
+        method = rec.get("method_explain") or rec.get("method") or {}
+        parts = [f"{key}: {method[key]}" for key in ("N", "P", "K") if isinstance(method, dict) and method.get(key)]
         return f"{template_explain(rec, lang)} {'. '.join(parts)}."
     if has("cost", "price", "rupee", "₹", "कीमत", "दाम", "ભાવ", "કિંમત"):
-        # grounding's products are already flattened (name is a plain string,
-        # cost not costTotal) — this is the /chat shape, not the full /recommend one.
-        products_list = ", ".join(f"{p.get('name')} {p.get('bags')} bag (₹{p.get('cost')})" for p in (rec.get("products") or []))
+        products_list = ", ".join(
+            f"{product_name(p)} {p.get('bags')} bag (₹{product_cost(p)})"
+            for p in (rec.get("products") or [])
+        )
         return f"{products_list}. Total ₹{(rec.get('comparison') or {}).get('planCost')}. Blanket dose would cost ₹{(rec.get('comparison') or {}).get('blanketCost')}." if products_list else t["noinfo"]
     if has("when", "time", "rain", "weather", "कब", "बारिश", "ક્યારે", "વરસાદ"):
-        w = ((rec.get("advisory") or {}).get("windows") or [None])[0]
-        if w:
-            when = _format_when(w["t"])
-            prefix = t["wait"]("") if rec["advisory"]["verdict"] == "WAIT" else ""
-            return f"{prefix} {t['window'](when, ', '.join((w.get('reasons') or [])[:2]))}".strip()
+        window_at, reasons = timing_window()
+        if window_at:
+            when = window_at if isinstance(window_at, str) else _format_when(window_at)
+            prefix = t["wait"]("") if (rec.get("advisory") or {}).get("verdict") == "WAIT" else ""
+            return f"{prefix} {t['window'](when, ', '.join(reasons[:2]))}".strip()
         return t["noinfo"]
     if has("dap", "urea", "potash", "mop", "ssp", "खाद", "ખાતર"):
-        lst = ". ".join(f"{p.get('name')}: {p.get('totalKg')} kg ({p.get('bags')} bag) — {p.get('why', '')}" for p in (rec.get("products") or []))
+        lst = ". ".join(
+            f"{product_name(p)}: {p.get('totalKg')} kg ({p.get('bags')} bag) — {p.get('why', p.get('whyKey', ''))}"
+            for p in (rec.get("products") or [])
+        )
         return lst or t["noinfo"]
     if has("soil", "health", "मिट्टी", "જમીન"):
         sh = rec.get("soilHealth")
         return f"Your soil health score is {sh['score']} out of 100 — {sh['grade']}." if sh else t["noinfo"]
     if has("location", "where", "place", "जगह", "स्थान", "कहाँ", "ક્યાં", "જગ્યા", "વિસ્તાર"):
-        loc = rec.get("location")
+        loc = rec.get("location") or rec.get("place") or label(rec.get("zoneName"))
         return t["location"](loc) if loc else t["noinfo"]
     # A short greeting gets a nudge to ask something, not the full plan again
     # — repeating that verbatim for every unmatched message is what reads as
