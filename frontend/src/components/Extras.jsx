@@ -74,7 +74,7 @@ export function Methodology({ meta, t }) {
       >
         <Card className="p-5 space-y-5">
           <Block title="1 · The dose">
-            <p>For crops with a calibrated equation for your zone (Tier A) we use the STCR targeted-yield formula:</p>
+            <p>For crops with a calibrated equation for your location (Tier A) we use the STCR targeted-yield formula:</p>
             <Code>FX = a × TargetYield − b × SoilTestValue − OrganicCredit</Code>
             <p>For every other crop (Tier B) we use the ICAR general recommendation, corrected by your soil-test class:</p>
             <Code>FX = BaseDose × classFactor    (Low {th.classFactor.Low} · Medium {th.classFactor.Medium} · High {th.classFactor.High})</Code>

@@ -11,6 +11,7 @@ only have a Gemini key configured — dropped rather than left as dead code
 for keys we don't have).
 """
 import os
+import re as _re
 from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
 from typing import Optional
@@ -51,6 +52,7 @@ Refusing a question you can answer from the JSON is a failure, not caution. In p
   and what it does not.
 - "When should I apply?" -> advisory.bestWindows and the calendar.
 - "Is this good for my soil?" -> soilHealth, nutrientBalance, environment.
+- "Where is this for?" / "which location?" -> the location field names the place.
 
 If the JSON genuinely does not contain what was asked, say so plainly in one sentence and
 suggest the nearest Krishi Vigyan Kendra. Do not pad it out.
@@ -79,6 +81,7 @@ L = {
         "risk": lambda rs, pct: f"If you apply at the wrong time, about {pct}% of the nitrogen can be lost. That is roughly ₹{rs} of fertilizer.",
         "ask": "Ask me anything about this plan.",
         "noinfo": "I do not have that information in this recommendation. Please ask your nearest Krishi Vigyan Kendra.",
+        "location": lambda loc: f"This plan is for {loc}.",
     },
     "hi": {
         "intro": lambda crop, area: f"{area} हेक्टेयर में {crop} के लिए आपकी खाद योजना यह है।",
@@ -93,6 +96,7 @@ L = {
         "risk": lambda rs, pct: f"गलत समय पर डालने से लगभग {pct}% नाइट्रोजन बर्बाद हो सकती है, यानी करीब ₹{rs} की खाद।",
         "ask": "इस योजना के बारे में कुछ भी पूछें।",
         "noinfo": "यह जानकारी मेरे पास नहीं है। कृपया अपने नज़दीकी कृषि विज्ञान केंद्र से पूछें।",
+        "location": lambda loc: f"यह योजना {loc} के लिए है।",
     },
     "gu": {
         "intro": lambda crop, area: f"{area} હેક્ટરમાં {crop} માટે તમારી ખાતર યોજના આ રહી.",
@@ -107,6 +111,7 @@ L = {
         "risk": lambda rs, pct: f"ખોટા સમયે નાખવાથી આશરે {pct}% નાઇટ્રોજન વેડફાઈ શકે, એટલે કે આશરે ₹{rs} નું ખાતર.",
         "ask": "આ યોજના વિશે કંઈ પણ પૂછો.",
         "noinfo": "આ માહિતી મારી પાસે નથી. કૃપા કરી નજીકના કૃષિ વિજ્ઞાન કેન્દ્રનો સંપર્ક કરો.",
+        "location": lambda loc: f"આ યોજના {loc} માટે છે.",
     },
 }
 
@@ -287,4 +292,12 @@ def _fallback_answer(messages: list, rec: dict, lang: str) -> str:
     if has("soil", "health", "मिट्टी", "જમીન"):
         sh = rec.get("soilHealth")
         return f"Your soil health score is {sh['score']} out of 100 — {sh['grade']}." if sh else t["noinfo"]
+    if has("location", "where", "place", "जगह", "स्थान", "कहाँ", "ક્યાં", "જગ્યા", "વિસ્તાર"):
+        loc = rec.get("location")
+        return t["location"](loc) if loc else t["noinfo"]
+    # A short greeting gets a nudge to ask something, not the full plan again
+    # — repeating that verbatim for every unmatched message is what reads as
+    # broken, not helpful. \b avoids "hi" matching inside e.g. "which".
+    if len(q.split()) <= 6 and _re.search(r"\b(hi|hello|hey|yo|namaste|नमस्ते|હાય|કેમ છો)\b", q):
+        return t["ask"]
     return template_explain(rec, lang)

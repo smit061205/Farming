@@ -230,7 +230,7 @@ export default function App() {
                   {rec.cropNames?.[lang] || rec.cropName}
                 </h1>
                 <p className="text-sm text-leaf-500 mt-1.5">
-                  {rec.areaHa} {t('hectare')} · {rec.zoneName?.[lang] || rec.zoneName?.en} · {renderEngine({ ...rec.confidence, params: { ...rec.confidence.params, zone: rec.zoneName?.[lang] || rec.zoneName?.en } }, lang)}
+                  {rec.areaHa} {t('hectare')} · {rec.zoneName?.[lang] || rec.zoneName?.en}
                 </p>
               </div>
               <div className="flex gap-2">

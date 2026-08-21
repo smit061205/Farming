@@ -10,12 +10,20 @@ const ZONE_DEFAULTS = {
   saurashtra: { ph: 8.1, oc: 0.38, n: 195, p: 15, k: 285, ec: 0.6, s: 8, zn: 0.45 },
 };
 
+// 1 hectare = 2.47105 acres — the internationally standard conversion, not
+// a regional unit like bigha/guntha whose size varies by state and would
+// need a state to convert correctly.
+const HA_PER_ACRE = 0.404686;
+
 export default function Wizard({ meta, t, lang, onSubmit, busy, error }) {
   const [step, setStep] = useState(1);
   const [usedDefaults, setUsedDefaults] = useState(false);
+  const [areaUnit, setAreaUnit] = useState('ha');
+  const [areaText, setAreaText] = useState('2');
 
   const [form, setForm] = useState({
     areaHa: 2,
+    place: '',
     lat: 23.2156, lon: 72.6369,
     irrigation: 'canal',
     ph: '', oc: '', n: '', p: '', k: '', ec: '', s: '', zn: '',
@@ -60,6 +68,26 @@ export default function Wizard({ meta, t, lang, onSubmit, busy, error }) {
     setUsedDefaults(true);
   };
 
+  // areaText mirrors exactly what's typed, in whichever unit is currently
+  // selected — converting through hectares on every keystroke would fight
+  // the cursor while typing decimals. form.areaHa (always hectares) only
+  // gets updated as a side effect, and areaText is only ever re-derived
+  // from it deliberately, when the unit itself changes.
+  const onAreaTextChange = (v) => {
+    setAreaText(v);
+    const num = parseFloat(v);
+    if (!isNaN(num)) {
+      set('areaHa', areaUnit === 'acre' ? num * HA_PER_ACRE : num);
+    }
+  };
+
+  const onAreaUnitChange = (unit) => {
+    setAreaUnit(unit);
+    const ha = form.areaHa || 0;
+    const display = unit === 'acre' ? ha / HA_PER_ACRE : ha;
+    setAreaText(display ? String(Math.round(display * 100) / 100) : '');
+  };
+
   const canNext =
     step === 1 ? form.areaHa > 0
     : step === 2 ? form.ph !== '' && form.n !== '' && form.p !== '' && form.k !== ''
@@ -78,6 +106,7 @@ export default function Wizard({ meta, t, lang, onSubmit, busy, error }) {
       sowingDate: form.sowingDate,
       alreadySown: form.alreadySown,
       lat: form.lat, lon: form.lon,
+      place: form.place || undefined,
       organic: form.organicId && form.organicTonnes
         ? { id: form.organicId, tonnesPerHa: Number(form.organicTonnes) } : null,
       waterlogged: form.waterlogged,
@@ -121,15 +150,22 @@ export default function Wizard({ meta, t, lang, onSubmit, busy, error }) {
               lat={form.lat}
               lon={form.lon}
               onChange={(lat, lon) => setForm((f) => ({ ...f, lat, lon }))}
+              onPlaceChange={(place) => set('place', place)}
               zones={meta.zones}
               t={t}
               lang={lang}
             />
 
             <div className="grid grid-cols-2 gap-4">
-              <Field label={t('area')} hint={t('hectare')}>
-                <input type="number" step="0.1" min="0.1" className="field tabular-nums"
-                  value={form.areaHa} onChange={(e) => set('areaHa', e.target.value)} />
+              <Field label={t('area')}>
+                <div className="flex gap-2">
+                  <input type="number" step="0.01" min="0.01" className="field tabular-nums flex-1"
+                    value={areaText} onChange={(e) => onAreaTextChange(e.target.value)} />
+                  <select className="field w-[6.5rem]" value={areaUnit} onChange={(e) => onAreaUnitChange(e.target.value)}>
+                    <option value="ha">{t('unitHectare')}</option>
+                    <option value="acre">{t('unitAcre')}</option>
+                  </select>
+                </div>
               </Field>
               <Field label={t('irrigation')}>
                 <select className="field" value={form.irrigation} onChange={(e) => set('irrigation', e.target.value)}>

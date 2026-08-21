@@ -113,6 +113,7 @@ async def recommend(body: dict):
         sowing_date = body.get("sowingDate")
         lat = body.get("lat")
         lon = body.get("lon")
+        place = (body.get("place") or "").strip() or None
         organic = body.get("organic")
         waterlogged = body.get("waterlogged") or False
         lang = body.get("lang") or "en"
@@ -123,7 +124,9 @@ async def recommend(body: dict):
             raise HTTPException(status_code=400, detail=f"Unknown crop: {crop_id}")
 
         zone_info = get_zone(zone)
-        zone_name = zone_info["name"] if zone_info else GENERIC_ZONE_NAME
+        zone_name = zone_info["name"] if zone_info else (
+            {"en": place, "hi": place, "gu": place} if place else GENERIC_ZONE_NAME
+        )
         soil_texture = zone_info["soilTexture"] if zone_info else "loamy"
         yield_target = (float(target_yield_in) if target_yield_in not in (None, "") else None) or crop["target"]["default"]
 
@@ -200,7 +203,7 @@ async def recommend(body: dict):
             "id": f"rec_{int(time.time() * 1000):x}",
             "createdAt": int(time.time() * 1000),
             "cropId": crop["id"], "cropName": crop["name"].get(lang) or crop["name"]["en"], "cropNames": crop["name"],
-            "group": crop["group"], "zone": zone, "zoneName": zone_name, "soilTexture": soil_texture,
+            "group": crop["group"], "zone": zone, "zoneName": zone_name, "place": place, "soilTexture": soil_texture,
             "areaHa": area_ha, "targetYield": yield_target, "method": method, "irrigation": irrigation, "sowingDate": sowing_date,
             "tier": d["tier"],
             "confidence": (
@@ -261,6 +264,7 @@ async def chat_route(body: dict):
     grounding = {
         "crop": recommendation.get("cropName"),
         "areaHa": recommendation.get("areaHa"),
+        "location": recommendation.get("place") or (recommendation.get("zoneName") or {}).get(lang) or (recommendation.get("zoneName") or {}).get("en"),
         "tier": recommendation.get("tier"),
         "confidence": (recommendation.get("confidence") or {}).get("label"),
         "soil": recommendation.get("soil"),

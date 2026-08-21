@@ -21,7 +21,7 @@ const PIN = L.divIcon({
  * who doesn't know which of three broad zones they're in no longer has to
  * guess.
  */
-export default function LocationPicker({ lat, lon, onChange, zones, t, lang }) {
+export default function LocationPicker({ lat, lon, onChange, onPlaceChange, zones, t, lang }) {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
   const [searching, setSearching] = useState(false);
@@ -31,6 +31,9 @@ export default function LocationPicker({ lat, lon, onChange, zones, t, lang }) {
   const mapRef = useRef(null);
   const mapObj = useRef(null);
   const markerObj = useRef(null);
+  // A search pick already knows its place name — skip the one reverse-geocode
+  // round trip that would otherwise fire right after it changes lat/lon.
+  const skipNextReverseGeocode = useRef(false);
 
   // ---- map init (once) ----
   useEffect(() => {
@@ -80,9 +83,36 @@ export default function LocationPicker({ lat, lon, onChange, zones, t, lang }) {
     return () => clearTimeout(handle);
   }, [query]);
 
+  // ---- reverse-geocode whenever the pin moves by click/drag/GPS, so the
+  // recommendation can be labelled with a real place instead of a fallback
+  // like "Your area" ----
+  useEffect(() => {
+    if (skipNextReverseGeocode.current) { skipNextReverseGeocode.current = false; return; }
+    const handle = setTimeout(async () => {
+      try {
+        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=10&addressdetails=1`);
+        const data = await res.json();
+        const a = data.address || {};
+        const place = [a.city || a.town || a.village || a.county || a.state_district, a.state].filter(Boolean).join(', ') || data.display_name;
+        if (place) {
+          setQuery(place);
+          onPlaceChange?.(place);
+        }
+      } catch {
+        // No place label this time — the recommendation still works, just
+        // without a named location to show.
+      }
+    }, 500);
+    return () => clearTimeout(handle);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lat, lon]);
+
   const pick = (r) => {
+    const place = `${r.name}${r.admin1 ? `, ${r.admin1}` : ''}`;
+    skipNextReverseGeocode.current = true;
     onChange(Number(r.latitude.toFixed(4)), Number(r.longitude.toFixed(4)));
-    setQuery(`${r.name}${r.admin1 ? `, ${r.admin1}` : ''}`);
+    onPlaceChange?.(place);
+    setQuery(place);
     setResults([]);
     setOpen(false);
   };
@@ -93,7 +123,6 @@ export default function LocationPicker({ lat, lon, onChange, zones, t, lang }) {
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         onChange(Number(pos.coords.latitude.toFixed(4)), Number(pos.coords.longitude.toFixed(4)));
-        setQuery('');
         setLocating(false);
       },
       () => setLocating(false),
