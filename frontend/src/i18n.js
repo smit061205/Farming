@@ -76,6 +76,8 @@ const S = {
     locationSearchPlaceholder: 'Type a village, town or district…',
     searching: 'Searching…',
     nearestZoneNote: 'nearest zone match, used for your dose calculation',
+    outOfCoverageChip: 'Outside our coverage',
+    outOfCoverageNote: "This is far from any Gujarat zone we cover — showing {zone} as the closest, but doses won't be well calibrated here.",
     irrigation: 'Irrigation',
     irr: { rainfed: 'Rainfed', canal: 'Canal', drip: 'Drip', sprinkler: 'Sprinkler', flood: 'Flood' },
 
@@ -261,6 +263,8 @@ const S = {
     locationSearchPlaceholder: 'गाँव, कस्बा या ज़िला टाइप करें…',
     searching: 'खोजा जा रहा है…',
     nearestZoneNote: 'निकटतम क्षेत्र, आपकी खुराक गणना में उपयोग होता है',
+    outOfCoverageChip: 'हमारे क्षेत्र से बाहर',
+    outOfCoverageNote: 'यह हमारे किसी भी गुजरात क्षेत्र से काफी दूर है — निकटतम के रूप में {zone} दिखाया जा रहा है, लेकिन यहाँ खुराक सही ढंग से मेल नहीं खाएगी।',
     irrigation: 'सिंचाई',
     irr: { rainfed: 'वर्षा आधारित', canal: 'नहर', drip: 'ड्रिप', sprinkler: 'स्प्रिंकलर', flood: 'बाढ़' },
 
@@ -394,6 +398,8 @@ const S = {
     locationSearchPlaceholder: 'ગામ, નગર અથવા જિલ્લો ટાઇપ કરો…',
     searching: 'શોધી રહ્યા છીએ…',
     nearestZoneNote: 'નજીકનો વિસ્તાર, તમારી માત્રા ગણતરીમાં વપરાય છે',
+    outOfCoverageChip: 'અમારા વિસ્તારની બહાર',
+    outOfCoverageNote: 'આ અમારા કોઈપણ ગુજરાત વિસ્તારથી ઘણું દૂર છે — સૌથી નજીકના તરીકે {zone} બતાવ્યું છે, પણ અહીં માત્રા બરાબર બંધબેસશે નહીં.',
     irrigation: 'પિયત',
     irr: { rainfed: 'વરસાદ આધારિત', canal: 'નહેર', drip: 'ટપક', sprinkler: 'ફુવારા', flood: 'રેલા' },
 

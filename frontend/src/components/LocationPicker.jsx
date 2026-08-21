@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { nearestZone } from '../geo.js';
+import { nearestZone, MAX_ZONE_COVERAGE_KM } from '../geo.js';
 
 // Custom pin — avoids Leaflet's default marker PNGs, which need manual
 // asset-path fixes to survive a Vite bundle.
@@ -21,7 +21,7 @@ const PIN = L.divIcon({
  * who doesn't know which of three broad zones they're in no longer has to
  * guess.
  */
-export default function LocationPicker({ lat, lon, onChange, zones, t }) {
+export default function LocationPicker({ lat, lon, onChange, zones, t, lang }) {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
   const [searching, setSearching] = useState(false);
@@ -102,6 +102,7 @@ export default function LocationPicker({ lat, lon, onChange, zones, t }) {
   };
 
   const match = nearestZone(lat, lon, zones);
+  const outOfCoverage = match && match.distanceKm > MAX_ZONE_COVERAGE_KM;
 
   return (
     <div>
@@ -125,7 +126,7 @@ export default function LocationPicker({ lat, lon, onChange, zones, t }) {
         </div>
 
         {open && (searching || results.length > 0) && (
-          <div className="absolute z-[1000] left-0 right-0 mt-1 bg-white border border-leaf-300 shadow-lift max-h-64 overflow-y-auto">
+          <div className="absolute z-[2000] left-0 right-0 mt-1 bg-white border border-leaf-300 shadow-lift max-h-64 overflow-y-auto">
             {searching && <div className="px-4 py-3 text-sm text-leaf-500">{t('searching')}</div>}
             {!searching && results.map((r, i) => (
               <button
@@ -146,12 +147,23 @@ export default function LocationPicker({ lat, lon, onChange, zones, t }) {
 
       <p className="hint">{t('locationHint')}</p>
 
-      {match && (
+      {match && !outOfCoverage && (
         <div className="mt-2 flex items-center gap-2 text-xs">
           <span className="chip bg-sprout text-leaf-700">
-            {match.zone.name.en}
+            {match.zone.name[lang] || match.zone.name.en}
           </span>
           <span className="text-leaf-500">{t('nearestZoneNote')}</span>
+        </div>
+      )}
+
+      {match && outOfCoverage && (
+        <div className="mt-2 flex items-center gap-2 text-xs">
+          <span className="chip bg-amber-100 text-amber-800 border border-amber-300">
+            {t('outOfCoverageChip')}
+          </span>
+          <span className="text-leaf-500">
+            {t('outOfCoverageNote').replace('{zone}', match.zone.name[lang] || match.zone.name.en)}
+          </span>
         </div>
       )}
     </div>

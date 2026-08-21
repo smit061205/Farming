@@ -12,6 +12,14 @@ export function haversineKm(lat1, lon1, lat2, lon2) {
   return 2 * R_KM * Math.asin(Math.sqrt(a));
 }
 
+// The dosing engine only has calibrated data for Gujarat's 3 zones. A point
+// this far from every centroid is outside the state, not just far from its
+// zone's center — so "nearest zone" stops being a reasonable stand-in.
+// 300km covers the largest real gap between a zone's edge and its own
+// centroid (the zones themselves span ~150-380km apart) while still catching
+// clearly out-of-state picks (e.g. another state, few hundred+ km away).
+export const MAX_ZONE_COVERAGE_KM = 300;
+
 /** Nearest zone to a point, by straight-line distance to each zone's centroid.
  * A coarse 3-way regional split — matches how granular the zone system
  * already is, not meant as a precise boundary lookup. */

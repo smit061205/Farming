@@ -119,6 +119,7 @@ export default function Wizard({ meta, t, lang, onSubmit, busy, error }) {
               onChange={(lat, lon) => setForm((f) => ({ ...f, lat, lon }))}
               zones={meta.zones}
               t={t}
+              lang={lang}
             />
 
             <div className="grid grid-cols-2 gap-4">
