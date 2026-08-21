@@ -6,9 +6,11 @@ and may only explain it in the farmer's language. With no API key
 configured the template explainer below covers every branch, so the app is
 fully demoable without any AI provider.
 
-Provider: Gemini only (the reference also supports Anthropic/OpenAI, but we
-only have a Gemini key configured — dropped rather than left as dead code
-for keys we don't have).
+Provider: Groq only. Gemini text chat was dropped — the project is on a
+monthly spend cap that has already been exceeded for this billing cycle,
+so it added latency on every failed Groq call without ever being able to
+answer. (Gemini's vision model is still used separately in extract.py for
+reading soil-card photos — that's a different feature and unaffected.)
 """
 import os
 import re as _re
@@ -16,7 +18,6 @@ from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
 from typing import Optional
 
-from gemini_client import gemini_generate, gemini_key
 from groq_client import groq_generate, groq_available
 
 _IST = ZoneInfo("Asia/Kolkata")
@@ -214,8 +215,6 @@ def no_info(lang: str) -> str:
 def ai_status() -> dict:
     if groq_available():
         return {"enabled": True, "provider": "groq", "mode": "llm"}
-    if gemini_key():
-        return {"enabled": True, "provider": "gemini", "mode": "llm"}
     return {"enabled": False, "provider": "template", "mode": "rule-based fallback"}
 
 
@@ -224,7 +223,7 @@ _LANG_TAG = {"en": "(Reply in English.)", "hi": "(उत्तर हिन्�
 
 
 async def chat(messages: list, recommendation: dict, lang: str = "en") -> dict:
-    if not groq_available() and not gemini_key():
+    if not groq_available():
         return {"text": _fallback_answer(messages, recommendation, lang), "provider": "template"}
 
     lang_name = _LANG_NAME.get(lang, "English")
@@ -243,25 +242,12 @@ async def chat(messages: list, recommendation: dict, lang: str = "en") -> dict:
         tagged[-1] = {**tagged[-1], "content": f"{tagged[-1]['content']}\n\n{tag}"}
 
     system_prompt = f"{SYSTEM}\n\n{context}"
-    last_reason = None
 
-    # Groq first — it's been the reliable provider tonight (Gemini is on a
-    # monthly spend cap that won't clear on retry). Gemini is a genuine
-    # fallback, not dead code, in case Groq's daily quota is the one that's
-    # out instead.
-    if groq_available():
-        out = await groq_generate(system=system_prompt, messages=tagged, max_tokens=2000, temperature=0.4)
-        if out["ok"]:
-            return {"text": out["text"], "provider": "groq", "model": out.get("model")}
-        last_reason = out.get("reason")
+    out = await groq_generate(system=system_prompt, messages=tagged, max_tokens=2000, temperature=0.4)
+    if out["ok"]:
+        return {"text": out["text"], "provider": "groq", "model": out.get("model")}
 
-    if gemini_key():
-        out = await gemini_generate(system=system_prompt, messages=tagged, max_tokens=2000, temperature=0.4)
-        if out["ok"]:
-            return {"text": out["text"], "provider": "gemini", "model": out.get("model")}
-        last_reason = out.get("reason")
-
-    return {"text": _fallback_answer(messages, recommendation, lang), "provider": "template", "degraded": last_reason}
+    return {"text": _fallback_answer(messages, recommendation, lang), "provider": "template", "degraded": out.get("reason")}
 
 
 # --------------------------------------------- keyword fallback answering
