@@ -15,6 +15,7 @@ import ContactPage       from './pages/ContactPage'
 import ProfilePage       from './pages/ProfilePage'
 import OnboardingPage    from './pages/OnboardingPage'
 import ConsultPage       from './pages/ConsultPage'
+import MethodologyPage   from './pages/MethodologyPage'
 import { AuthProvider, useAuth }  from './context/AuthContext'
 import ProtectedRoute    from './components/ProtectedRoute'
 
@@ -132,6 +133,7 @@ function AnimatedRoutes() {
           <Route path="/privacy"       element={<PrivacyPage />} />
           <Route path="/terms"         element={<TermsPage />} />
           <Route path="/roadmap" element={<RoadmapPage />} />
+          <Route path="/how-it-works" element={<MethodologyPage />} />
           <Route path="/sustainability" element={<Navigate to="/roadmap" replace />} />
           <Route path="/contact"       element={<ContactPage />} />
 

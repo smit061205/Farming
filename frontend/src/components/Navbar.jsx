@@ -1,13 +1,14 @@
 import { useState, useRef, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { t as translate, SUPPORTED_LANGS } from "../i18n";
 
 const NAV_LINKS = [
-  { label: "Dashboard", path: "/dashboard" },
-  { label: "Soil Health", path: "/soil-health" },
-  { label: "Fertilizers", path: "/fertilizer-hub" },
-  { label: "Roadmap", path: "/roadmap" },
-  { label: "Consult", path: "/consult" },
+  { key: "nav.dashboard", path: "/dashboard" },
+  { key: "nav.soilHealth", path: "/soil-health" },
+  { key: "nav.fertilizers", path: "/fertilizer-hub" },
+  { key: "nav.roadmap", path: "/roadmap" },
+  { key: "nav.consult", path: "/consult" },
 ];
 
 export default function Navbar() {
@@ -16,6 +17,14 @@ export default function Navbar() {
   const [showMenu, setShowMenu] = useState(false);
   const [showMobileNav, setShowMobileNav] = useState(false);
   const menuRef = useRef(null);
+
+  // Real curated translations for this nav chrome — independent of Google
+  // Translate (which deliberately never touches this component, see the
+  // `notranslate` classes below). Tracks whichever language the farmer picks
+  // from the same Select Language dropdown, kept in sync with Google
+  // Translate's own selector so there's only one control to reason about.
+  const [uiLang, setUiLang] = useState(() => sessionStorage.getItem('agrisense_ui_lang') || 'en')
+  const t = (key) => translate(key, uiLang)
 
   // Close dropdown on click outside
   useEffect(() => {
@@ -39,6 +48,13 @@ export default function Navbar() {
     const handleTranslateChange = (e) => {
       if (e.target && e.target.classList.contains("goog-te-combo")) {
         sessionStorage.setItem('user_changed_language', '1')
+        // Only nav chrome has real curated translations (see i18n.js) — any
+        // other Google Translate language just falls back to English here,
+        // while Google's own script still translates the rest of the page.
+        const picked = e.target.value
+        const nextUiLang = SUPPORTED_LANGS.includes(picked) ? picked : 'en'
+        sessionStorage.setItem('agrisense_ui_lang', nextUiLang)
+        setUiLang(nextUiLang)
       }
     };
 
@@ -84,7 +100,7 @@ export default function Navbar() {
           </Link>
         </div>
         <div className="hidden md:flex gap-12 items-center">
-          {NAV_LINKS.map(({ label, path }) => (
+          {NAV_LINKS.map(({ key, path }) => (
             <Link
               key={path}
               to={path}
@@ -94,7 +110,7 @@ export default function Navbar() {
                   : "text-[#173809]/60 hover:text-[#9f402d]"
               }`}
             >
-              {label}
+              {t(key)}
             </Link>
           ))}
         </div>
@@ -127,7 +143,7 @@ export default function Navbar() {
                 <div className="absolute right-0 mt-3 w-56 bg-white rounded-2xl shadow-2xl overflow-hidden py-3 border border-[#173809]/5 animate-in fade-in slide-in-from-top-2 duration-200">
                   <div className="px-6 py-3 border-b border-[#173809]/5 mb-2">
                     <p className="text-xs uppercase tracking-widest text-[#43493e] font-bold">
-                      Signed in as
+                      {t('nav.signedInAs')}
                     </p>
                     <p className="text-[#173809] font-headline font-bold mt-1 truncate">
                       {user ? user.email : "Loading..."}
@@ -142,7 +158,7 @@ export default function Navbar() {
                     <span className="material-symbols-outlined text-[20px]">
                       manage_accounts
                     </span>
-                    Manage Profile
+                    {t('nav.manageProfile')}
                   </Link>
 
                   <Link
@@ -153,7 +169,7 @@ export default function Navbar() {
                     <span className="material-symbols-outlined text-[20px]">
                       support_agent
                     </span>
-                    Field Support
+                    {t('nav.fieldSupport')}
                   </Link>
 
                   <button
@@ -166,7 +182,7 @@ export default function Navbar() {
                     <span className="material-symbols-outlined text-[20px]">
                       logout
                     </span>
-                    Disconnect
+                    {t('nav.disconnect')}
                   </button>
                 </div>
               )}
@@ -176,7 +192,7 @@ export default function Navbar() {
               to="/login"
               className="notranslate bg-[#173809] text-white px-4 sm:px-5 py-2 rounded-full font-headline font-bold text-sm hover:bg-[#2d4f1e] active:scale-95 transition-all outline-none shadow-md whitespace-nowrap shrink-0"
             >
-              Sign In
+              {t('nav.signIn')}
             </Link>
           )}
         </div>
@@ -186,7 +202,7 @@ export default function Navbar() {
       {showMobileNav && (
         <div className="md:hidden border-t border-[#173809]/10 px-4 pb-6 pt-2 animate-in fade-in slide-in-from-top-2 duration-200">
           <div className="flex flex-col gap-1">
-            {NAV_LINKS.map(({ label, path }) => (
+            {NAV_LINKS.map(({ key, path }) => (
               <Link
                 key={path}
                 to={path}
@@ -197,7 +213,7 @@ export default function Navbar() {
                     : "text-[#173809]/70 hover:bg-[#173809]/5"
                 }`}
               >
-                {label}
+                {t(key)}
               </Link>
             ))}
             {token && (
@@ -206,7 +222,7 @@ export default function Navbar() {
                 onClick={() => setShowMobileNav(false)}
                 className="notranslate font-headline font-bold text-base uppercase tracking-widest py-3 px-3 rounded-xl text-[#173809]/70 hover:bg-[#173809]/5 transition-colors"
               >
-                Profile
+                {t('nav.profile')}
               </Link>
             )}
           </div>
