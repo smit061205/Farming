@@ -1,0 +1,1371 @@
+{
+  "_note": "Tier A stcr coefficients are calibrated so that FX = a*T - b*Sx reproduces the Gujarat package-of-practices dose at reference soil fertility, and responds correctly to soil test value. Source status: PENDING_VERIFICATION against ICAR/AAU STCR bulletins. Tier B uses base dose x soil-test class factor. Zinc doses are expressed as kg Zn/ha, not kg zinc sulphate/ha.",
+  "_referenceSoil": {
+    "N": 220,
+    "P": 18,
+    "K": 240
+  },
+  "_slopes": {
+    "N": 0.35,
+    "P": 1.2,
+    "K": 0.2
+  },
+  "splitPatterns": {
+    "cereal3": [
+      {
+        "stage": {
+          "en": "Basal (at sowing)",
+          "hi": "बुवाई के समय",
+          "gu": "વાવણી સમયે"
+        },
+        "das": 0,
+        "window": 5,
+        "pct": {
+          "N": 50,
+          "P": 100,
+          "K": 100,
+          "S": 100,
+          "Zn": 100
+        }
+      },
+      {
+        "stage": {
+          "en": "Crown root / knee-high",
+          "hi": "पहली सिंचाई पर",
+          "gu": "પ્રથમ પિયત વખતે"
+        },
+        "das": 21,
+        "window": 7,
+        "pct": {
+          "N": 25
+        }
+      },
+      {
+        "stage": {
+          "en": "Tillering / flowering",
+          "hi": "कल्ले फूटने पर",
+          "gu": "ફૂટ અવસ્થાએ"
+        },
+        "das": 45,
+        "window": 10,
+        "pct": {
+          "N": 25
+        }
+      }
+    ],
+    "oilseed2": [
+      {
+        "stage": {
+          "en": "Basal (at sowing)",
+          "hi": "बुवाई के समय",
+          "gu": "વાવણી સમયે"
+        },
+        "das": 0,
+        "window": 5,
+        "pct": {
+          "N": 50,
+          "P": 100,
+          "K": 100,
+          "S": 100,
+          "Zn": 100
+        }
+      },
+      {
+        "stage": {
+          "en": "Vegetative top-dress",
+          "hi": "वानस्पतिक अवस्था",
+          "gu": "વાનસ્પતિક અવસ્થા"
+        },
+        "das": 30,
+        "window": 10,
+        "pct": {
+          "N": 50
+        }
+      }
+    ],
+    "cotton3": [
+      {
+        "stage": {
+          "en": "Basal (at sowing)",
+          "hi": "बुवाई के समय",
+          "gu": "વાવણી સમયે"
+        },
+        "das": 0,
+        "window": 5,
+        "pct": {
+          "N": 25,
+          "P": 100,
+          "K": 50,
+          "S": 100,
+          "Zn": 100
+        }
+      },
+      {
+        "stage": {
+          "en": "Square formation",
+          "hi": "कली बनने पर",
+          "gu": "કળી બેસતી વખતે"
+        },
+        "das": 35,
+        "window": 10,
+        "pct": {
+          "N": 40,
+          "K": 50
+        }
+      },
+      {
+        "stage": {
+          "en": "Boll development",
+          "hi": "गूलर बनने पर",
+          "gu": "જીંડવા વિકાસ"
+        },
+        "das": 70,
+        "window": 12,
+        "pct": {
+          "N": 35
+        }
+      }
+    ],
+    "pulse1": [
+      {
+        "stage": {
+          "en": "Basal (at sowing)",
+          "hi": "बुवाई के समय",
+          "gu": "વાવણી સમયે"
+        },
+        "das": 0,
+        "window": 6,
+        "pct": {
+          "N": 100,
+          "P": 100,
+          "K": 100,
+          "S": 100,
+          "Zn": 100
+        }
+      }
+    ],
+    "veg3": [
+      {
+        "stage": {
+          "en": "Basal (transplant)",
+          "hi": "रोपाई के समय",
+          "gu": "રોપણી સમયે"
+        },
+        "das": 0,
+        "window": 5,
+        "pct": {
+          "N": 40,
+          "P": 100,
+          "K": 50,
+          "S": 100,
+          "Zn": 100
+        }
+      },
+      {
+        "stage": {
+          "en": "Vegetative growth",
+          "hi": "बढ़वार अवस्था",
+          "gu": "વૃદ્ધિ અવસ્થા"
+        },
+        "das": 30,
+        "window": 10,
+        "pct": {
+          "N": 30,
+          "K": 25
+        }
+      },
+      {
+        "stage": {
+          "en": "Fruiting",
+          "hi": "फल लगने पर",
+          "gu": "ફળ બેસતી વખતે"
+        },
+        "das": 55,
+        "window": 12,
+        "pct": {
+          "N": 30,
+          "K": 25
+        }
+      }
+    ],
+    "cane4": [
+      {
+        "stage": {
+          "en": "Basal (at planting)",
+          "hi": "रोपण के समय",
+          "gu": "રોપણી સમયે"
+        },
+        "das": 0,
+        "window": 7,
+        "pct": {
+          "N": 25,
+          "P": 100,
+          "K": 50,
+          "S": 100,
+          "Zn": 100
+        }
+      },
+      {
+        "stage": {
+          "en": "Tillering",
+          "hi": "कल्ले फूटने पर",
+          "gu": "ફૂટ અવસ્થા"
+        },
+        "das": 45,
+        "window": 12,
+        "pct": {
+          "N": 25
+        }
+      },
+      {
+        "stage": {
+          "en": "Grand growth",
+          "hi": "तेज़ बढ़वार",
+          "gu": "ઝડપી વૃદ્ધિ"
+        },
+        "das": 90,
+        "window": 15,
+        "pct": {
+          "N": 25,
+          "K": 50
+        }
+      },
+      {
+        "stage": {
+          "en": "Pre-earthing up",
+          "hi": "मिट्टी चढ़ाने से पहले",
+          "gu": "પાળા ચઢાવતા પહેલા"
+        },
+        "das": 120,
+        "window": 15,
+        "pct": {
+          "N": 25
+        }
+      }
+    ],
+    "perennial3": [
+      {
+        "stage": {
+          "en": "Onset of monsoon",
+          "hi": "मानसून की शुरुआत",
+          "gu": "ચોમાસાની શરૂઆત"
+        },
+        "das": 0,
+        "window": 10,
+        "pct": {
+          "N": 40,
+          "P": 100,
+          "K": 40,
+          "S": 100,
+          "Zn": 100
+        }
+      },
+      {
+        "stage": {
+          "en": "Post-monsoon",
+          "hi": "मानसून के बाद",
+          "gu": "ચોમાસા પછી"
+        },
+        "das": 90,
+        "window": 15,
+        "pct": {
+          "N": 30,
+          "K": 30
+        }
+      },
+      {
+        "stage": {
+          "en": "Fruit development",
+          "hi": "फल विकास",
+          "gu": "ફળ વિકાસ"
+        },
+        "das": 180,
+        "window": 20,
+        "pct": {
+          "N": 30,
+          "K": 30
+        }
+      }
+    ]
+  },
+  "crops": [
+    {
+      "id": "wheat",
+      "group": "Cereal",
+      "name": {
+        "en": "Wheat",
+        "hi": "गेहूं",
+        "gu": "ઘઉં"
+      },
+      "tier": {
+        "middle": "A",
+        "north": "A",
+        "saurashtra": "A"
+      },
+      "target": {
+        "default": 45,
+        "min": 20,
+        "max": 70
+      },
+      "stcr": {
+        "N": {
+          "a": 3.578
+        },
+        "P": {
+          "a": 1.413
+        },
+        "K": {
+          "a": 1.556
+        }
+      },
+      "base": {
+        "N": 120,
+        "P": 60,
+        "K": 40
+      },
+      "s": 20,
+      "zn": 5,
+      "removal": {
+        "N": 2.2,
+        "P": 1.0,
+        "K": 2.5
+      },
+      "split": "cereal3",
+      "seasonDays": 120
+    },
+    {
+      "id": "bajra",
+      "group": "Cereal",
+      "name": {
+        "en": "Bajra (Pearl millet)",
+        "hi": "बाजरा",
+        "gu": "બાજરી"
+      },
+      "tier": {
+        "middle": "A",
+        "north": "A",
+        "saurashtra": "A"
+      },
+      "target": {
+        "default": 25,
+        "min": 10,
+        "max": 45
+      },
+      "stcr": {
+        "N": {
+          "a": 5.32
+        },
+        "P": {
+          "a": 1.984
+        },
+        "K": {
+          "a": 2.36
+        }
+      },
+      "base": {
+        "N": 80,
+        "P": 40,
+        "K": 20
+      },
+      "s": 15,
+      "zn": 5,
+      "removal": {
+        "N": 2.5,
+        "P": 1.1,
+        "K": 2.8
+      },
+      "split": "cereal3",
+      "seasonDays": 90
+    },
+    {
+      "id": "groundnut",
+      "group": "Oilseed",
+      "name": {
+        "en": "Groundnut",
+        "hi": "मूंगफली",
+        "gu": "મગફળી"
+      },
+      "tier": {
+        "middle": "A",
+        "north": "A",
+        "saurashtra": "A"
+      },
+      "target": {
+        "default": 22,
+        "min": 8,
+        "max": 40
+      },
+      "stcr": {
+        "N": {
+          "a": 4.295
+        },
+        "P": {
+          "a": 2.573
+        },
+        "K": {
+          "a": 2.682
+        }
+      },
+      "base": {
+        "N": 25,
+        "P": 50,
+        "K": 20
+      },
+      "s": 30,
+      "zn": 5,
+      "removal": {
+        "N": 4.0,
+        "P": 0.8,
+        "K": 1.5
+      },
+      "split": "pulse1",
+      "seasonDays": 110
+    },
+    {
+      "id": "cotton",
+      "group": "Fibre",
+      "name": {
+        "en": "Cotton",
+        "hi": "कपास",
+        "gu": "કપાસ"
+      },
+      "tier": {
+        "middle": "A",
+        "north": "A",
+        "saurashtra": "A"
+      },
+      "target": {
+        "default": 22,
+        "min": 10,
+        "max": 45
+      },
+      "stcr": {
+        "N": {
+          "a": 8.68
+        },
+        "P": {
+          "a": 2.264
+        },
+        "K": {
+          "a": 3.02
+        }
+      },
+      "base": {
+        "N": 200,
+        "P": 50,
+        "K": 50
+      },
+      "s": 25,
+      "zn": 5,
+      "removal": {
+        "N": 5.5,
+        "P": 1.8,
+        "K": 5.0
+      },
+      "split": "cotton3",
+      "seasonDays": 180
+    },
+    {
+      "id": "castor",
+      "group": "Oilseed",
+      "name": {
+        "en": "Castor",
+        "hi": "अरंडी",
+        "gu": "દિવેલા"
+      },
+      "tier": {
+        "middle": "A",
+        "north": "A",
+        "saurashtra": "B"
+      },
+      "target": {
+        "default": 25,
+        "min": 12,
+        "max": 50
+      },
+      "stcr": {
+        "N": {
+          "a": 4.317
+        },
+        "P": {
+          "a": 1.887
+        },
+        "K": {
+          "a": 2.058
+        }
+      },
+      "base": {
+        "N": 75,
+        "P": 50,
+        "K": 25
+      },
+      "s": 30,
+      "zn": 5,
+      "removal": {
+        "N": 3.6,
+        "P": 1.2,
+        "K": 2.0
+      },
+      "split": "oilseed2",
+      "seasonDays": 150
+    },
+    {
+      "id": "rice",
+      "group": "Cereal",
+      "name": {
+        "en": "Rice (Paddy)",
+        "hi": "धान",
+        "gu": "ડાંગર"
+      },
+      "tier": {
+        "middle": "A",
+        "north": "B",
+        "saurashtra": "B"
+      },
+      "target": {
+        "default": 50,
+        "min": 20,
+        "max": 80
+      },
+      "stcr": {
+        "N": {
+          "a": 3.22
+        },
+        "P": {
+          "a": 1.272
+        },
+        "K": {
+          "a": 1.4
+        }
+      },
+      "base": {
+        "N": 120,
+        "P": 60,
+        "K": 40
+      },
+      "s": 20,
+      "zn": 6,
+      "removal": {
+        "N": 2.0,
+        "P": 1.0,
+        "K": 2.6
+      },
+      "split": "cereal3",
+      "seasonDays": 130
+    },
+    {
+      "id": "maize",
+      "group": "Cereal",
+      "name": {
+        "en": "Maize",
+        "hi": "मक्का",
+        "gu": "મકાઈ"
+      },
+      "tier": {
+        "middle": "A",
+        "north": "B",
+        "saurashtra": "B"
+      },
+      "target": {
+        "default": 50,
+        "min": 20,
+        "max": 80
+      },
+      "stcr": {
+        "N": {
+          "a": 3.22
+        },
+        "P": {
+          "a": 1.272
+        },
+        "K": {
+          "a": 1.4
+        }
+      },
+      "base": {
+        "N": 120,
+        "P": 60,
+        "K": 40
+      },
+      "s": 20,
+      "zn": 5,
+      "removal": {
+        "N": 2.4,
+        "P": 1.1,
+        "K": 2.7
+      },
+      "split": "cereal3",
+      "seasonDays": 110
+    },
+    {
+      "id": "mustard",
+      "group": "Oilseed",
+      "name": {
+        "en": "Mustard",
+        "hi": "सरसों",
+        "gu": "રાઈ"
+      },
+      "tier": {
+        "middle": "A",
+        "north": "A",
+        "saurashtra": "B"
+      },
+      "target": {
+        "default": 20,
+        "min": 8,
+        "max": 35
+      },
+      "stcr": {
+        "N": {
+          "a": 6.475
+        },
+        "P": {
+          "a": 2.83
+        },
+        "K": {
+          "a": 3.0875
+        }
+      },
+      "base": {
+        "N": 75,
+        "P": 50,
+        "K": 25
+      },
+      "s": 40,
+      "zn": 5,
+      "removal": {
+        "N": 4.5,
+        "P": 1.6,
+        "K": 3.0
+      },
+      "split": "oilseed2",
+      "seasonDays": 120
+    },
+    {
+      "id": "jowar",
+      "group": "Cereal",
+      "name": {
+        "en": "Jowar (Sorghum)",
+        "hi": "ज्वार",
+        "gu": "જુવાર"
+      },
+      "tier": {
+        "middle": "B",
+        "north": "B",
+        "saurashtra": "B"
+      },
+      "target": {
+        "default": 30,
+        "min": 12,
+        "max": 50
+      },
+      "base": {
+        "N": 80,
+        "P": 40,
+        "K": 20
+      },
+      "s": 15,
+      "zn": 5,
+      "removal": {
+        "N": 2.4,
+        "P": 1.0,
+        "K": 2.6
+      },
+      "split": "cereal3",
+      "seasonDays": 110
+    },
+    {
+      "id": "ragi",
+      "group": "Cereal",
+      "name": {
+        "en": "Ragi (Finger millet)",
+        "hi": "रागी",
+        "gu": "નાગલી"
+      },
+      "tier": {
+        "middle": "B",
+        "north": "B",
+        "saurashtra": "B"
+      },
+      "target": {
+        "default": 20,
+        "min": 8,
+        "max": 35
+      },
+      "base": {
+        "N": 60,
+        "P": 30,
+        "K": 20
+      },
+      "s": 12,
+      "zn": 5,
+      "removal": {
+        "N": 2.2,
+        "P": 0.9,
+        "K": 2.3
+      },
+      "split": "cereal3",
+      "seasonDays": 105
+    },
+    {
+      "id": "sesame",
+      "group": "Oilseed",
+      "name": {
+        "en": "Sesame (Til)",
+        "hi": "तिल",
+        "gu": "તલ"
+      },
+      "tier": {
+        "middle": "B",
+        "north": "B",
+        "saurashtra": "B"
+      },
+      "target": {
+        "default": 8,
+        "min": 3,
+        "max": 15
+      },
+      "base": {
+        "N": 50,
+        "P": 25,
+        "K": 15
+      },
+      "s": 25,
+      "zn": 5,
+      "removal": {
+        "N": 5.0,
+        "P": 1.5,
+        "K": 3.5
+      },
+      "split": "oilseed2",
+      "seasonDays": 90
+    },
+    {
+      "id": "soybean",
+      "group": "Oilseed",
+      "name": {
+        "en": "Soybean",
+        "hi": "सोयाबीन",
+        "gu": "સોયાબીન"
+      },
+      "tier": {
+        "middle": "B",
+        "north": "B",
+        "saurashtra": "B"
+      },
+      "target": {
+        "default": 25,
+        "min": 10,
+        "max": 40
+      },
+      "base": {
+        "N": 30,
+        "P": 60,
+        "K": 30
+      },
+      "s": 30,
+      "zn": 5,
+      "removal": {
+        "N": 6.5,
+        "P": 1.4,
+        "K": 2.4
+      },
+      "split": "pulse1",
+      "seasonDays": 100
+    },
+    {
+      "id": "sunflower",
+      "group": "Oilseed",
+      "name": {
+        "en": "Sunflower",
+        "hi": "सूरजमुखी",
+        "gu": "સૂરજમુખી"
+      },
+      "tier": {
+        "middle": "B",
+        "north": "B",
+        "saurashtra": "B"
+      },
+      "target": {
+        "default": 18,
+        "min": 7,
+        "max": 30
+      },
+      "base": {
+        "N": 60,
+        "P": 40,
+        "K": 20
+      },
+      "s": 30,
+      "zn": 5,
+      "removal": {
+        "N": 4.0,
+        "P": 1.8,
+        "K": 6.0
+      },
+      "split": "oilseed2",
+      "seasonDays": 100
+    },
+    {
+      "id": "tobacco",
+      "group": "Cash",
+      "name": {
+        "en": "Tobacco",
+        "hi": "तंबाकू",
+        "gu": "તમાકુ"
+      },
+      "tier": {
+        "middle": "B",
+        "north": "B",
+        "saurashtra": "B"
+      },
+      "target": {
+        "default": 20,
+        "min": 8,
+        "max": 35
+      },
+      "base": {
+        "N": 100,
+        "P": 50,
+        "K": 50
+      },
+      "s": 20,
+      "zn": 5,
+      "removal": {
+        "N": 4.0,
+        "P": 1.2,
+        "K": 5.5
+      },
+      "split": "veg3",
+      "seasonDays": 150
+    },
+    {
+      "id": "sugarcane",
+      "group": "Cash",
+      "name": {
+        "en": "Sugarcane",
+        "hi": "गन्ना",
+        "gu": "શેરડી"
+      },
+      "tier": {
+        "middle": "B",
+        "north": "B",
+        "saurashtra": "B"
+      },
+      "target": {
+        "default": 800,
+        "min": 400,
+        "max": 1400
+      },
+      "base": {
+        "N": 250,
+        "P": 125,
+        "K": 125
+      },
+      "s": 40,
+      "zn": 6,
+      "removal": {
+        "N": 0.12,
+        "P": 0.05,
+        "K": 0.15
+      },
+      "split": "cane4",
+      "seasonDays": 360
+    },
+    {
+      "id": "isabgol",
+      "group": "Cash",
+      "name": {
+        "en": "Isabgol",
+        "hi": "इसबगोल",
+        "gu": "ઈસબગુલ"
+      },
+      "tier": {
+        "middle": "B",
+        "north": "B",
+        "saurashtra": "B"
+      },
+      "target": {
+        "default": 10,
+        "min": 4,
+        "max": 18
+      },
+      "base": {
+        "N": 30,
+        "P": 15,
+        "K": 10
+      },
+      "s": 10,
+      "zn": 3,
+      "removal": {
+        "N": 2.5,
+        "P": 0.8,
+        "K": 1.8
+      },
+      "split": "oilseed2",
+      "seasonDays": 110
+    },
+    {
+      "id": "cumin",
+      "group": "Cash",
+      "name": {
+        "en": "Cumin (Jeera)",
+        "hi": "जीरा",
+        "gu": "જીરું"
+      },
+      "tier": {
+        "middle": "B",
+        "north": "B",
+        "saurashtra": "B"
+      },
+      "target": {
+        "default": 8,
+        "min": 3,
+        "max": 14
+      },
+      "base": {
+        "N": 30,
+        "P": 20,
+        "K": 10
+      },
+      "s": 10,
+      "zn": 3,
+      "removal": {
+        "N": 3.0,
+        "P": 1.0,
+        "K": 2.0
+      },
+      "split": "oilseed2",
+      "seasonDays": 110
+    },
+    {
+      "id": "fennel",
+      "group": "Cash",
+      "name": {
+        "en": "Fennel (Variyali)",
+        "hi": "सौंफ",
+        "gu": "વરિયાળી"
+      },
+      "tier": {
+        "middle": "B",
+        "north": "B",
+        "saurashtra": "B"
+      },
+      "target": {
+        "default": 18,
+        "min": 7,
+        "max": 30
+      },
+      "base": {
+        "N": 90,
+        "P": 45,
+        "K": 20
+      },
+      "s": 15,
+      "zn": 5,
+      "removal": {
+        "N": 3.2,
+        "P": 1.2,
+        "K": 2.5
+      },
+      "split": "cereal3",
+      "seasonDays": 150
+    },
+    {
+      "id": "pigeonpea",
+      "group": "Pulse",
+      "name": {
+        "en": "Pigeon pea (Tur)",
+        "hi": "अरहर",
+        "gu": "તુવેર"
+      },
+      "tier": {
+        "middle": "B",
+        "north": "B",
+        "saurashtra": "B"
+      },
+      "target": {
+        "default": 15,
+        "min": 6,
+        "max": 28
+      },
+      "base": {
+        "N": 25,
+        "P": 50,
+        "K": 20
+      },
+      "s": 20,
+      "zn": 5,
+      "removal": {
+        "N": 5.5,
+        "P": 1.2,
+        "K": 2.2
+      },
+      "split": "pulse1",
+      "seasonDays": 170
+    },
+    {
+      "id": "greengram",
+      "group": "Pulse",
+      "name": {
+        "en": "Green gram (Mung)",
+        "hi": "मूंग",
+        "gu": "મગ"
+      },
+      "tier": {
+        "middle": "B",
+        "north": "B",
+        "saurashtra": "B"
+      },
+      "target": {
+        "default": 10,
+        "min": 4,
+        "max": 18
+      },
+      "base": {
+        "N": 20,
+        "P": 40,
+        "K": 15
+      },
+      "s": 15,
+      "zn": 5,
+      "removal": {
+        "N": 5.0,
+        "P": 1.1,
+        "K": 2.0
+      },
+      "split": "pulse1",
+      "seasonDays": 70
+    },
+    {
+      "id": "blackgram",
+      "group": "Pulse",
+      "name": {
+        "en": "Black gram (Urad)",
+        "hi": "उड़द",
+        "gu": "અડદ"
+      },
+      "tier": {
+        "middle": "B",
+        "north": "B",
+        "saurashtra": "B"
+      },
+      "target": {
+        "default": 10,
+        "min": 4,
+        "max": 18
+      },
+      "base": {
+        "N": 20,
+        "P": 40,
+        "K": 15
+      },
+      "s": 15,
+      "zn": 5,
+      "removal": {
+        "N": 5.0,
+        "P": 1.1,
+        "K": 2.0
+      },
+      "split": "pulse1",
+      "seasonDays": 75
+    },
+    {
+      "id": "chickpea",
+      "group": "Pulse",
+      "name": {
+        "en": "Chickpea (Gram)",
+        "hi": "चना",
+        "gu": "ચણા"
+      },
+      "tier": {
+        "middle": "B",
+        "north": "B",
+        "saurashtra": "B"
+      },
+      "target": {
+        "default": 20,
+        "min": 8,
+        "max": 35
+      },
+      "base": {
+        "N": 20,
+        "P": 40,
+        "K": 20
+      },
+      "s": 20,
+      "zn": 5,
+      "removal": {
+        "N": 4.0,
+        "P": 1.0,
+        "K": 1.8
+      },
+      "split": "pulse1",
+      "seasonDays": 110
+    },
+    {
+      "id": "potato",
+      "group": "Vegetable",
+      "name": {
+        "en": "Potato",
+        "hi": "आलू",
+        "gu": "બટાટા"
+      },
+      "tier": {
+        "middle": "B",
+        "north": "B",
+        "saurashtra": "B"
+      },
+      "target": {
+        "default": 300,
+        "min": 120,
+        "max": 500
+      },
+      "base": {
+        "N": 250,
+        "P": 125,
+        "K": 250
+      },
+      "s": 25,
+      "zn": 5,
+      "removal": {
+        "N": 0.35,
+        "P": 0.12,
+        "K": 0.55
+      },
+      "split": "veg3",
+      "seasonDays": 100
+    },
+    {
+      "id": "onion",
+      "group": "Vegetable",
+      "name": {
+        "en": "Onion",
+        "hi": "प्याज",
+        "gu": "ડુંગળી"
+      },
+      "tier": {
+        "middle": "B",
+        "north": "B",
+        "saurashtra": "B"
+      },
+      "target": {
+        "default": 300,
+        "min": 120,
+        "max": 500
+      },
+      "base": {
+        "N": 100,
+        "P": 50,
+        "K": 50
+      },
+      "s": 30,
+      "zn": 5,
+      "removal": {
+        "N": 0.25,
+        "P": 0.09,
+        "K": 0.32
+      },
+      "split": "veg3",
+      "seasonDays": 130
+    },
+    {
+      "id": "tomato",
+      "group": "Vegetable",
+      "name": {
+        "en": "Tomato",
+        "hi": "टमाटर",
+        "gu": "ટામેટા"
+      },
+      "tier": {
+        "middle": "B",
+        "north": "B",
+        "saurashtra": "B"
+      },
+      "target": {
+        "default": 400,
+        "min": 150,
+        "max": 700
+      },
+      "base": {
+        "N": 180,
+        "P": 90,
+        "K": 90
+      },
+      "s": 25,
+      "zn": 5,
+      "removal": {
+        "N": 0.28,
+        "P": 0.09,
+        "K": 0.42
+      },
+      "split": "veg3",
+      "seasonDays": 130
+    },
+    {
+      "id": "brinjal",
+      "group": "Vegetable",
+      "name": {
+        "en": "Brinjal",
+        "hi": "बैंगन",
+        "gu": "રીંગણ"
+      },
+      "tier": {
+        "middle": "B",
+        "north": "B",
+        "saurashtra": "B"
+      },
+      "target": {
+        "default": 350,
+        "min": 140,
+        "max": 600
+      },
+      "base": {
+        "N": 150,
+        "P": 75,
+        "K": 75
+      },
+      "s": 20,
+      "zn": 5,
+      "removal": {
+        "N": 0.26,
+        "P": 0.08,
+        "K": 0.36
+      },
+      "split": "veg3",
+      "seasonDays": 150
+    },
+    {
+      "id": "okra",
+      "group": "Vegetable",
+      "name": {
+        "en": "Okra (Bhindi)",
+        "hi": "भिंडी",
+        "gu": "ભીંડા"
+      },
+      "tier": {
+        "middle": "B",
+        "north": "B",
+        "saurashtra": "B"
+      },
+      "target": {
+        "default": 150,
+        "min": 60,
+        "max": 250
+      },
+      "base": {
+        "N": 100,
+        "P": 50,
+        "K": 50
+      },
+      "s": 15,
+      "zn": 5,
+      "removal": {
+        "N": 0.4,
+        "P": 0.14,
+        "K": 0.5
+      },
+      "split": "veg3",
+      "seasonDays": 110
+    },
+    {
+      "id": "chilli",
+      "group": "Vegetable",
+      "name": {
+        "en": "Chilli",
+        "hi": "मिर्च",
+        "gu": "મરચાં"
+      },
+      "tier": {
+        "middle": "B",
+        "north": "B",
+        "saurashtra": "B"
+      },
+      "target": {
+        "default": 150,
+        "min": 60,
+        "max": 250
+      },
+      "base": {
+        "N": 100,
+        "P": 50,
+        "K": 50
+      },
+      "s": 20,
+      "zn": 5,
+      "removal": {
+        "N": 0.42,
+        "P": 0.15,
+        "K": 0.55
+      },
+      "split": "veg3",
+      "seasonDays": 160
+    },
+    {
+      "id": "banana",
+      "group": "Fruit",
+      "name": {
+        "en": "Banana",
+        "hi": "केला",
+        "gu": "કેળા"
+      },
+      "tier": {
+        "middle": "B",
+        "north": "B",
+        "saurashtra": "B"
+      },
+      "target": {
+        "default": 600,
+        "min": 250,
+        "max": 1000
+      },
+      "base": {
+        "N": 200,
+        "P": 100,
+        "K": 200
+      },
+      "s": 30,
+      "zn": 6,
+      "removal": {
+        "N": 0.2,
+        "P": 0.06,
+        "K": 0.55
+      },
+      "split": "perennial3",
+      "seasonDays": 330
+    },
+    {
+      "id": "mango",
+      "group": "Fruit",
+      "name": {
+        "en": "Mango (bearing)",
+        "hi": "आम",
+        "gu": "કેરી"
+      },
+      "tier": {
+        "middle": "B",
+        "north": "B",
+        "saurashtra": "B"
+      },
+      "target": {
+        "default": 100,
+        "min": 40,
+        "max": 200
+      },
+      "base": {
+        "N": 100,
+        "P": 50,
+        "K": 100
+      },
+      "s": 20,
+      "zn": 5,
+      "removal": {
+        "N": 0.3,
+        "P": 0.1,
+        "K": 0.45
+      },
+      "split": "perennial3",
+      "seasonDays": 300
+    }
+  ]
+}

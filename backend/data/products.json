@@ -1,0 +1,160 @@
+{
+  "_note": "Prices are indicative Gujarat retail (subsidised MRP where applicable), Aug 2026. Editable in one place. If a data.gov.in key is configured the server refreshes these; otherwise these static values are used and the UI says so.",
+  "_priceSource": "STATIC_TABLE",
+  "products": [
+    {
+      "id": "urea",
+      "name": {
+        "en": "Urea",
+        "hi": "यूरिया",
+        "gu": "યુરિયા"
+      },
+      "n": 46,
+      "p": 0,
+      "k": 0,
+      "s": 0,
+      "zn": 0,
+      "bagKg": 45,
+      "bagPrice": 266.5
+    },
+    {
+      "id": "dap",
+      "name": {
+        "en": "DAP",
+        "hi": "डी.ए.पी.",
+        "gu": "ડી.એ.પી."
+      },
+      "n": 18,
+      "p": 46,
+      "k": 0,
+      "s": 0,
+      "zn": 0,
+      "bagKg": 50,
+      "bagPrice": 1350
+    },
+    {
+      "id": "ssp",
+      "name": {
+        "en": "SSP",
+        "hi": "एस.एस.पी.",
+        "gu": "એસ.એસ.પી."
+      },
+      "n": 0,
+      "p": 16,
+      "k": 0,
+      "s": 11,
+      "zn": 0,
+      "bagKg": 50,
+      "bagPrice": 450
+    },
+    {
+      "id": "mop",
+      "name": {
+        "en": "MOP (Potash)",
+        "hi": "म्यूरेट ऑफ पोटाश",
+        "gu": "મ્યુરેટ ઓફ પોટાશ"
+      },
+      "n": 0,
+      "p": 0,
+      "k": 60,
+      "s": 0,
+      "zn": 0,
+      "bagKg": 50,
+      "bagPrice": 1700
+    },
+    {
+      "id": "ammsulph",
+      "name": {
+        "en": "Ammonium Sulphate",
+        "hi": "अमोनियम सल्फेट",
+        "gu": "એમોનિયમ સલ્ફેટ"
+      },
+      "n": 20.6,
+      "p": 0,
+      "k": 0,
+      "s": 24,
+      "zn": 0,
+      "bagKg": 50,
+      "bagPrice": 1050
+    },
+    {
+      "id": "zincsulph",
+      "name": {
+        "en": "Zinc Sulphate",
+        "hi": "जिंक सल्फेट",
+        "gu": "ઝીંક સલ્ફેટ"
+      },
+      "n": 0,
+      "p": 0,
+      "k": 0,
+      "s": 0,
+      "zn": 21,
+      "bagKg": 25,
+      "bagPrice": 1250
+    },
+    {
+      "id": "bentsulph",
+      "name": {
+        "en": "Bentonite Sulphur",
+        "hi": "बेंटोनाइट सल्फर",
+        "gu": "બેન્ટોનાઈટ સલ્ફર"
+      },
+      "n": 0,
+      "p": 0,
+      "k": 0,
+      "s": 90,
+      "zn": 0,
+      "bagKg": 25,
+      "bagPrice": 1450
+    }
+  ],
+  "amendments": [
+    {
+      "id": "gypsum",
+      "name": {
+        "en": "Gypsum",
+        "hi": "जिप्सम",
+        "gu": "જીપ્સમ"
+      },
+      "pricePerKg": 4.5,
+      "s": 18
+    },
+    {
+      "id": "lime",
+      "name": {
+        "en": "Agricultural Lime",
+        "hi": "चूना",
+        "gu": "ચૂનો"
+      },
+      "pricePerKg": 6.0
+    }
+  ],
+  "organics": [
+    {
+      "id": "fym",
+      "name": {
+        "en": "Farmyard Manure (FYM)",
+        "hi": "गोबर की खाद",
+        "gu": "છાણિયું ખાતર"
+      },
+      "nPerTonne": 5,
+      "pPerTonne": 2.5,
+      "kPerTonne": 5,
+      "pricePerTonne": 1200,
+      "ocPerTonne": 0.012
+    },
+    {
+      "id": "vermicompost",
+      "name": {
+        "en": "Vermicompost",
+        "hi": "वर्मीकम्पोस्ट",
+        "gu": "વર્મી કમ્પોસ્ટ"
+      },
+      "nPerTonne": 15,
+      "pPerTonne": 10,
+      "kPerTonne": 12,
+      "pricePerTonne": 6000,
+      "ocPerTonne": 0.02
+    }
+  ]
+}

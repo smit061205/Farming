@@ -1,0 +1,86 @@
+{
+  "_note": "Every number here is a published soil-test interpretation limit or an engine tuning constant. No magic numbers live in code. Source status is stated per block. No agronomist has reviewed these values.",
+
+  "soilClasses": {
+    "N":  { "low": 280, "high": 560, "unit": "kg/ha", "method": "Alkaline KMnO4", "source": "Soil Health Card interpretation ranges (GoI)" },
+    "P":  { "low": 10,  "high": 25,  "unit": "kg/ha", "method": "Olsen", "source": "Soil Health Card interpretation ranges (GoI)" },
+    "K":  { "low": 120, "high": 280, "unit": "kg/ha", "method": "Ammonium acetate", "source": "Soil Health Card interpretation ranges (GoI)" },
+    "OC": { "low": 0.5, "high": 0.75, "unit": "%", "method": "Walkley-Black", "source": "Soil Health Card interpretation ranges (GoI)" }
+  },
+
+  "classFactor": { "Low": 1.25, "Medium": 1.0, "High": 0.75 },
+
+  "deficiency": {
+    "S":  { "critical": 10,  "unit": "ppm", "method": "CaCl2 extractable" },
+    "Zn": { "critical": 0.6, "unit": "ppm", "method": "DTPA extractable" }
+  },
+
+  "ph": {
+    "acidic": 6.5, "neutralHigh": 7.5, "alkalineHigh": 8.5,
+    "bands": [
+      { "max": 6.5, "key": "acidic" },
+      { "max": 7.5, "key": "neutral" },
+      { "max": 8.5, "key": "alkaline" },
+      { "max": 99,  "key": "sodic" }
+    ]
+  },
+
+  "ec": { "normal": 1.0, "critical": 2.0, "unit": "dS/m" },
+
+  "ceilingMultiplier": 1.5,
+
+  "lossModel": {
+    "_note": "Indicative, not predictive. Additive percentage-point model, tunable here.",
+    "volatilizationBase": 20,
+    "volatHotTempC": 32,
+    "volatHotBonus": 10,
+    "volatHighPh": 8.0,
+    "volatPhBonus": 5,
+    "volatLightRainRelief": 15,
+    "incorporatedReduction": 15,
+    "runoffRainMm": 25,
+    "runoffNLossPct": 25,
+    "runoffPLossPct": 8
+  },
+
+  "weatherRules": {
+    "_note": "Thresholds for the application-timing engine. Source status: PENDING_AGRONOMIST_REVIEW. Each rule cites the loss mechanism it guards against.",
+    "heavyRainMm24h": 25,
+    "lightRainMinMm": 5,
+    "lightRainMaxMm": 15,
+    "lightRainWindowH": 24,
+    "dryHours": 72,
+    "hotTempC": 32,
+    "veryHotTempC": 35,
+    "lowHumidityPct": 40,
+    "windyKmh": 20,
+    "coldTempC": 10,
+    "sandyLeachRainMm": 20,
+    "sandyLeachWindowH": 48,
+    "waterloggedRainMm48h": 60
+  },
+
+  "impact": {
+    "_note": "N2O factor: IPCC default direct emission factor 1% of applied N, converted N2O-N -> N2O (44/28) and weighted by GWP100 = 273.",
+    "n2oCo2ePerKgN": 4.29,
+    "ureaManufactureCo2ePerKgN": 3.1,
+    "nRecoveryFactor": 0.4,
+    "pRecoveryFactor": 0.2,
+    "kRecoveryFactor": 0.6,
+    "runoffLossFraction": 0.25,
+    "soilHealthWeights": { "oc": 30, "ph": 20, "npk": 30, "ec": 10, "micro": 10 },
+    "idealRatio": { "N": 4, "P": 2, "K": 1 }
+  },
+
+  "zones": [
+    { "id": "middle", "name": { "en": "Middle Gujarat", "hi": "मध्य गुजरात", "gu": "મધ્ય ગુજરાત" },
+      "districts": "Anand, Kheda, Vadodara, Panchmahal, Dahod, Chhota Udepur",
+      "soilTexture": "loamy", "avgPh": 7.6 },
+    { "id": "north", "name": { "en": "North Gujarat", "hi": "उत्तर गुजरात", "gu": "ઉત્તર ગુજરાત" },
+      "districts": "Mehsana, Banaskantha, Patan, Sabarkantha, Gandhinagar, Aravalli",
+      "soilTexture": "sandy", "avgPh": 7.9 },
+    { "id": "saurashtra", "name": { "en": "Saurashtra", "hi": "सौराष्ट्र", "gu": "સૌરાષ્ટ્ર" },
+      "districts": "Rajkot, Junagadh, Jamnagar, Bhavnagar, Amreli, Porbandar, Morbi",
+      "soilTexture": "clayey", "avgPh": 8.1 }
+  ]
+}
