@@ -156,14 +156,12 @@ export default function LocationPicker({ lat, lon, onChange, zones, t, lang }) {
         </div>
       )}
 
-      {match && outOfCoverage && (
+      {outOfCoverage && (
         <div className="mt-2 flex items-center gap-2 text-xs">
-          <span className="chip bg-amber-100 text-amber-800 border border-amber-300">
-            {t('outOfCoverageChip')}
+          <span className="chip bg-leaf-100 text-leaf-700 border border-leaf-300">
+            {t('genericTierChip')}
           </span>
-          <span className="text-leaf-500">
-            {t('outOfCoverageNote').replace('{zone}', match.zone.name[lang] || match.zone.name.en)}
-          </span>
+          <span className="text-leaf-500">{t('genericTierNote')}</span>
         </div>
       )}
     </div>

@@ -19,8 +19,8 @@ const E = {
     zeroDose: (p, n, c) => `Your soil already carries ${p.value} kg/ha of ${n} — the ${c} class. Nothing more is needed here, and that is money you keep.`,
     zeroMicro: (p, n) => `Soil ${n} sits at ${p.value} ppm, above the ${p.limit} ppm critical limit. Nothing more is needed.`,
 
-    warnNoS: () => 'Sulphur was not tested. Gujarat oilseed belts are commonly sulphur-deficient — worth testing before the next season.',
-    warnNoZn: () => 'Zinc was not tested. Zinc deficiency is widespread in Gujarat — worth testing before the next season.',
+    warnNoS: () => "Sulphur was not tested. India's Soil Health Card survey finds sulphur deficiency common in oilseed-growing soils — worth testing before the next season.",
+    warnNoZn: () => "Zinc was not tested. India's Soil Health Card survey finds zinc deficiency widespread — worth testing before the next season.",
     warnSodic: (p) => `Soil pH ${p.ph} is strongly alkaline. DAP works poorly here — SSP and ammonium sulphate are the better sources.`,
     warnAlkaline: (p) => `Soil pH ${p.ph} is alkaline. Urea left on the surface loses nitrogen faster here — mix it into the soil.`,
     warnAcidic: (p) => `Soil pH ${p.ph} is acidic. Phosphorus gets locked up and the crop cannot reach it.`,
@@ -68,7 +68,7 @@ const E = {
     mechLeach: () => 'Nitrate leaching',
 
     tierALabel: (p) => `STCR-calibrated for ${p.zone}`,
-    tierBLabel: () => 'ICAR general recommendation — STCR calibration pending',
+    tierBLabel: () => 'ICAR general recommendation — not zone-calibrated',
     clear: () => 'Nothing in the forecast argues against going ahead today.',
   },
 
@@ -76,8 +76,8 @@ const E = {
     zeroDose: (p, n, c) => `आपकी मिट्टी में पहले से ${p.value} किलो/हे. ${n} है — यह ${c} श्रेणी है। यहाँ और की ज़रूरत नहीं, यह पैसा आपका बचा।`,
     zeroMicro: (p, n) => `मिट्टी में ${n} ${p.value} पीपीएम है, जो ${p.limit} पीपीएम की सीमा से ऊपर है। और की ज़रूरत नहीं।`,
 
-    warnNoS: () => 'सल्फर की जाँच नहीं हुई। गुजरात के तिलहन क्षेत्रों में सल्फर की कमी आम है — अगले सीज़न से पहले जाँच कराएँ।',
-    warnNoZn: () => 'जिंक की जाँच नहीं हुई। गुजरात में जिंक की कमी व्यापक है — अगले सीज़न से पहले जाँच कराएँ।',
+    warnNoS: () => 'सल्फर की जाँच नहीं हुई। भारत के मृदा स्वास्थ्य कार्ड सर्वेक्षण के अनुसार तिलहन क्षेत्रों की मिट्टी में सल्फर की कमी आम है — अगले सीज़न से पहले जाँच कराएँ।',
+    warnNoZn: () => 'जिंक की जाँच नहीं हुई। भारत के मृदा स्वास्थ्य कार्ड सर्वेक्षण के अनुसार जिंक की कमी व्यापक है — अगले सीज़न से पहले जाँच कराएँ।',
     warnSodic: (p) => `मिट्टी का पी.एच. ${p.ph} बहुत क्षारीय है। यहाँ डीएपी ठीक काम नहीं करता — एसएसपी और अमोनियम सल्फेट बेहतर हैं।`,
     warnAlkaline: (p) => `मिट्टी का पी.एच. ${p.ph} क्षारीय है। ऊपर पड़ा यूरिया यहाँ जल्दी उड़ता है — इसे मिट्टी में मिलाएँ।`,
     warnAcidic: (p) => `मिट्टी का पी.एच. ${p.ph} अम्लीय है। फॉस्फोरस बँध जाता है और फसल तक नहीं पहुँचता।`,
@@ -125,7 +125,7 @@ const E = {
     mechLeach: () => 'नाइट्रेट का रिसाव',
 
     tierALabel: (p) => `${p.zone} के लिए एसटीसीआर आधारित`,
-    tierBLabel: () => 'आईसीएआर सामान्य सिफ़ारिश — एसटीसीआर अंशांकन बाकी',
+    tierBLabel: () => 'आईसीएआर सामान्य सिफ़ारिश — क्षेत्र-कैलिब्रेटेड नहीं',
     clear: () => 'परिस्थिति अच्छी है। पूर्वानुमान में आज डालने के विरुद्ध कुछ नहीं है।',
   },
 
@@ -133,8 +133,8 @@ const E = {
     zeroDose: (p, n, c) => `તમારી જમીનમાં પહેલેથી ${p.value} કિલો/હે. ${n} છે — આ ${c} શ્રેણી છે. અહીં વધુની જરૂર નથી, આ પૈસા તમારા બચ્યા.`,
     zeroMicro: (p, n) => `જમીનમાં ${n} ${p.value} પીપીએમ છે, જે ${p.limit} પીપીએમની મર્યાદાથી ઉપર છે. વધુની જરૂર નથી.`,
 
-    warnNoS: () => 'સલ્ફરની ચકાસણી થઈ નથી. ગુજરાતના તેલીબિયાં વિસ્તારોમાં સલ્ફરની ખોટ સામાન્ય છે — આવતી સીઝન પહેલાં ચકાસણી કરાવો.',
-    warnNoZn: () => 'ઝીંકની ચકાસણી થઈ નથી. ગુજરાતમાં ઝીંકની ખોટ વ્યાપક છે — આવતી સીઝન પહેલાં ચકાસણી કરાવો.',
+    warnNoS: () => 'સલ્ફરની ચકાસણી થઈ નથી. ભારતના મૃદા આરોગ્ય કાર્ડ સર્વે મુજબ તેલીબિયાં વિસ્તારોની જમીનમાં સલ્ફરની ખોટ સામાન્ય છે — આવતી સીઝન પહેલાં ચકાસણી કરાવો.',
+    warnNoZn: () => 'ઝીંકની ચકાસણી થઈ નથી. ભારતના મૃદા આરોગ્ય કાર્ડ સર્વે મુજબ ઝીંકની ખોટ વ્યાપક છે — આવતી સીઝન પહેલાં ચકાસણી કરાવો.',
     warnSodic: (p) => `જમીનનો પી.એચ. ${p.ph} ખૂબ ક્ષારીય છે. અહીં ડીએપી બરાબર કામ કરતું નથી — એસએસપી અને એમોનિયમ સલ્ફેટ વધુ સારાં છે.`,
     warnAlkaline: (p) => `જમીનનો પી.એચ. ${p.ph} ક્ષારીય છે. ઉપર પડેલું યુરિયા અહીં ઝડપથી ઊડે છે — તેને જમીનમાં ભેળવો.`,
     warnAcidic: (p) => `જમીનનો પી.એચ. ${p.ph} એસિડિક છે. ફોસ્ફરસ બંધાઈ જાય છે અને પાક સુધી પહોંચતું નથી.`,
@@ -182,7 +182,7 @@ const E = {
     mechLeach: () => 'નાઇટ્રેટનું ઊંડે ઉતરવું',
 
     tierALabel: (p) => `${p.zone} માટે એસટીસીઆર આધારિત`,
-    tierBLabel: () => 'આઈસીએઆર સામાન્ય ભલામણ — એસટીસીઆર અંશાંકન બાકી',
+    tierBLabel: () => 'આઈસીએઆર સામાન્ય ભલામણ — વિસ્તાર-કેલિબ્રેટેડ નથી',
     clear: () => 'પરિસ્થિતિ સારી છે. આગાહીમાં આજે નાખવા સામે કંઈ નથી.',
   },
 };

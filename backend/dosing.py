@@ -44,7 +44,7 @@ def compute_dose(crop: dict, slopes: dict, zone: str, soil: dict, target_yield: 
     """
     crop         entry from crops.json
     slopes       global b coefficients { N, P, K }
-    zone         middle | north | saurashtra
+    zone         middle | north | saurashtra | None (falls back to Tier B)
     soil         { ph, oc, n, p, k, ec, s, zn }
     target_yield q/ha (Tier A only)
     organic      { source, tonnesPerHa } | None

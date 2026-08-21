@@ -53,6 +53,13 @@ def opt_num(v):
 
 r1 = lambda n: round(n * 10) / 10
 
+# STCR (Tier A) equations only exist where a university has actually run the
+# calibration trials — Gujarat's 3 zones here. Everywhere else falls back to
+# Tier B (ICAR published base-dose x soil-class), which is real, nationally
+# applicable data — not a Gujarat-specific label stretched over a place it
+# was never calibrated for.
+GENERIC_ZONE_NAME = {"en": "Your area", "hi": "आपका क्षेत्र", "gu": "તમારો વિસ્તાર"}
+
 
 @app.get("/api/health")
 async def health():
@@ -97,7 +104,7 @@ async def meta():
 async def recommend(body: dict):
     try:
         crop_id = body.get("cropId")
-        zone = body.get("zone") or "middle"
+        zone = body.get("zone") or None
         soil = body.get("soil") or {}
         target_yield_in = body.get("targetYield")
         area_ha = body.get("areaHa") if body.get("areaHa") is not None else 1
@@ -115,7 +122,9 @@ async def recommend(body: dict):
         if not crop:
             raise HTTPException(status_code=400, detail=f"Unknown crop: {crop_id}")
 
-        zone_info = get_zone(zone) or zones[0]
+        zone_info = get_zone(zone)
+        zone_name = zone_info["name"] if zone_info else GENERIC_ZONE_NAME
+        soil_texture = zone_info["soilTexture"] if zone_info else "loamy"
         yield_target = (float(target_yield_in) if target_yield_in not in (None, "") else None) or crop["target"]["default"]
 
         soil_num = {
@@ -155,12 +164,12 @@ async def recommend(body: dict):
         if fc["blocks"]:
             advisory = evaluate(fc["blocks"], {
                 "doseN": d["dose"]["N"] * area_ha, "doseP": d["dose"]["P"] * area_ha,
-                "method": method, "phBand": d["phBand"], "soilTexture": zone_info["soilTexture"],
+                "method": method, "phBand": d["phBand"], "soilTexture": soil_texture,
                 "waterlogged": waterlogged, "criticalStage": False,
             })
             if sowing_date:
                 pattern = split_patterns.get(crop["split"]) or split_patterns["cereal3"]
-                calendar = build_calendar(crop, pattern, sowing_date, d["dose"], fc["blocks"], {"method": method, "phBand": d["phBand"], "soilTexture": zone_info["soilTexture"]})
+                calendar = build_calendar(crop, pattern, sowing_date, d["dose"], fc["blocks"], {"method": method, "phBand": d["phBand"], "soilTexture": soil_texture})
 
         # 3b. What-if facts — deterministic, so the advisor never has to invent them
         alloc_opts = {"sDeficient": d["sDeficient"], "phBand": d["phBand"], "areaHa": area_ha}
@@ -191,13 +200,13 @@ async def recommend(body: dict):
             "id": f"rec_{int(time.time() * 1000):x}",
             "createdAt": int(time.time() * 1000),
             "cropId": crop["id"], "cropName": crop["name"].get(lang) or crop["name"]["en"], "cropNames": crop["name"],
-            "group": crop["group"], "zone": zone, "zoneName": zone_info["name"], "soilTexture": zone_info["soilTexture"],
+            "group": crop["group"], "zone": zone, "zoneName": zone_name, "soilTexture": soil_texture,
             "areaHa": area_ha, "targetYield": yield_target, "method": method, "irrigation": irrigation, "sowingDate": sowing_date,
             "tier": d["tier"],
             "confidence": (
-                {"tier": "A", "key": "tierALabel", "params": {"zone": zone_info["name"]["en"]}, "zoneNames": zone_info["name"], "label": f"STCR-calibrated for {zone_info['name']['en']}"}
+                {"tier": "A", "key": "tierALabel", "params": {"zone": zone_name["en"]}, "zoneNames": zone_name, "label": f"STCR-calibrated for {zone_name['en']}"}
                 if d["tier"] == "A" else
-                {"tier": "B", "key": "tierBLabel", "params": {}, "label": "ICAR general recommendation — STCR calibration pending"}
+                {"tier": "B", "key": "tierBLabel", "params": {}, "label": "ICAR general recommendation — not zone-calibrated"}
             ),
             "soil": soil_num, "classes": d["classes"], "phBand": d["phBand"], "ecBand": d["ecBand"],
             "dose": d["dose"],
@@ -342,7 +351,9 @@ async def sms_sim(body: dict):
 
     area_ha = num(ha, 1)
     soil_num = {"ph": num(ph, 7.5), "n": num(n, 200), "p": num(p, 15), "k": num(k, 200), "oc": None, "ec": None, "s": None, "zn": None}
-    d = compute_dose(crop, slopes, "middle", soil_num, crop["target"]["default"], None)
+    # No location on an SMS reply — always the generic ICAR tier, never a
+    # guessed Gujarat zone.
+    d = compute_dose(crop, slopes, None, soil_num, crop["target"]["default"], None)
     plan = allocate(d["dose"], {"sDeficient": d["sDeficient"], "phBand": d["phBand"], "areaHa": area_ha})
     blanket_plan = allocate_blanket(d["blanket"], {"areaHa": area_ha})
     cmp = comparison(plan, blanket_plan)

@@ -26,7 +26,7 @@ def _format_when(t_ms: float) -> str:
     dt = datetime.fromtimestamp(t_ms / 1000, tz=_IST)
     return dt.strftime("%A, %-I %p")
 
-SYSTEM = """You are AgriSense, a fertilizer advisor talking to a farmer in Gujarat, India.
+SYSTEM = """You are AgriSense, a fertilizer advisor talking to a farmer in India.
 
 A deterministic agronomy engine has already worked out this farmer's plan from ICAR and
 STCR rules. You are given its complete output as RECOMMENDATION JSON. Your job is to make

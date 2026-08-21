@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { Card, Field, Toggle, Badge } from './ui.jsx';
 import SoilUpload from './SoilUpload.jsx';
 import LocationPicker from './LocationPicker.jsx';
-import { nearestZone } from '../geo.js';
+import { nearestZone, MAX_ZONE_COVERAGE_KM } from '../geo.js';
 
 const ZONE_DEFAULTS = {
   middle: { ph: 7.6, oc: 0.45, n: 210, p: 22, k: 245, ec: 0.4, s: 9, zn: 0.5 },
@@ -38,10 +38,14 @@ export default function Wizard({ meta, t, lang, onSubmit, busy, error }) {
 
   // The zone is derived from wherever the farmer's field actually is (nearest
   // centroid to the picked point) rather than asked for directly — same
-  // input the dosing engine has always used, just no longer a guess.
+  // input the dosing engine has always used, just no longer a guess. Only
+  // Gujarat has real STCR calibration, so a point too far from all 3 zones
+  // gets no zone at all — the engine falls back to the generic ICAR tier
+  // rather than a wrong Gujarat zone being asserted for it.
   const zoneMatch = useMemo(() => nearestZone(form.lat, form.lon, meta.zones), [form.lat, form.lon, meta.zones]);
-  const zoneId = zoneMatch?.zone?.id;
-  const tier = crop?.tier?.[zoneId] || 'B';
+  const inCoverage = !!zoneMatch && zoneMatch.distanceKm <= MAX_ZONE_COVERAGE_KM;
+  const zoneId = inCoverage ? zoneMatch.zone.id : null;
+  const tier = (zoneId && crop?.tier?.[zoneId]) || 'B';
 
   const groups = useMemo(() => {
     const g = {};
@@ -172,10 +176,12 @@ export default function Wizard({ meta, t, lang, onSubmit, busy, error }) {
               <Num label={t('zinc')} v={form.zn} on={(v) => set('zn', v)} step="0.01" unit="ppm" badge={t('optional')} />
             </div>
 
-            <button type="button" onClick={fillDefaults}
-              className="w-full border border-dashed border-leaf-400 bg-white px-4 py-3 text-sm font-bold text-leaf-700 hover:bg-sprout transition">
-              {t('noCard')}
-            </button>
+            {zoneId && (
+              <button type="button" onClick={fillDefaults}
+                className="w-full border border-dashed border-leaf-400 bg-white px-4 py-3 text-sm font-bold text-leaf-700 hover:bg-sprout transition">
+                {t('noCard')}
+              </button>
+            )}
             {usedDefaults && (
               <p className="text-xs text-earth-700 bg-earth-50 border border-earth-300 px-3 py-2">
                 {t('usedDefaults')}
