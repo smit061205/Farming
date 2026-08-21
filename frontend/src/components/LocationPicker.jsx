@@ -1,8 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { nearestZone, MAX_ZONE_COVERAGE_KM } from '../geo.js';
-
 // Custom pin — avoids Leaflet's default marker PNGs, which need manual
 // asset-path fixes to survive a Vite bundle.
 const PIN = L.divIcon({
@@ -14,14 +12,11 @@ const PIN = L.divIcon({
 });
 
 /**
- * Type-to-search (Open-Meteo's free geocoder) + a clickable map, replacing a
- * manual 3-card zone pick. The agro-climatic zone itself is still exactly
- * what the dosing engine uses — it's now derived from the real point picked
- * here (nearest zone centroid) instead of asked for directly, so a farmer
- * who doesn't know which of three broad zones they're in no longer has to
- * guess.
+ * Type-to-search (Open-Meteo's free geocoder) + a clickable map for picking
+ * exactly where the field is. The dosing engine calibrates against this
+ * point directly — nothing about zones is surfaced here.
  */
-export default function LocationPicker({ lat, lon, onChange, onPlaceChange, zones, t, lang }) {
+export default function LocationPicker({ lat, lon, onChange, onPlaceChange, t }) {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
   const [searching, setSearching] = useState(false);
@@ -134,9 +129,6 @@ export default function LocationPicker({ lat, lon, onChange, onPlaceChange, zone
     );
   };
 
-  const match = nearestZone(lat, lon, zones);
-  const outOfCoverage = match && match.distanceKm > MAX_ZONE_COVERAGE_KM;
-
   return (
     <div>
       <div className="flex items-center gap-2">
@@ -180,24 +172,6 @@ export default function LocationPicker({ lat, lon, onChange, onPlaceChange, zone
       <div ref={mapRef} className="h-56 mt-3 border border-leaf-300" />
 
       <p className="hint">{t('locationHint')}</p>
-
-      {match && !outOfCoverage && (
-        <div className="mt-2 flex items-center gap-2 text-xs">
-          <span className="chip bg-sprout text-leaf-700">
-            {match.zone.name[lang] || match.zone.name.en}
-          </span>
-          <span className="text-leaf-500">{t('nearestZoneNote')}</span>
-        </div>
-      )}
-
-      {outOfCoverage && (
-        <div className="mt-2 flex items-center gap-2 text-xs">
-          <span className="chip bg-leaf-100 text-leaf-700 border border-leaf-300">
-            {t('genericTierChip')}
-          </span>
-          <span className="text-leaf-500">{t('genericTierNote')}</span>
-        </div>
-      )}
     </div>
   );
 }

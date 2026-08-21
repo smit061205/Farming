@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Card, Field, Toggle, Badge } from './ui.jsx';
+import { Card, Field, Toggle } from './ui.jsx';
 import SoilUpload from './SoilUpload.jsx';
 import LocationPicker from './LocationPicker.jsx';
 import { nearestZone, MAX_ZONE_COVERAGE_KM } from '../geo.js';
@@ -203,9 +203,7 @@ export default function Wizard({ meta, t, lang, onSubmit, busy, error }) {
               lon={form.lon}
               onChange={(lat, lon) => setForm((f) => ({ ...f, lat, lon }))}
               onPlaceChange={(place) => set('place', place)}
-              zones={meta.zones}
               t={t}
-              lang={lang}
             />
 
             <div className="grid grid-cols-2 gap-4">
@@ -290,15 +288,6 @@ export default function Wizard({ meta, t, lang, onSubmit, busy, error }) {
                 ))}
               </select>
             </Field>
-
-            <div className="flex items-center gap-2 flex-wrap">
-              <Badge tone={tier === 'A' ? 'leaf' : 'slate'}>
-                {tier === 'A' ? `● ${t('tierA')}` : `○ ${t('tierB')}`}
-              </Badge>
-              <span className="text-xs text-leaf-600/80">
-                {tier === 'A' ? t('tierAExplain') : t('tierBExplain')}
-              </span>
-            </div>
 
             {tier === 'A' && (
               <Field label={t('targetYield')} hint={crop ? yieldRange(crop.target.min, crop.target.max) : ''}>
