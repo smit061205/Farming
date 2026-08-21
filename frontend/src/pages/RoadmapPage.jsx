@@ -21,15 +21,21 @@ const PRODUCT_COLOR = {
   'Muriate of Potash (MOP)': '#9f402d',
 }
 
-function ImpactStat({ icon, label, value, sub, dark }) {
+function ComparisonRow({ icon, label, before, after, unit }) {
   return (
-    <div className={`p-8 rounded-[2rem] soil-shadow ${dark ? 'bg-[#173809] text-white' : 'bg-white'}`}>
-      <div className={`w-14 h-14 rounded-full flex items-center justify-center mb-6 ${dark ? 'bg-white/10' : 'bg-[#173809]/10'}`}>
-        <span className={`material-symbols-outlined text-2xl ${dark ? 'text-[#c5efad]' : 'text-[#173809]'}`}>{icon}</span>
+    <div className="grid grid-cols-3 gap-4 items-center py-5">
+      <div className="flex items-center gap-3">
+        <span className="material-symbols-outlined text-[#173809]/40 text-xl shrink-0">{icon}</span>
+        <span className="text-sm font-bold text-[#173809]">{label}</span>
       </div>
-      <p className={`text-4xl font-headline font-bold mb-1 ${dark ? 'text-[#c5efad]' : 'text-[#173809]'}`}>{value}</p>
-      <p className={`text-sm font-bold uppercase tracking-widest ${dark ? 'text-white/50' : 'text-[#173809]/40'}`}>{label}</p>
-      {sub && <p className={`text-sm mt-3 leading-relaxed ${dark ? 'text-white/70' : 'text-[#43493e]'}`}>{sub}</p>}
+      <div className="text-center">
+        <span className="text-lg md:text-xl font-headline font-bold text-[#173809]/40">{before}</span>
+        {unit && <span className="text-xs text-[#173809]/30 ml-1">{unit}</span>}
+      </div>
+      <div className="text-center">
+        <span className="text-lg md:text-xl font-headline font-bold text-[#173809]">{after}</span>
+        {unit && <span className="text-xs text-[#173809]/50 ml-1">{unit}</span>}
+      </div>
     </div>
   )
 }
@@ -74,32 +80,45 @@ function NutrientBeforeAfter({ label, data }) {
 
 function SeasonTimeline({ seasonPlan }) {
   const [activeId, setActiveId] = useState(seasonPlan.stages[0]?.id)
-  const active = seasonPlan.stages.find(s => s.id === activeId) || seasonPlan.stages[0]
+  const activeIndex = Math.max(0, seasonPlan.stages.findIndex(s => s.id === activeId))
+  const active = seasonPlan.stages[activeIndex] || seasonPlan.stages[0]
   const hasChart = seasonPlan.chart_products.length > 0
+  const stageCount = seasonPlan.stages.length
+  const progressPct = stageCount > 1 ? (activeIndex / (stageCount - 1)) * 100 : 0
 
   return (
     <div>
-      {/* Stage timeline — clickable */}
-      <div className="flex items-center gap-1 mb-8 overflow-x-auto pb-2">
-        {seasonPlan.stages.map((stage, i) => (
-          <div key={stage.id} className="flex items-center shrink-0">
+      {/* Connected visual timeline */}
+      <div className="relative mb-10 px-2">
+        <div className="absolute top-6 left-8 right-8 h-0.5 bg-[#173809]/10" />
+        <div
+          className="absolute top-6 left-8 h-0.5 bg-[#173809] transition-all duration-300"
+          style={{ width: `calc((100% - 4rem) * ${progressPct / 100})` }}
+        />
+        <div className="relative flex justify-between">
+          {seasonPlan.stages.map((stage, i) => (
             <button
+              key={stage.id}
               onClick={() => setActiveId(stage.id)}
-              className={`flex flex-col items-center gap-2 px-4 py-3 rounded-2xl transition-colors ${
-                activeId === stage.id ? 'bg-[#173809] text-white' : 'bg-[#f8f4db] text-[#173809]/60 hover:text-[#173809]'
-              }`}
+              className="flex flex-col items-center gap-2 group"
+              style={{ width: `${100 / stageCount}%` }}
             >
-              <span className="material-symbols-outlined text-xl">{stage.icon}</span>
-              <span className="text-xs font-bold whitespace-nowrap">{stage.label}</span>
+              <div
+                className={`w-12 h-12 rounded-full flex items-center justify-center border-4 border-[#fefae0] transition-colors ${
+                  i <= activeIndex ? 'bg-[#173809] text-white' : 'bg-[#e7e3ca] text-[#173809]/40 group-hover:text-[#173809]/70'
+                } ${stage.id === activeId ? 'ring-2 ring-[#9f402d] ring-offset-2 ring-offset-[#fefae0]' : ''}`}
+              >
+                <span className="material-symbols-outlined text-xl">{stage.icon}</span>
+              </div>
+              <span className={`text-[11px] font-bold text-center leading-tight max-w-[90px] ${stage.id === activeId ? 'text-[#173809]' : 'text-[#173809]/50'}`}>
+                {stage.label}
+              </span>
             </button>
-            {i < seasonPlan.stages.length - 1 && (
-              <span className="material-symbols-outlined text-[#173809]/20 mx-1">chevron_right</span>
-            )}
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
 
-      {/* Active stage detail */}
+      {/* Active stage detail — full explanation, not one-liners */}
       {active && (
         <div className="bg-[#f8f4db] rounded-2xl p-6 md:p-8 mb-8">
           <div className="flex items-center gap-3 mb-5">
@@ -111,14 +130,22 @@ function SeasonTimeline({ seasonPlan }) {
               <p className="text-xs text-[#173809]/50">{active.window}</p>
             </div>
           </div>
-          <ul className="space-y-3">
-            {active.actions.map((action, i) => (
-              <li key={i} className="flex gap-3 text-sm text-[#43493e] leading-relaxed">
-                <span className="material-symbols-outlined text-[#173809]/40 text-[18px] mt-0.5 shrink-0">arrow_right</span>
-                {action}
-              </li>
+
+          {active.problem && (
+            <div className="flex gap-3 bg-[#9f402d]/8 border border-[#9f402d]/15 rounded-xl px-4 py-3.5 mb-5">
+              <span className="material-symbols-outlined text-[#9f402d] text-[20px] shrink-0 mt-0.5">error</span>
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-[#9f402d] mb-1">Current Problem</p>
+                <p className="text-sm text-[#43493e] leading-relaxed">{active.problem}</p>
+              </div>
+            </div>
+          )}
+
+          <div className="space-y-4">
+            {active.guidance.map((paragraph, i) => (
+              <p key={i} className="text-sm text-[#43493e] leading-relaxed">{paragraph}</p>
             ))}
-          </ul>
+          </div>
         </div>
       )}
 
@@ -268,33 +295,52 @@ export default function RoadmapPage() {
                 </div>
               </div>
 
-              {/* ── Impact stats ── */}
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-                <ImpactStat
-                  icon="eco"
-                  label="Less Fertilizer Used"
-                  value={`${impact.fertilizer_reduction_pct}%`}
-                  sub="vs. blanket application without a soil test"
-                  dark
-                />
-                <ImpactStat
-                  icon="cloud"
-                  label="CO₂e Avoided"
-                  value={`${impact.co2e_avoided_kg} kg`}
-                  sub="From unnecessary nitrogen manufacture & runoff"
-                />
-                <ImpactStat
-                  icon="savings"
-                  label="Input Cost Saved"
-                  value={inr(impact.cost.savings_inr)}
-                  sub="On this field, this season"
-                />
-                <ImpactStat
-                  icon="trending_up"
-                  label="Est. Yield Uplift"
-                  value={`+${impact.yield_uplift_pct}%`}
-                  sub={`${impact.reference.crop_yield_kg_ha.toLocaleString('en-IN')} → ${impact.reference.projected_yield_kg_ha.toLocaleString('en-IN')} kg/ha · ${inr(impact.income.net_income_impact_inr)} net`}
-                />
+              {/* ── Previous approach vs. this plan ── */}
+              <div className="bg-white rounded-[2.5rem] p-8 md:p-10 border border-[#173809]/8 shadow-sm mb-8">
+                <div className="mb-2">
+                  <span className="text-[#9f402d] font-headline font-bold tracking-widest text-xs uppercase mb-1 block">The Comparison</span>
+                  <h3 className="text-2xl font-headline font-bold text-[#173809]">Previous Approach vs. This Plan</h3>
+                  <p className="text-[#43493e] text-sm mt-2 max-w-2xl">
+                    What a blanket application without a soil test would have cost this field, against what following this plan actually gets you.
+                  </p>
+                </div>
+                <div className="grid grid-cols-3 gap-4 pt-6 pb-2">
+                  <span></span>
+                  <span className="text-center text-[10px] font-bold uppercase tracking-widest text-[#173809]/40">Previous Approach</span>
+                  <span className="text-center text-[10px] font-bold uppercase tracking-widest text-[#9f402d]">This Plan</span>
+                </div>
+                <div className="divide-y divide-[#173809]/8">
+                  <ComparisonRow
+                    icon="savings"
+                    label="Fertilizer Cost"
+                    before={inr(impact.cost.baseline_inr)}
+                    after={inr(impact.cost.recommended_inr)}
+                  />
+                  <ComparisonRow
+                    icon="cloud"
+                    label="CO₂e Emitted"
+                    before={impact.co2e.baseline_kg}
+                    after={impact.co2e.recommended_kg}
+                    unit="kg"
+                  />
+                  <ComparisonRow
+                    icon="grass"
+                    label="Expected Yield"
+                    before={impact.reference.crop_yield_kg_ha.toLocaleString('en-IN')}
+                    after={impact.reference.projected_yield_kg_ha.toLocaleString('en-IN')}
+                    unit="kg/ha"
+                  />
+                  <ComparisonRow
+                    icon="favorite"
+                    label="Soil Health Score"
+                    before={impact.health_score}
+                    after={impact.projected_health_score}
+                    unit="/100"
+                  />
+                </div>
+                <p className="text-xs text-[#173809]/40 mt-6">
+                  Net income impact of switching to this plan: {inr(impact.income.net_income_impact_inr)} this season. {impact.disclaimer}
+                </p>
               </div>
 
               {/* ── Per-nutrient before/after ── */}

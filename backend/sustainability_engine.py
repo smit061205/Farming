@@ -101,6 +101,8 @@ def compute_sustainability_impact(dose: dict, ph: float, n_ppm: float, p_ppm: fl
 
     n_avoided_kg = max(0.0, baseline_n_kg_total - recommended_n_kg_total)
     co2e_avoided_kg = round(n_avoided_kg * N_CO2E_PER_KG, 1)
+    baseline_co2e_kg = round(baseline_n_kg_total * N_CO2E_PER_KG, 1)
+    recommended_co2e_kg = round(recommended_n_kg_total * N_CO2E_PER_KG, 1)
 
     health_score = _health_score(ph, n_ppm, p_ppm, k_ppm, dose["crop_type"])
     # More room for improvement when current soil health is worse; capped at 25%.
@@ -129,6 +131,11 @@ def compute_sustainability_impact(dose: dict, ph: float, n_ppm: float, p_ppm: fl
         "sustainability_score": max(0, reduction_pct),
         "fertilizer_reduction_pct": max(0, reduction_pct),
         "co2e_avoided_kg": co2e_avoided_kg,
+        "co2e": {
+            "baseline_kg": baseline_co2e_kg,
+            "recommended_kg": recommended_co2e_kg,
+            "avoided_kg": co2e_avoided_kg,
+        },
         "cost": {
             "recommended_inr": round(recommended_total_cost),
             "baseline_inr": round(baseline_total_cost),
@@ -164,11 +171,14 @@ def build_season_plan(dose: dict, soil: dict) -> dict:
     stage (both are immobile in soil, so they have to reach the root zone at
     sowing) and nitrogen across the same stages the dose engine's own
     weather-aware application_plan already computes, rather than inventing a
-    separate timing scheme.
+    separate timing scheme. Each stage names the current problem (if any)
+    before the guidance, and the guidance itself explains the mechanism and
+    consequence, not just the instruction.
     """
     ph = dose["ph"]
     crop = dose["crop_type"]
     ph_adequacy = soil.get("ph_adequacy")
+    soil_type = (soil.get("soilType") or soil.get("soil_type") or "loam").lower()
     lime_req = soil.get("lime_requirement_kg_ha") or 0
     n, p, k = dose["nutrients"]["nitrogen"], dose["nutrients"]["phosphorus"], dose["nutrients"]["potassium"]
     application_plan = dose.get("application_plan") or [{"stage": "Now", "pct_of_nitrogen": 100}]
@@ -177,116 +187,233 @@ def build_season_plan(dose: dict, soil: dict) -> dict:
     stages = []
 
     # ── Stage 1: Soil Preparation ──
-    prep_actions = []
+    prep_problem = None
+    prep_guidance = []
     if ph_adequacy == "critical" or ph < 5.5 or ph > 8.5:
         if ph < 6.0:
-            prep_actions.append(
-                f"Apply agricultural lime at roughly {lime_req} kg/ha, worked into the top "
-                f"15cm of soil. Retest in 4-6 weeks — nutrients applied to acidic, "
-                f"uncorrected soil are largely locked up and wasted."
+            prep_problem = (
+                f"This field's pH is {ph}, which is too acidic for {crop}. Below roughly pH 6.0, "
+                f"phosphorus starts binding with iron and aluminum in the soil into forms roots "
+                f"can barely reach, and several micronutrients become less available too — so a "
+                f"real share of whatever fertilizer gets applied later in the season won't "
+                f"actually be usable by the plant, no matter how precisely it's dosed."
+            )
+            prep_guidance.append(
+                f"Apply agricultural lime at roughly {lime_req} kg/ha, worked into the top 15cm "
+                f"of soil so it reacts with the acidity through the full root zone rather than "
+                f"sitting on the surface. Lime takes several weeks to neutralize soil acidity, "
+                f"which is exactly why this has to happen well before sowing — applying it "
+                f"alongside basal fertilizer is too late to help this season's crop."
+            )
+            prep_guidance.append(
+                f"Retest in 4-6 weeks to confirm pH is trending toward 6.5. {soil_type.capitalize()} "
+                f"soils in particular can have enough buffering capacity that the standard lime "
+                f"estimate undershoots — if the retest still shows acidity, a second, smaller "
+                f"application is normal rather than a sign anything went wrong."
             )
         else:
-            prep_actions.append(
-                f"Apply elemental sulfur or gypsum to bring pH down from {ph}. Retest in "
-                f"4-6 weeks before the rest of this plan can work as calculated."
+            prep_problem = (
+                f"This field's pH is {ph}, which is too alkaline for {crop}. Above roughly pH 7.5, "
+                f"phosphorus binds with calcium into compounds roots can't dissolve, and "
+                f"micronutrients like iron and zinc become significantly less available — the "
+                f"same underlying problem as acidic soil, just from the other direction."
             )
+            prep_guidance.append(
+                f"Apply elemental sulfur or gypsum to bring pH down toward 6.5. Sulfur works by "
+                f"oxidizing into sulfuric acid with the help of soil bacteria over several weeks, "
+                f"so — like lime — there's no fast version of this correction; it needs real lead "
+                f"time before sowing."
+            )
+            prep_guidance.append("Retest in 4-6 weeks to confirm it's moving in the right direction before committing to this season's full fertilizer plan.")
     elif ph_adequacy == "slightly off":
-        prep_actions.append(
-            f"pH {ph} is a little outside the 6.0-7.5 range {crop} prefers. A light "
-            f"{'lime' if ph < 6.0 else 'sulfur or gypsum'} application now will improve "
-            f"how well the rest of this plan performs."
+        prep_problem = (
+            f"pH {ph} is a little outside the 6.0-7.5 range {crop} does best in — not severe "
+            f"enough to block nutrient uptake outright, but enough to quietly reduce how "
+            f"efficiently the fertilizer applied later in the season actually gets used."
+        )
+        prep_guidance.append(
+            f"A light {'lime' if ph < 6.0 else 'sulfur or gypsum'} application now, well ahead of "
+            f"sowing, nudges pH back into range and improves how much of this plan's nitrogen, "
+            f"phosphorus, and potassium the crop can actually take up."
         )
     else:
-        prep_actions.append(f"pH {ph} is already in a good range for {crop} — no correction needed before sowing.")
+        prep_guidance.append(
+            f"pH {ph} already sits in the 6.0-7.5 range where {crop} can take up nitrogen, "
+            f"phosphorus, and potassium efficiently, so no correction is needed before sowing. "
+            f"It's still worth rechecking after harvest — intensive cropping and repeated "
+            f"fertilizer use can shift pH gradually over several seasons even from a good "
+            f"starting point."
+        )
     stages.append({
         "id": "prep", "label": "Soil Preparation", "window": "2-3 weeks before sowing",
-        "icon": "science", "actions": prep_actions, "product_kg": {},
+        "icon": "science", "problem": prep_problem, "guidance": prep_guidance, "product_kg": {},
     })
 
     # ── Stage 2: Sowing / Basal Dose — P and K don't move in soil, so both
     #    go in fully now regardless of the nitrogen timing split ──
-    basal_actions = []
+    basal_problems = []
+    basal_guidance = []
     basal_product_kg = {}
     for label, data in (("phosphorus", p), ("potassium", k)):
         if data["status"] == "excess":
-            basal_actions.append(f"Skip {label} — soil already holds {data['surplus_kg_ha']} kg/ha more than {crop} needs.")
-        elif data["product_kg_total"] > 0:
-            basal_actions.append(
-                f"Apply the full {data['product_kg_total']} kg of {data['product']} now, worked "
-                f"into the root zone — {label} barely moves through soil, so it has to go in at "
-                f"sowing to be reachable once roots need it."
+            basal_problems.append(
+                f"Soil {label} is already {data['available_kg_ha']} kg/ha against a "
+                f"{data['target_kg_ha']} kg/ha target for {crop} — {data['surplus_kg_ha']} kg/ha "
+                f"more than the crop can use this season."
             )
-            basal_product_kg[data["product"]] = round(basal_product_kg.get(data["product"], 0) + data["product_kg_total"], 1)
+            basal_guidance.append(
+                f"Skip {label} at sowing. Unlike nitrogen, {label} doesn't get consumed or "
+                f"washed away quickly if unused — the surplus already sitting in this soil will "
+                f"still be there for the crop to draw on. Adding more on top doesn't raise yield; "
+                f"it just accumulates further and, over several seasons of continued over-application, "
+                f"can start interfering with the uptake of other nutrients."
+            )
+        elif data["product_kg_total"] > 0:
+            basal_problems.append(
+                f"Soil {label} is short by {data['deficit_kg_ha']} kg/ha against what {crop} "
+                f"needs this season."
+            )
+            basal_guidance.append(
+                f"Apply the full {data['product_kg_total']} kg of {data['product']} now, worked "
+                f"into the root zone rather than left on the surface. {label.capitalize()} barely "
+                f"moves through soil once applied — it stays close to where it lands — so unlike "
+                f"nitrogen it can't be top-dressed later and expected to reach the roots in time. "
+                f"Missing this window generally means the crop runs short on {label} for the "
+                f"entire season, not just a temporary dip."
+            )
         else:
-            basal_actions.append(f"{label.capitalize()} is already at target — nothing to add.")
+            basal_guidance.append(f"{label.capitalize()} is already at target — nothing to add here.")
 
     first_n_pct = application_plan[0]["pct_of_nitrogen"]
     basal_n_kg = round(n["product_kg_total"] * first_n_pct / 100, 1) if n["product_kg_total"] > 0 else 0
     if n["status"] == "excess":
-        basal_actions.append(f"Skip nitrogen at sowing too — soil already holds {n['surplus_kg_ha']} kg/ha more than needed.")
+        basal_problems.append(f"Soil nitrogen is already {n['surplus_kg_ha']} kg/ha above what {crop} needs.")
+        basal_guidance.append("Skip nitrogen at sowing too, for the same reason as above — there's already more in the soil than this crop will use.")
     elif basal_n_kg > 0:
-        basal_actions.append(f"Apply {basal_n_kg} kg of {n['product']} ({first_n_pct}% of the season's nitrogen) at sowing.")
+        basal_guidance.append(
+            f"Apply {basal_n_kg} kg of {n['product']} ({first_n_pct}% of the season's nitrogen "
+            f"dose) at sowing. Nitrogen moves through soil easily and is taken up steadily as the "
+            f"crop grows, which is why — unlike phosphorus and potassium — it doesn't all have to "
+            f"go in on day one; the remainder of the dose is timed for the vegetative stage below."
+        )
         basal_product_kg[n["product"]] = round(basal_product_kg.get(n["product"], 0) + basal_n_kg, 1)
 
+    for label, data in (("phosphorus", p), ("potassium", k)):
+        if data["status"] not in ("excess",) and data["product_kg_total"] > 0:
+            basal_product_kg[data["product"]] = round(basal_product_kg.get(data["product"], 0) + data["product_kg_total"], 1)
+
     stages.append({
-        "id": "sowing", "label": "Sowing", "window": "At sowing / transplanting",
-        "icon": "grass", "actions": basal_actions, "product_kg": basal_product_kg,
+        "id": "sowing", "label": "Sowing", "window": "At sowing / transplanting", "icon": "grass",
+        "problem": " ".join(basal_problems) if basal_problems else None,
+        "guidance": basal_guidance, "product_kg": basal_product_kg,
     })
 
     # ── Stage 3: Vegetative Growth / Top-Dress — remaining nitrogen ──
-    veg_actions = []
+    veg_problem = None
+    veg_guidance = []
     veg_product_kg = {}
     if n["status"] == "excess":
-        veg_actions.append("No nitrogen top-dress needed — the excess already in the soil will carry the crop through vegetative growth.")
+        veg_guidance.append("No nitrogen top-dress needed here — the excess already sitting in the soil will carry the crop through vegetative growth on its own.")
     elif len(application_plan) > 1 and n["product_kg_total"] > 0:
         remaining_pct = application_plan[1]["pct_of_nitrogen"]
         remaining_n_kg = round(n["product_kg_total"] * remaining_pct / 100, 1)
-        veg_actions.append(f"Apply the remaining {remaining_n_kg} kg of {n['product']} ({remaining_pct}% of the season's nitrogen) at {application_plan[1]['stage']}.")
-        veg_product_kg[n["product"]] = remaining_n_kg
         if weather.get("high_rain_risk"):
-            veg_actions.append(
-                f"This split exists because {weather.get('rain_forecast_mm_5d')}mm of rain is "
-                f"forecast in the next 5 days — applying the full dose at sowing would mean "
-                f"losing a chunk of it to runoff before the crop could use it."
+            veg_problem = (
+                f"{weather.get('rain_forecast_mm_5d')}mm of rain is forecast in the next 5 days — "
+                f"nitrogen applied as a single dose right before that much rain would lose a "
+                f"meaningful share to runoff and leaching before the crop had a chance to use it."
             )
-    elif n["product_kg_total"] > 0:
-        veg_actions.append("Nitrogen was fully covered at sowing — no top-dress needed this stage.")
-    else:
-        veg_actions.append("Nitrogen is already at target — no top-dress needed this stage.")
-    if weather.get("heat_volatilization_risk"):
-        veg_actions.append(
-            f"Average temperatures are forecast around {weather.get('avg_temp_c')}°C — "
-            f"incorporate any urea into the soil rather than surface-broadcasting it, or a "
-            f"meaningful share will be lost to ammonia volatilization."
+        veg_guidance.append(
+            f"Apply the remaining {remaining_n_kg} kg of {n['product']} ({remaining_pct}% of the "
+            f"season's nitrogen) around {application_plan[1]['stage']}. Splitting the dose this "
+            f"way means less nitrogen is sitting in the soil at any one time waiting to be taken "
+            f"up, which is exactly the window during which rain can wash it away — so the split "
+            f"isn't just about timing convenience, it directly reduces how much of what you paid "
+            f"for actually reaches the crop."
         )
+        veg_product_kg[n["product"]] = remaining_n_kg
+    elif n["product_kg_total"] > 0:
+        veg_guidance.append("Nitrogen was fully covered at sowing — no separate top-dress needed at this stage.")
+    else:
+        veg_guidance.append("Nitrogen is already at target — no top-dress needed at this stage.")
+    if weather.get("heat_volatilization_risk"):
+        heat_note = (
+            f"Average temperatures are forecast around {weather.get('avg_temp_c')}°C during this "
+            f"window. Urea left on the soil surface in hot conditions loses nitrogen to the air as "
+            f"ammonia gas within days — incorporating it into the soil instead of "
+            f"surface-broadcasting keeps that nitrogen where the crop can still reach it."
+        )
+        veg_guidance.append(heat_note)
+        veg_problem = (veg_problem + " " if veg_problem else "") + f"Heat volatilization risk is elevated (avg {weather.get('avg_temp_c')}°C forecast)."
     stages.append({
         "id": "vegetative", "label": "Vegetative Growth",
         "window": application_plan[1]["stage"] if len(application_plan) > 1 else "~3-4 weeks after sowing",
-        "icon": "eco", "actions": veg_actions, "product_kg": veg_product_kg,
+        "icon": "eco", "problem": veg_problem, "guidance": veg_guidance, "product_kg": veg_product_kg,
     })
 
     # ── Stage 4: Flowering & Fill — monitoring, not new inputs ──
-    flowering_actions = ["No new fertilizer is typically needed here if the basal and top-dress doses above were applied on schedule."]
+    flowering_problem = None
+    flowering_guidance = [
+        "No new fertilizer is typically needed at this stage if the basal and top-dress doses "
+        "above were applied on schedule — this window is about monitoring the crop's response, "
+        "not adding more inputs."
+    ]
+    short_nutrients = []
+    watch_points = []
     if p["status"] == "deficient":
-        flowering_actions.append("Watch for phosphorus deficiency signs — dark or purple-tinged leaves, delayed flowering — a hint this crop may still be short despite the basal dose.")
+        short_nutrients.append("phosphorus")
+        watch_points.append(
+            "phosphorus deficiency — dark or purple-tinged leaves and delayed flowering — since "
+            "this field started short on phosphorus and the basal dose may not fully close the "
+            "gap in time for peak demand during flowering"
+        )
     if k["status"] == "deficient":
-        flowering_actions.append("Watch for potassium deficiency signs — scorched leaf edges, weak stems — since this field started short on potassium; a light foliar feed can help if symptoms appear.")
+        short_nutrients.append("potassium")
+        watch_points.append(
+            "potassium deficiency — scorched or yellowing leaf edges and weak stems — since this "
+            "field started short on potassium, which the crop draws on heavily during grain or "
+            "fruit fill for water regulation and starch/sugar transport"
+        )
+    if watch_points:
+        flowering_problem = (
+            f"This field entered the season short on {' and '.join(short_nutrients)}, "
+            f"so it's worth watching for symptoms even after the basal dose."
+        )
+        flowering_guidance.append(
+            "Watch specifically for " + "; and ".join(watch_points) +
+            ". A light foliar feed can help if either shows up mid-season, since it acts faster than another soil application at this point in the crop's cycle."
+        )
     stages.append({
         "id": "flowering", "label": "Flowering & Fill", "window": "Flowering through grain/fruit fill",
-        "icon": "local_florist", "actions": flowering_actions, "product_kg": {},
+        "icon": "local_florist", "problem": flowering_problem, "guidance": flowering_guidance, "product_kg": {},
     })
 
     # ── Stage 5: Post-Harvest — reset for next season ──
-    post_actions = ["Re-test your soil — this season's crop will have drawn down nutrients differently than this plan assumed."]
+    post_problem = None
+    post_guidance = [
+        "Re-test your soil after harvest. This season's crop will have drawn nitrogen, "
+        "phosphorus, and potassium down by different amounts than this plan assumed, and "
+        "whatever was applied doesn't simply reset to zero — starting next season on last "
+        "season's soil test, rather than a fresh one, is one of the most common ways over- or "
+        "under-application creeps back in."
+    ]
     om = soil.get("organic_matter_pct")
     if om is not None and om < 2.0:
-        post_actions.append(f"Organic matter is only {om}% — work in compost, farmyard manure, or a green-manure cover crop before the next season to rebuild it.")
+        post_problem = f"Organic matter is only {om}%, well below the 3-5% range that meaningfully improves water retention and nutrient holding capacity."
+        post_guidance.append(
+            "Work in compost, farmyard manure, or a green-manure cover crop before the next "
+            "season. Organic matter acts as a slow-release nutrient reserve and buffer against "
+            "both drought stress and nutrient leaching — it's a multi-season investment, not "
+            "something a single application fixes, but it compounds if kept up between seasons."
+        )
     if soil.get("salinity_risk") == "high":
-        post_actions.append("Salinity risk is elevated — improve drainage where possible and consider a gypsum application before next season.")
-    post_actions.append("Come back here once your new soil test is in — this plan regenerates from your latest reading.")
+        salinity_note = "Salinity risk is elevated based on this field's potassium level — worth addressing before it affects germination next season."
+        post_problem = (post_problem + " " if post_problem else "") + salinity_note
+        post_guidance.append("Improve field drainage where possible and consider a gypsum application before next season to help leach excess salts below the root zone.")
+    post_guidance.append("Come back here once the new soil test is in — this whole plan regenerates from the latest reading, not the one it was built from today.")
     stages.append({
         "id": "post-harvest", "label": "Post-Harvest", "window": "After harvest, before next season",
-        "icon": "history", "actions": post_actions, "product_kg": {},
+        "icon": "history", "problem": post_problem, "guidance": post_guidance, "product_kg": {},
     })
 
     # Chart data: kg of each product applied at each stage, for a season-wide view
