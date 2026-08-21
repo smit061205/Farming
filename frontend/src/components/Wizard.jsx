@@ -20,6 +20,20 @@ const HA_PER_ACRE = 0.404686;
 // = 100 kg = 0.1 tonne, both exact SI-derived conversions.
 const QUINTAL_PER_UNIT = { quintal: 1, tonne: 10, kg: 0.01 };
 
+// Keep browser limits aligned with backend/validation.py. These are broad
+// agronomic safety bounds, not a target for every field.
+const LIMITS = {
+  areaHa: [0.01, 10000],
+  ph: [0, 14], oc: [0, 5], n: [0, 2000], p: [0, 500], k: [0, 2000],
+  ec: [0, 20], s: [0, 200], zn: [0, 50], organicTonnes: [0, 100], budget: [0, 100000000],
+};
+
+const inRange = (value, [min, max], optional = false) => {
+  if (value === '' || value == null) return optional;
+  const n = Number(value);
+  return Number.isFinite(n) && n >= min && n <= max;
+};
+
 export default function Wizard({ meta, t, lang, onSubmit, busy, error }) {
   const [step, setStep] = useState(1);
   const [usedDefaults, setUsedDefaults] = useState(false);
@@ -104,9 +118,7 @@ export default function Wizard({ meta, t, lang, onSubmit, busy, error }) {
   const onAreaTextChange = (v) => {
     setAreaText(v);
     const num = parseFloat(v);
-    if (!isNaN(num)) {
-      set('areaHa', areaUnit === 'acre' ? num * HA_PER_ACRE : num);
-    }
+    set('areaHa', isNaN(num) ? '' : areaUnit === 'acre' ? num * HA_PER_ACRE : num);
   };
 
   const onAreaUnitChange = (unit) => {
@@ -140,11 +152,24 @@ export default function Wizard({ meta, t, lang, onSubmit, busy, error }) {
     return `${r(min)}–${r(max)}`;
   };
 
+  const soilRequiredValid = ['ph', 'n', 'p', 'k'].every((key) => inRange(form[key], LIMITS[key]));
+  const soilOptionalValid = ['oc', 'ec', 's', 'zn'].every((key) => inRange(form[key], LIMITS[key], true));
+  const targetValid = tier !== 'A' || yieldText === '' || (
+    form.targetYield !== '' && inRange(
+      form.targetYield,
+      crop ? [crop.target.min, crop.target.max] : [0.01, 1000],
+    )
+  );
+  const organicValid = !form.organicId
+    ? form.organicTonnes === ''
+    : inRange(form.organicTonnes, LIMITS.organicTonnes);
+  const budgetValid = inRange(form.budget, LIMITS.budget, true);
+
   const canNext =
-    step === 1 ? form.areaHa > 0
-    : step === 2 ? form.ph !== '' && form.n !== '' && form.p !== '' && form.k !== ''
-    : step === 3 ? !!form.cropId && !!form.sowingDate
-    : true;
+    step === 1 ? inRange(form.areaHa, LIMITS.areaHa)
+    : step === 2 ? soilRequiredValid && soilOptionalValid
+    : step === 3 ? !!form.cropId && (form.alreadySown || !!form.sowingDate) && targetValid
+    : organicValid && budgetValid;
 
   const submit = () => {
     onSubmit({
@@ -209,7 +234,10 @@ export default function Wizard({ meta, t, lang, onSubmit, busy, error }) {
             <div className="grid grid-cols-2 gap-4">
               <Field label={t('area')}>
                 <div className="flex gap-2">
-                  <input type="number" step="0.01" min="0.01" className="field tabular-nums flex-1"
+                  <input type="number" step="0.01"
+                    min={areaUnit === 'acre' ? LIMITS.areaHa[0] / HA_PER_ACRE : LIMITS.areaHa[0]}
+                    max={areaUnit === 'acre' ? LIMITS.areaHa[1] / HA_PER_ACRE : LIMITS.areaHa[1]}
+                    className="field tabular-nums flex-1"
                     value={areaText} onChange={(e) => onAreaTextChange(e.target.value)} />
                   <select className="field w-[6.5rem]" value={areaUnit} onChange={(e) => onAreaUnitChange(e.target.value)}>
                     <option value="ha">{t('unitHectare')}</option>
@@ -246,20 +274,20 @@ export default function Wizard({ meta, t, lang, onSubmit, busy, error }) {
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              <Num label={t('ph')} v={form.ph} on={(v) => set('ph', v)} step="0.1" ph />
-              <Num label={t('oc')} v={form.oc} on={(v) => set('oc', v)} step="0.01" unit="%" badge={t('optional')} />
+              <Num label={t('ph')} v={form.ph} on={(v) => set('ph', v)} step="0.1" min={LIMITS.ph[0]} max={LIMITS.ph[1]} />
+              <Num label={t('oc')} v={form.oc} on={(v) => set('oc', v)} step="0.01" min={LIMITS.oc[0]} max={LIMITS.oc[1]} unit="%" badge={t('optional')} />
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <Num label={t('availN')} v={form.n} on={(v) => set('n', v)} unit="kg/ha" />
-              <Num label={t('availP')} v={form.p} on={(v) => set('p', v)} unit="kg/ha" />
-              <Num label={t('availK')} v={form.k} on={(v) => set('k', v)} unit="kg/ha" />
+              <Num label={t('availN')} v={form.n} on={(v) => set('n', v)} max={LIMITS.n[1]} unit="kg/ha" />
+              <Num label={t('availP')} v={form.p} on={(v) => set('p', v)} max={LIMITS.p[1]} unit="kg/ha" />
+              <Num label={t('availK')} v={form.k} on={(v) => set('k', v)} max={LIMITS.k[1]} unit="kg/ha" />
             </div>
 
             <div className="grid grid-cols-3 gap-4">
-              <Num label={t('ec')} v={form.ec} on={(v) => set('ec', v)} step="0.1" unit="dS/m" badge={t('optional')} />
-              <Num label={t('sulphur')} v={form.s} on={(v) => set('s', v)} step="0.1" unit="ppm" badge={t('optional')} />
-              <Num label={t('zinc')} v={form.zn} on={(v) => set('zn', v)} step="0.01" unit="ppm" badge={t('optional')} />
+              <Num label={t('ec')} v={form.ec} on={(v) => set('ec', v)} step="0.1" max={LIMITS.ec[1]} unit="dS/m" badge={t('optional')} />
+              <Num label={t('sulphur')} v={form.s} on={(v) => set('s', v)} step="0.1" max={LIMITS.s[1]} unit="ppm" badge={t('optional')} />
+              <Num label={t('zinc')} v={form.zn} on={(v) => set('zn', v)} step="0.01" max={LIMITS.zn[1]} unit="ppm" badge={t('optional')} />
             </div>
 
             <button type="button" onClick={fillDefaults}
@@ -292,7 +320,10 @@ export default function Wizard({ meta, t, lang, onSubmit, busy, error }) {
             {tier === 'A' && (
               <Field label={t('targetYield')} hint={crop ? yieldRange(crop.target.min, crop.target.max) : ''}>
                 <div className="flex gap-2">
-                  <input type="number" step="0.01" className="field tabular-nums flex-1"
+                  <input type="number" step="0.01"
+                    min={crop ? crop.target.min / QUINTAL_PER_UNIT[yieldUnit] : 0.01}
+                    max={crop ? crop.target.max / QUINTAL_PER_UNIT[yieldUnit] : 1000}
+                    className="field tabular-nums flex-1"
                     placeholder={crop ? String(Math.round((crop.target.default / QUINTAL_PER_UNIT[yieldUnit]) * 100) / 100) : ''}
                     value={yieldText} onChange={(e) => onYieldTextChange(e.target.value)} />
                   <select className="field w-28" value={yieldUnit} onChange={(e) => onYieldUnitChange(e.target.value)}>
@@ -346,7 +377,7 @@ export default function Wizard({ meta, t, lang, onSubmit, busy, error }) {
                   <option value="">{t('organicNone')}</option>
                   {meta.organics.map((o) => <option key={o.id} value={o.id}>{o.name[lang] || o.name.en}</option>)}
                 </select>
-                <input type="number" step="0.5" min="0" disabled={!form.organicId}
+                <input type="number" step="0.5" min={LIMITS.organicTonnes[0]} max={LIMITS.organicTonnes[1]} disabled={!form.organicId}
                   placeholder={t('tonnesHa')} className="field tabular-nums disabled:bg-leaf-50/50"
                   value={form.organicTonnes} onChange={(e) => set('organicTonnes', e.target.value)} />
               </div>
@@ -354,7 +385,7 @@ export default function Wizard({ meta, t, lang, onSubmit, busy, error }) {
 
             <Field label={t('budgetQ')} hint={t('budgetHint')}>
               <input
-                type="number" min="0" step="100" inputMode="numeric"
+                type="number" min={LIMITS.budget[0]} max={LIMITS.budget[1]} step="100" inputMode="numeric"
                 className="field tabular-nums"
                 placeholder="₹"
                 value={form.budget}
@@ -383,7 +414,7 @@ export default function Wizard({ meta, t, lang, onSubmit, busy, error }) {
               {t('next')}
             </button>
           ) : (
-            <button type="button" className="btn-primary flex-1" disabled={busy} onClick={submit}>
+            <button type="button" className="btn-primary flex-1" disabled={busy || !canNext} onClick={submit}>
               {busy ? t('calculating') : t('calculate')}
             </button>
           )}
@@ -400,12 +431,12 @@ const Head = ({ title, sub }) => (
   </div>
 );
 
-function Num({ label, v, on, step = '1', unit, badge, ph }) {
+function Num({ label, v, on, step = '1', unit, badge, min = 0, max }) {
   return (
     <Field label={label} badge={badge} hint={unit}>
       <input
         type="number" step={step} inputMode="decimal"
-        min={ph ? 3 : 0} max={ph ? 10 : undefined}
+        min={min} max={max}
         className="field tabular-nums text-lg font-semibold"
         value={v} onChange={(e) => on(e.target.value)} placeholder="—"
       />

@@ -198,6 +198,14 @@ const S = {
     suggest3: 'Can I use DAP instead?',
     suggest4: 'What if I only have ₹3000?',
 
+    cropSuggestionsPlan: 'Other crops that may suit this field',
+    cropSuggestionsSoil: 'Crops to consider next season',
+    cropSuggestionsSub: 'Three suggestions based only on the details you entered in the wizard.',
+    cropSuggestionsLoading: 'Finding crops that fit your field…',
+    cropSuggestionsUnavailable: 'Crop suggestions are unavailable right now.',
+    cropSuggestionsCatalog: 'Catalog suggestions',
+    cropSuggestionsNote: 'These are suggestions, not a guarantee. Confirm seed, water, and market conditions with a local advisor.',
+
     // trust
     warnings: 'Things to check',
     confidence: 'Confidence',
@@ -340,6 +348,14 @@ const S = {
     suggest1: 'मेरा पोटाश शून्य क्यों है?', suggest2: 'ठीक कब डालूँ?',
     suggest3: 'क्या डीएपी इस्तेमाल कर सकता हूँ?', suggest4: 'अगर मेरे पास सिर्फ़ ₹3000 हों?',
 
+    cropSuggestionsPlan: 'इस खेत के लिए उपयुक्त अन्य फसलें',
+    cropSuggestionsSoil: 'अगले मौसम के लिए फसलें',
+    cropSuggestionsSub: 'आपने विज़ार्ड में जो जानकारी दी है, उसके आधार पर तीन सुझाव।',
+    cropSuggestionsLoading: 'आपके खेत के लिए फसलें देखी जा रही हैं…',
+    cropSuggestionsUnavailable: 'अभी फसल सुझाव उपलब्ध नहीं हैं।',
+    cropSuggestionsCatalog: 'कैटलॉग सुझाव',
+    cropSuggestionsNote: 'ये सुझाव हैं, गारंटी नहीं। बीज, पानी और बाजार की स्थिति स्थानीय सलाहकार से पक्की करें।',
+
     warnings: 'ध्यान देने योग्य', confidence: 'विश्वसनीयता',
     tierAExplain: 'इस फसल के लिए आपके स्थान पर एसटीसीआर समीकरण उपलब्ध है। खुराक सीधे आपकी मिट्टी जाँच से बनती है।',
     tierBExplain: 'यह फसल आईसीएआर सामान्य सिफ़ारिश पर आधारित है, जिसे आपकी मिट्टी श्रेणी से सही किया गया है — आपके स्थान पर इस फसल के लिए कोई कैलिब्रेटेड एसटीसीआर समीकरण उपलब्ध नहीं है।',
@@ -479,6 +495,14 @@ const S = {
     listening: 'સાંભળી રહ્યા છીએ…', thinking: 'વિચારી રહ્યા છીએ…',
     suggest1: 'મારો પોટાશ શૂન્ય કેમ છે?', suggest2: 'બરાબર ક્યારે નાખું?',
     suggest3: 'શું ડીએપી વાપરી શકું?', suggest4: 'જો મારી પાસે ફક્ત ₹3000 હોય તો?',
+
+    cropSuggestionsPlan: 'આ ખેતર માટે યોગ્ય અન્ય પાકો',
+    cropSuggestionsSoil: 'આગામી સીઝન માટે વિચારવા જેવા પાકો',
+    cropSuggestionsSub: 'વિઝાર્ડમાં આપેલી તમારી માહિતીના આધારે ત્રણ સૂચનો.',
+    cropSuggestionsLoading: 'તમારા ખેતર માટે યોગ્ય પાકો શોધી રહ્યા છીએ…',
+    cropSuggestionsUnavailable: 'હાલ પાકના સૂચનો ઉપલબ્ધ નથી.',
+    cropSuggestionsCatalog: 'કેટલોગ સૂચનો',
+    cropSuggestionsNote: 'આ સૂચનો છે, ગેરંટી નથી. બીજ, પાણી અને બજારની સ્થિતિ સ્થાનિક સલાહકાર પાસે તપાસો.',
 
     warnings: 'ધ્યાન રાખવા જેવું', confidence: 'વિશ્વસનીયતા',
     tierAExplain: 'આ પાક માટે તમારા સ્થાન પર એસટીસીઆર સમીકરણ ઉપલબ્ધ છે. માત્રા સીધી તમારી જમીન ચકાસણી પરથી બને છે.',

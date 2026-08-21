@@ -1,5 +1,6 @@
 import React from 'react';
 import { Card, Section, Stat, Badge, rs } from './ui.jsx';
+import CropRecommendations from './CropRecommendations.jsx';
 
 export default function Soil({ rec, t, lang }) {
   const h = rec.soilHealth;
@@ -49,6 +50,8 @@ export default function Soil({ rec, t, lang }) {
           </div>
         </Card>
       </Section>
+
+      <CropRecommendations rec={rec} t={t} lang={lang} placement="soil" />
 
       {/* ---------------------------------------------------- trajectory */}
       <Section title={t('trajectory')} sub={t('trajectorySub')}>

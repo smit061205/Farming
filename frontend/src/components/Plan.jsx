@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Card, Section, Badge, rs } from './ui.jsx';
 import { renderEngine } from '../engineStrings.js';
+import CropRecommendations from './CropRecommendations.jsx';
 
 const AMEND_NAME = {
   gypsum: { en: 'Gypsum', hi: 'जिप्सम', gu: 'જીપ્સમ' },
@@ -87,6 +88,8 @@ export default function Plan({ rec, t, lang }) {
           </Card>
         )}
       </Section>
+
+      <CropRecommendations rec={rec} t={t} lang={lang} placement="plan" />
 
       {/* ------------------------------------------------------ what to buy */}
       <Section title={t('buyThis')}>

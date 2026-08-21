@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { LANGS, useT } from './i18n.js';
-import { getMeta, recommend, saveField, savedFields, cacheLast, readLast } from './api.js';
+import { getMeta, recommend, cropRecommend, saveField, savedFields, cacheLast, readLast } from './api.js';
 import { Leaf, Card, Badge, rs } from './components/ui.jsx';
 import { renderEngine } from './engineStrings.js';
 import Wizard from './components/Wizard.jsx';
@@ -38,10 +38,33 @@ export default function App() {
     setBusy(true); setError('');
     try {
       const r = await recommend(payload);
-      setRec(r); cacheLast(r);
+      const withCropLoading = { ...r, cropRecommendations: { status: 'loading', recommendations: [] } };
+      setRec(withCropLoading); cacheLast(r);
       setFields(saveField(r));
       setTab('plan'); setView('result');
       window.scrollTo({ top: 0, behavior: 'smooth' });
+
+      // Crop suggestions are secondary. Let the deterministic fertilizer plan
+      // render immediately, then fill the same result object used by Plan and Soil.
+      cropRecommend(payload)
+        .then((suggestions) => setRec((current) => {
+          if (!current || current.id !== r.id) return current;
+          const next = { ...current, cropRecommendations: suggestions };
+          cacheLast(next);
+          return next;
+        }))
+        .catch((e) => setRec((current) => {
+          if (!current || current.id !== r.id) return current;
+          return {
+            ...current,
+            cropRecommendations: {
+              status: 'ready',
+              provider: 'unavailable',
+              recommendations: [],
+              reason: String(e.message || e),
+            },
+          };
+        }));
     } catch (e) {
       setError(String(e.message || e));
     } finally { setBusy(false); }

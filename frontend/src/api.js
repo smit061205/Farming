@@ -6,7 +6,11 @@ async function post(path, body) {
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify(body),
   });
-  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || `Request failed (${res.status})`);
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    const detail = typeof data.detail === 'string' ? data.detail : data.detail?.message;
+    throw new Error(data.error || detail || `Request failed (${res.status})`);
+  }
   return res.json();
 }
 
@@ -18,6 +22,7 @@ async function get(path) {
 
 export const getMeta = () => get('/meta');
 export const recommend = (payload) => post('/recommend', payload);
+export const cropRecommend = (payload) => post('/crop-recommendation', payload);
 export const chat = (payload) => post('/chat', payload);
 export const smsSim = (payload) => post('/sms-sim', payload);
 export const extractSoil = (payload) => post('/extract-soil', payload);

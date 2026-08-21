@@ -18,7 +18,7 @@ from gemini_client import gemini_generate, gemini_key, parse_json_loose
 FIELDS = ["ph", "oc", "n", "p", "k", "ec", "s", "zn"]
 
 RANGE = {
-    "ph": (3, 10), "oc": (0, 5), "n": (0, 2000), "p": (0, 500),
+    "ph": (0, 14), "oc": (0, 5), "n": (0, 2000), "p": (0, 500),
     "k": (0, 2000), "ec": (0, 20), "s": (0, 200), "zn": (0, 50),
 }
 

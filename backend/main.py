@@ -22,6 +22,8 @@ from weather import fetch_forecast, evaluate, build_calendar
 from impact import soil_health_score, trajectory, environment, ratio_check, income
 from ai import chat as ai_chat, template_explain, ai_status
 from extract import extract_from_image, parse_soil_text, sanitise, vision_available
+from crop_recommendation import recommend_crops
+from validation import validate_wizard_payload
 
 app = FastAPI(title="AgriSense API")
 
@@ -103,11 +105,15 @@ async def meta():
 @app.post("/api/recommend")
 async def recommend(body: dict):
     try:
+        validation_errors = validate_wizard_payload(body)
+        if validation_errors:
+            raise HTTPException(status_code=422, detail={"message": "Please correct the highlighted field values.", "fields": validation_errors})
+
         crop_id = body.get("cropId")
         zone = body.get("zone") or None
         soil = body.get("soil") or {}
         target_yield_in = body.get("targetYield")
-        area_ha = body.get("areaHa") if body.get("areaHa") is not None else 1
+        area_ha = float(body.get("areaHa")) if body.get("areaHa") is not None else 1
         method = body.get("method") or "broadcast"
         irrigation = body.get("irrigation") or "canal"
         sowing_date = body.get("sowingDate")
@@ -239,6 +245,28 @@ async def recommend(body: dict):
     except Exception as e:
         print(f"[recommend] {e}")
         raise HTTPException(status_code=500, detail=str(e) or "Recommendation failed")
+
+
+# ------------------------------------------------------ crop suggestions
+
+@app.post("/api/crop-recommendation")
+async def crop_recommendation(body: dict):
+    """Suggest three alternative crops using only the wizard's submitted details.
+
+    This is deliberately separate from /recommend: the deterministic fertilizer
+    plan must not wait on an LLM, and both result tabs can consume one shared
+    suggestion response from the client.
+    """
+    try:
+        validation_errors = validate_wizard_payload(body)
+        if validation_errors:
+            raise HTTPException(status_code=422, detail={"message": "Please correct the highlighted field values.", "fields": validation_errors})
+        return await recommend_crops(body or {}, (body or {}).get("lang") or "en")
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"[crop-recommendation] {e}")
+        raise HTTPException(status_code=500, detail=str(e) or "Crop recommendation failed")
 
 
 # ---------------------------------------------------------------- weather
