@@ -33,6 +33,32 @@ router = APIRouter(prefix="/api/engine", tags=["engine"])
 gee_client.initialize_gee()
 
 api_key = os.getenv("GROQ_API_KEY", "").strip().strip('"').strip("'")
+# Optional second key from a DIFFERENT Groq organization — Groq's rate limits
+# are per-organization, so a second key from the same account shares the same
+# daily quota and provides no extra headroom. Only used as a fallback when the
+# primary key is rate-limited, never as the default.
+api_key_fallback = os.getenv("GROQ_API_KEY_FALLBACK", "").strip().strip('"').strip("'")
+
+
+def _is_rate_limit_error(e: Exception) -> bool:
+    msg = str(e).lower()
+    return "rate_limit" in msg or "429" in msg
+
+
+async def _groq_create(**kwargs):
+    """Runs a Groq chat completion on the primary key, transparently retrying
+    on the fallback key if the primary is rate-limited. Any other error (bad
+    request, network issue, ...) is not retried — it wouldn't be fixed by
+    switching keys."""
+    client = AsyncGroq(api_key=api_key)
+    try:
+        return await client.chat.completions.create(**kwargs)
+    except Exception as e:
+        if api_key_fallback and _is_rate_limit_error(e):
+            print("Groq primary key rate-limited — retrying on fallback key.")
+            fallback_client = AsyncGroq(api_key=api_key_fallback)
+            return await fallback_client.chat.completions.create(**kwargs)
+        raise
 
 def _fetch_satellite_insights_sync(lat: float, lng: float) -> dict:
     """Blocking Earth Engine work — always call via asyncio.to_thread so it
@@ -211,14 +237,12 @@ async def _call_groq(system_prompt: str, user_prompt: str, json_mode: bool = Fal
     """Calls the Groq API asynchronously."""
     if not _groq_available or not api_key:
         raise RuntimeError("Groq SDK not available or no API key")
-    
-    client = AsyncGroq(api_key=api_key)
-    
+
     kwargs = {"model": "groq/compound-mini"}
     if json_mode:
         kwargs["response_format"] = {"type": "json_object"}
 
-    chat_completion = await client.chat.completions.create(
+    chat_completion = await _groq_create(
         messages=[
             {
                 "role": "system",
@@ -551,13 +575,12 @@ async def ocr_soil_report(file: UploadFile = File(...)):
     if not images_to_scan:
         raise HTTPException(status_code=422, detail="Could not extract any image from the file.")
 
-    client = AsyncGroq(api_key=api_key)
     aggregated = {"ph": None, "nitrogen_ppm": None, "phosphorus_ppm": None,
                   "potassium_ppm": None, "organic_matter_pct": None}
 
     for b64, mime in images_to_scan:
         try:
-            response = await client.chat.completions.create(
+            response = await _groq_create(
                 model="meta-llama/llama-4-scout-17b-16e-instruct",
                 messages=[{
                     "role": "user",
@@ -1003,9 +1026,7 @@ Do not offer generalities. Use the exact data below to answer their questions.
     payload.extend([{"role": m.role, "content": m.content} for m in req.messages[-15:]])
 
     try:
-        from groq import AsyncGroq
-        client = AsyncGroq(api_key=api_key)
-        response = await client.chat.completions.create(
+        response = await _groq_create(
             model="groq/compound-mini",
             messages=payload,
             temperature=0.6,
@@ -1017,6 +1038,6 @@ Do not offer generalities. Use the exact data below to answer their questions.
         return {"status": "success", "reply": reply}
     except Exception as e:
         print(f"Chatbot Engine error: {e}")
-        if "rate_limit" in str(e).lower() or "429" in str(e):
+        if _is_rate_limit_error(e):
             return {"status": "error", "reply": "I'm getting a lot of questions right now and hit today's usage limit — please try again in a little while."}
         return {"status": "error", "reply": "I couldn't reach the AI advisor just now. Please try again shortly."}
