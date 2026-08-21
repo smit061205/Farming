@@ -10,7 +10,7 @@ import SoilHealthPage    from './pages/SoilHealthPage'
 import FertilizerHubPage from './pages/FertilizerHubPage'
 import PrivacyPage       from './pages/PrivacyPage'
 import TermsPage         from './pages/TermsPage'
-import SustainabilityPage from './pages/SustainabilityPage'
+import RoadmapPage        from './pages/RoadmapPage'
 import ContactPage       from './pages/ContactPage'
 import ProfilePage       from './pages/ProfilePage'
 import OnboardingPage    from './pages/OnboardingPage'
@@ -131,7 +131,8 @@ function AnimatedRoutes() {
           <Route path="/onboarding"    element={<OnboardingPage />} />
           <Route path="/privacy"       element={<PrivacyPage />} />
           <Route path="/terms"         element={<TermsPage />} />
-          <Route path="/sustainability" element={<SustainabilityPage />} />
+          <Route path="/roadmap" element={<RoadmapPage />} />
+          <Route path="/sustainability" element={<Navigate to="/roadmap" replace />} />
           <Route path="/contact"       element={<ContactPage />} />
 
           {/* Protected */}

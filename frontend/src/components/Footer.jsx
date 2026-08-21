@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom'
 const footerLinks = [
   { label: 'Privacy', path: '/privacy' },
   { label: 'Terms', path: '/terms' },
-  { label: 'Sustainability', path: '/sustainability' },
   { label: 'Contact', path: '/contact' },
 ]
 
