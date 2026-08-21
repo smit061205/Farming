@@ -207,31 +207,6 @@ async def fetch_telemetry(lat: float, lng: float):
     return {"status": "success", "data": telemetry}
 
 
-# Fallback data
-MOCK_INSIGHTS = {
-    "cropCards": [
-        {"tag": "Primary Match", "name": "Cabernet Sauvignon", "score": 96, "img": "https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?w=600&q=80", "bg": "#f2efd5", "offset": False},
-        {"tag": "Soil Rotation", "name": "Heirloom Carrots", "score": 84, "img": "https://images.unsplash.com/photo-1447175008436-054170c2e979?w=600&q=80", "bg": "#e7e3ca", "offset": True},
-        {"tag": "Alternative", "name": "Provence Lavender", "score": 78, "img": "https://images.unsplash.com/photo-1498019559366-a1cbd07b5160?w=600&q=80", "bg": "#f2efd5", "offset": False}
-    ],
-    "activeIntelligence": [
-        {
-            "color": "#9f402d",
-            "glow": "0 0 15px 2px rgba(159,64,45,0.6)",
-            "title": "Low Nitrogen Identified",
-            "desc": "Baseline nitrogen is insufficient for optimal yield. Application required.",
-            "actionLabel": "View Plan →"
-        },
-        {
-            "color": "#fb9f54",
-            "glow": "0 0 15px 2px rgba(251,159,84,0.6)",
-            "title": "Weather Threshold",
-            "desc": "Predicted relative humidity rise tomorrow. Optimal timing for nutrient absorption.",
-            "actionLabel": None
-        }
-    ]
-}
-
 async def _call_groq(system_prompt: str, user_prompt: str, json_mode: bool = False) -> str:
     """Calls the Groq API asynchronously."""
     if not _groq_available or not api_key:
@@ -305,16 +280,34 @@ async def get_insights(
     crop_type: str = None,
     soil_type: str = None,
 ) -> Dict[str, Any]:
-    """Generates and returns personalized dashboard insights based on latest analysis."""
+    """Generates and returns personalized dashboard insights — AI-suggested crops
+    and alerts — based on the farmer's actual saved soil test. Never falls back
+    to invented crop suggestions: if there's no soil test yet, or the AI call
+    fails, that's reported honestly via `status` so the UI can say so instead
+    of recommending crops (built on fabricated NPK figures) that were never
+    real."""
     db = get_db()
 
-    # Use query params if provided (from latest analysis), else fall back to profile
-    soil_ph   = ph  if ph  is not None else float(user.get("soil_data", {}).get("ph",       6.5))
-    soil_n    = n   if n   is not None else float(user.get("soil_data", {}).get("nitrogen", 300))
-    soil_p    = p   if p   is not None else round(50  + (soil_ph - 7) * 10)
-    soil_k    = k   if k   is not None else round(200 + (soil_ph - 7) * 30)
-    crop_hint = crop_type or ""
-    soil_hint = soil_type or ""
+    soil_data = user.get("soil_data") or {}
+    soil_ph = ph if ph is not None else soil_data.get("ph")
+    soil_n  = n  if n  is not None else soil_data.get("nitrogen")
+    if soil_ph is None or soil_n is None:
+        return {"status": "no_data", "cropCards": [], "activeIntelligence": []}
+    soil_ph = float(soil_ph)
+    soil_n = float(soil_n)
+
+    # Use the farmer's actual measured P/K when we have them — previously this
+    # only ever used a pH-derived guess unless a query param was passed, so
+    # AI-cited P/K figures were fabricated even on a successful, real request.
+    soil_p = p if p is not None else soil_data.get("phosphorus")
+    if soil_p is None:
+        soil_p = round(50 + (soil_ph - 7) * 10)
+    soil_k = k if k is not None else soil_data.get("potassium")
+    if soil_k is None:
+        soil_k = round(200 + (soil_ph - 7) * 30)
+
+    crop_hint = crop_type or soil_data.get("cropType") or ""
+    soil_hint = soil_type or soil_data.get("soilType") or ""
 
     raw_coords = user.get("coordinates", {})
     if isinstance(raw_coords, dict):
@@ -326,12 +319,10 @@ async def get_insights(
     cache_key = f"{soil_ph}_{soil_n}_{soil_p}_{soil_k}"
     cached = user.get("cached_insights")
     if cached and user.get("cached_insights_key") == cache_key:
-        return cached
+        return {"status": "ok", **cached}
 
     if not api_key or not _groq_available:
-        print("Warning: No GROQ_API_KEY or SDK not available, returning mock insights.")
-        await db["users"].update_one({"_id": user["_id"]}, {"$set": {"cached_insights": MOCK_INSIGHTS, "cached_insights_key": cache_key}})
-        return MOCK_INSIGHTS
+        return {"status": "unavailable", "cropCards": [], "activeIntelligence": []}
 
     system_prompt = (
         "You are an expert farm advisor for the 'AgriSense' app, writing for smallholder farmers. "
@@ -393,10 +384,10 @@ Return ONLY this JSON structure (no markdown, no backticks):
             {"_id": user["_id"]},
             {"$set": {"cached_insights": data, "cached_insights_key": cache_key}}
         )
-        return data
+        return {"status": "ok", **data}
     except Exception as e:
         print(f"Groq insights error: {e}")
-        return MOCK_INSIGHTS
+        return {"status": "unavailable", "cropCards": [], "activeIntelligence": []}
 
 
 

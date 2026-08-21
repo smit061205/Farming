@@ -12,9 +12,7 @@ const NUTRIENT_SHORT = { nitrogen: 'N', phosphorus: 'P', potassium: 'K' }
 export default function DashboardPage() {
   const navigate = useNavigate()
   const { token, user, refreshUser } = useAuth()
-  const [insights, setInsights] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('cached_insights')) || {} } catch { return {} }
-  })
+  const [insights, setInsights] = useState({})
   const [telemetry, setTelemetry] = useState(null)
   const [precision, setPrecision] = useState(null)
   const [isLocating, setIsLocating] = useState(false)
@@ -64,11 +62,7 @@ export default function DashboardPage() {
       headers: { Authorization: `Bearer ${token}` }
     })
       .then(res => res.json())
-      .then(data => {
-        setInsights(data)
-        // Cache so next visit is instant
-        try { localStorage.setItem('cached_insights', JSON.stringify(data)) } catch {}
-      })
+      .then(data => setInsights(data))
       .catch(err => console.error('Could not fetch insights:', err))
   }, [token])
 
@@ -92,15 +86,11 @@ export default function DashboardPage() {
         headers: { Authorization: `Bearer ${token}` }
       })
     } catch {}
-    try { localStorage.removeItem('cached_insights') } catch {}
     fetch(`${API_BASE}/api/engine/insights`, {
       headers: { Authorization: `Bearer ${token}` }
     })
       .then(res => res.json())
-      .then(data => {
-        setInsights(data)
-        try { localStorage.setItem('cached_insights', JSON.stringify(data)) } catch {}
-      })
+      .then(data => setInsights(data))
       .catch(err => console.error('Could not refresh insights:', err))
   }
 
@@ -293,6 +283,15 @@ export default function DashboardPage() {
               </button>
             </div>
           </div>
+          {insights.status === 'no_data' ? (
+            <div className="bg-white rounded-[2rem] p-10 border border-[#173809]/8 text-center text-[#173809]/50">
+              Complete a soil test to get AI-tailored crop suggestions.
+            </div>
+          ) : insights.status === 'unavailable' ? (
+            <div className="bg-white rounded-[2rem] p-10 border border-[#173809]/8 text-center text-[#173809]/50">
+              AI suggestions are temporarily unavailable — try "Refresh AI" in a little while.
+            </div>
+          ) : (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {insights.cropCards?.map(({ tag, name, score, bg, reason }, i) => (
               <div
@@ -331,6 +330,7 @@ export default function DashboardPage() {
               </div>
             ))}
           </div>
+          )}
         </section>
 
         {/* Bottom Row: 3 equal columns — no empty space */}
@@ -357,6 +357,11 @@ export default function DashboardPage() {
                   </div>
                 </div>
               ))}
+              {!insights.activeIntelligence?.length && (
+                <p className="text-[#173809]/40 text-sm">
+                  {insights.status === 'no_data' ? 'Complete a soil test to see AI alerts here.' : insights.status === 'unavailable' ? 'Temporarily unavailable — try again shortly.' : 'No alerts right now.'}
+                </p>
+              )}
             </div>
           </div>
 
