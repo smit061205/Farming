@@ -294,6 +294,12 @@ def _get_crop_image(crop_name: str) -> str:
 
 
 
+# Bump this whenever get_insights' scoring/reasoning logic changes, so
+# existing users' cached_insights (keyed only on soil values before this
+# existed) get recomputed instead of serving stale results indefinitely.
+_INSIGHTS_ENGINE_VERSION = "v2-deterministic"
+
+
 @router.get("/insights")
 async def get_insights(
     user: dict = Depends(get_current_user),
@@ -339,8 +345,13 @@ async def get_insights(
     else:
         coords = raw_coords or "Unknown location"
 
-    # Cache key: bust cache if analysis values have changed
-    cache_key = f"{soil_ph}_{soil_n}_{soil_p}_{soil_k}"
+    # Cache key: bust cache if analysis values change, OR if the scoring logic
+    # itself changes (_INSIGHTS_ENGINE_VERSION) — otherwise a farmer who hit
+    # this endpoint before a scoring fix shipped would keep seeing the old,
+    # stale cropCards forever for that exact soil reading, since only the
+    # inputs were ever part of the cache key. Bump the version string any
+    # time get_insights' scoring or reasoning logic changes.
+    cache_key = f"{_INSIGHTS_ENGINE_VERSION}_{soil_ph}_{soil_n}_{soil_p}_{soil_k}"
     cached = user.get("cached_insights")
     if cached and user.get("cached_insights_key") == cache_key:
         return {"status": "ok", **cached}
