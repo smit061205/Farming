@@ -15,39 +15,64 @@ from typing import Optional
 
 import httpx
 
-# Reference nutrient uptake targets (kg/ha) per crop.
-#
-# rice/wheat/maize/soybean/groundnut/sugarcane are ICAR general recommended
-# doses (all-India, irrigated/normal condition), cross-checked Aug 2026:
-#   rice      60-30-30   (irrigated Kharif, most common cultivation method)
-#   wheat     120-60-40  (ICAR general recommendation)
-#   maize     135-62.5-50 (+ 37.5 kg/ha ZnSO4 — Zn not yet modeled, see roadmap)
-#   soybean   20-60-20
-#   groundnut 20-50-30   (ICAR-CCARI Goa trial; used as best-available general reference)
-#   sugarcane 250-125-150
+# Reference nutrient uptake targets (kg/ha) per crop, expressed as N-P2O5-K2O
+# per standard Indian fertilizer-recommendation convention. Every crop below
+# is cross-checked against a citable ICAR/institute source (Aug 2026):
+#   rice       60-30-30    ICAR, irrigated Kharif, most common cultivation method
+#   wheat      120-60-40   ICAR general recommendation
+#   maize      135-62.5-50 ICAR (+ 37.5 kg/ha ZnSO4 — Zn not yet modeled, see roadmap)
+#   sugarcane  250-125-150 ICAR general recommendation
+#   cotton     120-60-60   Maharashtra state POP, irrigated Bt cotton (Shriram-6588 BG-II)
+#   soybean    20-60-20    ICAR general recommendation
+#   chickpea   20-60-20    ICAR general recommended dose (maize-chickpea GRD study)
+#   groundnut  20-50-30    ICAR-CCARI Goa trial; best-available general reference
+#   potato     270-80-150  ICAR-CPRI (Central Potato Research Institute) commercial dose
+#   tomato     75-40-25    General/standard recommendation, non-hybrid; hybrid
+#                          varieties commonly need far more (up to ~200-150-100)
+#   mustard    80-40-40    ICAR general recommendation
+#   sunflower  60-80-60    ICAR recommended dose of fertilizer (RDF)
+#   onion      100-50-50   ICAR-DOGR (Directorate of Onion & Garlic Research), rainy season
+#                          — post-rainy/winter season is closer to 110-40-60
 # Real ICAR doses vary further by state, irrigation status, and variety
 # (e.g. rainfed rice is 40-20-20, hybrid rice is 100-60-60) — this table is
 # the general/all-India figure, not yet state- or condition-aware. See
 # ROADMAP.md Part 4 "Next" tier.
-# cotton/chickpea/potato/tomato/mustard/sunflower/onion are still the
-# original generic placeholders — not yet cross-checked against a citable
-# ICAR source.
+#
+# Known limitation, not yet resolved: soil-test "available P/K" readings are
+# entered here as raw ppm and converted to kg/ha with a flat elemental-basis
+# factor, while these targets follow the P2O5/K2O convention above — Indian
+# agronomy sources are inconsistent about which basis a given lab report
+# uses, so this comparison may be mixing units for P and K specifically.
+# Needs a soil-lab-format-aware answer before treating as solved; see
+# ROADMAP.md Part 4 "Next" tier.
 CROP_NUTRIENT_TARGETS = {
     "rice":       {"n": 60,  "p": 30, "k": 30},
     "wheat":      {"n": 120, "p": 60, "k": 40},
     "maize":      {"n": 135, "p": 62.5, "k": 50},
     "sugarcane":  {"n": 250, "p": 125, "k": 150},
-    "cotton":     {"n": 100, "p": 50, "k": 50},
+    "cotton":     {"n": 120, "p": 60, "k": 60},
     "soybean":    {"n": 20,  "p": 60, "k": 20},
-    "chickpea":   {"n": 20,  "p": 50, "k": 20},
+    "chickpea":   {"n": 20,  "p": 60, "k": 20},
     "groundnut":  {"n": 20,  "p": 50, "k": 30},
-    "potato":     {"n": 150, "p": 80, "k": 100},
-    "tomato":     {"n": 120, "p": 80, "k": 60},
+    "potato":     {"n": 270, "p": 80, "k": 150},
+    "tomato":     {"n": 75,  "p": 40, "k": 25},
     "mustard":    {"n": 80,  "p": 40, "k": 40},
-    "sunflower":  {"n": 60,  "p": 40, "k": 40},
+    "sunflower":  {"n": 60,  "p": 80, "k": 60},
     "onion":      {"n": 100, "p": 50, "k": 50},
 }
 DEFAULT_TARGET = {"n": 100, "p": 55, "k": 45}  # fallback for unlisted crops
+
+# Known synonyms that don't share a substring with their canonical key —
+# get_crop_targets() only does exact matching now (see below), so these are
+# mapped explicitly rather than relying on fuzzy substring containment,
+# which previously matched unrelated crops (e.g. "pea" silently matched
+# "chickpea") and missed exact synonyms (e.g. "corn" never matched "maize").
+CROP_ALIASES = {
+    "corn": "maize",
+    "soybeans": "soybean",
+    "garbanzo": "chickpea",
+    "garbanzo bean": "chickpea",
+}
 
 # Approximate conversion: soil-test ppm (mg/kg) of an available nutrient ->
 # kg/ha in the top ~15cm furrow slice (~2,000,000 kg soil/ha). Standard
@@ -93,11 +118,14 @@ def ppm_to_available_kg_ha(ppm: float) -> float:
 
 
 def get_crop_targets(crop_type: Optional[str]) -> dict:
+    """Exact match only (case-insensitive), plus a small known-alias table.
+    Previously did fuzzy substring containment, which silently matched
+    unrelated crops sharing a substring (e.g. "pea" matched "chickpea") and
+    just as often missed real synonyms that don't share one (e.g. "corn"
+    never matched "maize", falling back to the generic default instead)."""
     key = (crop_type or "").strip().lower()
-    for crop_name, targets in CROP_NUTRIENT_TARGETS.items():
-        if crop_name in key or key in crop_name:
-            return targets
-    return DEFAULT_TARGET
+    key = CROP_ALIASES.get(key, key)
+    return CROP_NUTRIENT_TARGETS.get(key, DEFAULT_TARGET)
 
 
 async def fetch_rain_forecast(lat: float, lng: float) -> dict:

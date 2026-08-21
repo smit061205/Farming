@@ -355,7 +355,12 @@ async def get_insights(
         "Crop names must be real agricultural crops suitable for the given soil conditions."
     )
 
-    crop_list = ", ".join(CROP_IMAGE_MAP.keys())
+    # Only suggest crops the fertilizer engine has a real dosing target for —
+    # CROP_IMAGE_MAP is a larger, separate list (includes perennial/tree crops
+    # like mango and banana that don't fit this per-season kg/ha dosing model
+    # at all) and previously let the AI recommend a crop the rest of the app
+    # couldn't actually compute a real plan for.
+    crop_list = ", ".join(fertilizer_engine.CROP_NUTRIENT_TARGETS.keys())
     user_prompt = f"""
 A field at {coords} has the following soil analysis:
 - Nitrogen (N): {soil_n} ppm
