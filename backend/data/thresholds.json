@@ -75,12 +75,12 @@
   "zones": [
     { "id": "middle", "name": { "en": "Middle Gujarat", "hi": "मध्य गुजरात", "gu": "મધ્ય ગુજરાત" },
       "districts": "Anand, Kheda, Vadodara, Panchmahal, Dahod, Chhota Udepur",
-      "soilTexture": "loamy", "avgPh": 7.6 },
+      "soilTexture": "loamy", "avgPh": 7.6, "center": { "lat": 22.35, "lon": 73.15 } },
     { "id": "north", "name": { "en": "North Gujarat", "hi": "उत्तर गुजरात", "gu": "ઉત્તર ગુજરાત" },
       "districts": "Mehsana, Banaskantha, Patan, Sabarkantha, Gandhinagar, Aravalli",
-      "soilTexture": "sandy", "avgPh": 7.9 },
+      "soilTexture": "sandy", "avgPh": 7.9, "center": { "lat": 23.75, "lon": 72.50 } },
     { "id": "saurashtra", "name": { "en": "Saurashtra", "hi": "सौराष्ट्र", "gu": "સૌરાષ્ટ્ર" },
       "districts": "Rajkot, Junagadh, Jamnagar, Bhavnagar, Amreli, Porbandar, Morbi",
-      "soilTexture": "clayey", "avgPh": 8.1 }
+      "soilTexture": "clayey", "avgPh": 8.1, "center": { "lat": 21.85, "lon": 70.60 } }
   ]
 }

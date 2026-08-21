@@ -1,6 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { Card, Field, Toggle, Badge } from './ui.jsx';
 import SoilUpload from './SoilUpload.jsx';
+import LocationPicker from './LocationPicker.jsx';
+import { nearestZone } from '../geo.js';
 
 const ZONE_DEFAULTS = {
   middle: { ph: 7.6, oc: 0.45, n: 210, p: 22, k: 245, ec: 0.4, s: 9, zn: 0.5 },
@@ -11,10 +13,8 @@ const ZONE_DEFAULTS = {
 export default function Wizard({ meta, t, lang, onSubmit, busy, error }) {
   const [step, setStep] = useState(1);
   const [usedDefaults, setUsedDefaults] = useState(false);
-  const [locating, setLocating] = useState(false);
 
   const [form, setForm] = useState({
-    zone: 'north',
     areaHa: 2,
     lat: 23.2156, lon: 72.6369,
     irrigation: 'canal',
@@ -35,7 +35,13 @@ export default function Wizard({ meta, t, lang, onSubmit, busy, error }) {
     () => meta.crops.find((c) => c.id === form.cropId),
     [meta.crops, form.cropId],
   );
-  const tier = crop?.tier?.[form.zone] || 'B';
+
+  // The zone is derived from wherever the farmer's field actually is (nearest
+  // centroid to the picked point) rather than asked for directly — same
+  // input the dosing engine has always used, just no longer a guess.
+  const zoneMatch = useMemo(() => nearestZone(form.lat, form.lon, meta.zones), [form.lat, form.lon, meta.zones]);
+  const zoneId = zoneMatch?.zone?.id;
+  const tier = crop?.tier?.[zoneId] || 'B';
 
   const groups = useMemo(() => {
     const g = {};
@@ -44,23 +50,10 @@ export default function Wizard({ meta, t, lang, onSubmit, busy, error }) {
   }, [meta.crops]);
 
   const fillDefaults = () => {
-    const d = ZONE_DEFAULTS[form.zone];
+    const d = ZONE_DEFAULTS[zoneId];
+    if (!d) return;
     setForm((f) => ({ ...f, ...d }));
     setUsedDefaults(true);
-  };
-
-  const detect = () => {
-    if (!navigator.geolocation) return;
-    setLocating(true);
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        set('lat', Number(pos.coords.latitude.toFixed(4)));
-        set('lon', Number(pos.coords.longitude.toFixed(4)));
-        setLocating(false);
-      },
-      () => setLocating(false),
-      { timeout: 8000 },
-    );
   };
 
   const canNext =
@@ -72,7 +65,7 @@ export default function Wizard({ meta, t, lang, onSubmit, busy, error }) {
   const submit = () => {
     onSubmit({
       cropId: form.cropId,
-      zone: form.zone,
+      zone: zoneId,
       soil: { ph: form.ph, oc: form.oc, n: form.n, p: form.p, k: form.k, ec: form.ec, s: form.s, zn: form.zn },
       targetYield: form.targetYield || undefined,
       areaHa: Number(form.areaHa) || 1,
@@ -120,22 +113,13 @@ export default function Wizard({ meta, t, lang, onSubmit, busy, error }) {
           <div className="space-y-5">
             <Head title={t('s1Title')} sub={t('s1Sub')} />
 
-            <Field label={t('zone')}>
-              <Toggle
-                cols={1}
-                value={form.zone}
-                onChange={(v) => set('zone', v)}
-                options={meta.zones.map((z) => ({
-                  value: z.id,
-                  label: (
-                    <span className="flex flex-col items-start text-left">
-                      <span>{z.name[lang] || z.name.en}</span>
-                      <span className="text-[11px] font-normal opacity-70 mt-0.5">{z.districts}</span>
-                    </span>
-                  ),
-                }))}
-              />
-            </Field>
+            <LocationPicker
+              lat={form.lat}
+              lon={form.lon}
+              onChange={(lat, lon) => setForm((f) => ({ ...f, lat, lon }))}
+              zones={meta.zones}
+              t={t}
+            />
 
             <div className="grid grid-cols-2 gap-4">
               <Field label={t('area')} hint={t('hectare')}>
@@ -150,17 +134,6 @@ export default function Wizard({ meta, t, lang, onSubmit, busy, error }) {
                 </select>
               </Field>
             </div>
-
-            <Field label={t('location')} hint={t('locationHint')}>
-              <div className="flex gap-2">
-                <div className="field flex-1 tabular-nums text-sm flex items-center text-leaf-700">
-                  {form.lat}, {form.lon}
-                </div>
-                <button type="button" onClick={detect} className="btn-ghost whitespace-nowrap">
-                  {locating ? t('detecting') : t('detect')}
-                </button>
-              </div>
-            </Field>
           </div>
         )}
 
