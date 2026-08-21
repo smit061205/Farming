@@ -13,6 +13,34 @@ import { SmsSim, Methodology } from './components/Extras.jsx';
 
 const TABS = ['plan', 'timing', 'season', 'soil', 'ask'];
 
+const CROP_SUGGESTIONS_LOADING = { status: 'loading', recommendations: [] };
+
+// Newer saved plans retain the exact wizard payload. Older browser caches did
+// not, so reconstruct the safe subset needed by the crop endpoint from the
+// deterministic recommendation response.
+function cropPayloadFor(rec, lang) {
+  if (rec.cropRecommendationInput) {
+    return { ...rec.cropRecommendationInput, lang };
+  }
+
+  return {
+    cropId: rec.cropId,
+    areaHa: rec.areaHa,
+    soil: rec.soil,
+    targetYield: rec.targetYield,
+    zone: rec.zone,
+    place: rec.place,
+    method: rec.method,
+    irrigation: rec.irrigation,
+    sowingDate: rec.sowingDate,
+    organic: rec.organic ? {
+      id: rec.organic.id,
+      tonnesPerHa: rec.organic.tonnesPerHa,
+    } : undefined,
+    lang,
+  };
+}
+
 export default function App() {
   const [lang, setLang] = useState(() => localStorage.getItem('agrisense.lang') || 'en');
   const [meta, setMeta] = useState(null);
@@ -31,15 +59,52 @@ export default function App() {
   useEffect(() => {
     getMeta().then(setMeta).catch((e) => setError(String(e.message)));
     const last = readLast();
-    if (last) setRec(last);
+    if (!last) return;
+
+    // Plans saved before crop recommendations were added do not have the
+    // secondary response. Hydrate them on load instead of silently omitting
+    // the section in Plan and Soil.
+    if (last.cropRecommendations?.recommendations?.length) {
+      setRec(last);
+      return;
+    }
+
+    const pending = { ...last, cropRecommendations: CROP_SUGGESTIONS_LOADING };
+    setRec(pending);
+    cacheLast(pending);
+    cropRecommend(cropPayloadFor(last, lang))
+      .then((suggestions) => setRec((current) => {
+        if (!current || current.id !== last.id) return current;
+        const next = { ...current, cropRecommendations: suggestions };
+        cacheLast(next);
+        return next;
+      }))
+      .catch((e) => setRec((current) => {
+        if (!current || current.id !== last.id) return current;
+        const next = {
+          ...current,
+          cropRecommendations: {
+            status: 'ready',
+            provider: 'unavailable',
+            recommendations: [],
+            reason: String(e.message || e),
+          },
+        };
+        cacheLast(next);
+        return next;
+      }));
   }, []);
 
   const submit = async (payload) => {
     setBusy(true); setError('');
     try {
       const r = await recommend(payload);
-      const withCropLoading = { ...r, cropRecommendations: { status: 'loading', recommendations: [] } };
-      setRec(withCropLoading); cacheLast(r);
+      const withCropLoading = {
+        ...r,
+        cropRecommendationInput: payload,
+        cropRecommendations: CROP_SUGGESTIONS_LOADING,
+      };
+      setRec(withCropLoading); cacheLast(withCropLoading);
       setFields(saveField(r));
       setTab('plan'); setView('result');
       window.scrollTo({ top: 0, behavior: 'smooth' });
