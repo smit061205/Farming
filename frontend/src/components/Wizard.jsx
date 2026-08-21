@@ -34,6 +34,16 @@ const inRange = (value, [min, max], optional = false) => {
   return Number.isFinite(n) && n >= min && n <= max;
 };
 
+const limitText = (n) => String(Number(Number(n).toFixed(4)));
+
+function rangeError(value, min, max, t) {
+  if (value === '' || value == null) return '';
+  const n = Number(value);
+  if (!Number.isFinite(n)) return t('enterValidNumber');
+  if (n < min || n > max) return `${t('enterRange')} ${limitText(min)}–${limitText(max)}.`;
+  return '';
+}
+
 export default function Wizard({ meta, t, lang, onSubmit, busy, error }) {
   const [step, setStep] = useState(1);
   const [usedDefaults, setUsedDefaults] = useState(false);
@@ -164,6 +174,16 @@ export default function Wizard({ meta, t, lang, onSubmit, busy, error }) {
     ? form.organicTonnes === ''
     : inRange(form.organicTonnes, LIMITS.organicTonnes);
   const budgetValid = inRange(form.budget, LIMITS.budget, true);
+  const areaMin = areaUnit === 'acre' ? LIMITS.areaHa[0] / HA_PER_ACRE : LIMITS.areaHa[0];
+  const areaMax = areaUnit === 'acre' ? LIMITS.areaHa[1] / HA_PER_ACRE : LIMITS.areaHa[1];
+  const areaError = rangeError(areaText, areaMin, areaMax, t);
+  const targetMin = crop ? crop.target.min / QUINTAL_PER_UNIT[yieldUnit] : 0.01;
+  const targetMax = crop ? crop.target.max / QUINTAL_PER_UNIT[yieldUnit] : 1000;
+  const targetError = rangeError(yieldText, targetMin, targetMax, t);
+  const organicError = form.organicId
+    ? rangeError(form.organicTonnes, LIMITS.organicTonnes[0], LIMITS.organicTonnes[1], t)
+    : '';
+  const budgetError = rangeError(form.budget, LIMITS.budget[0], LIMITS.budget[1], t);
 
   const canNext =
     step === 1 ? inRange(form.areaHa, LIMITS.areaHa)
@@ -235,15 +255,17 @@ export default function Wizard({ meta, t, lang, onSubmit, busy, error }) {
               <Field label={t('area')}>
                 <div className="flex gap-2">
                   <input type="number" step="0.01"
-                    min={areaUnit === 'acre' ? LIMITS.areaHa[0] / HA_PER_ACRE : LIMITS.areaHa[0]}
-                    max={areaUnit === 'acre' ? LIMITS.areaHa[1] / HA_PER_ACRE : LIMITS.areaHa[1]}
-                    className="field tabular-nums flex-1"
+                    min={areaMin}
+                    max={areaMax}
+                    aria-invalid={!!areaError}
+                    className={`field tabular-nums flex-1 ${areaError ? 'border-earth-500 focus:border-earth-500' : ''}`}
                     value={areaText} onChange={(e) => onAreaTextChange(e.target.value)} />
                   <select className="field w-[6.5rem]" value={areaUnit} onChange={(e) => onAreaUnitChange(e.target.value)}>
                     <option value="ha">{t('unitHectare')}</option>
                     <option value="acre">{t('unitAcre')}</option>
                   </select>
                 </div>
+                {areaError && <FieldError message={areaError} />}
               </Field>
               <Field label={t('irrigation')}>
                 <select className="field" value={form.irrigation} onChange={(e) => set('irrigation', e.target.value)}>
@@ -274,20 +296,20 @@ export default function Wizard({ meta, t, lang, onSubmit, busy, error }) {
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              <Num label={t('ph')} v={form.ph} on={(v) => set('ph', v)} step="0.1" min={LIMITS.ph[0]} max={LIMITS.ph[1]} />
-              <Num label={t('oc')} v={form.oc} on={(v) => set('oc', v)} step="0.01" min={LIMITS.oc[0]} max={LIMITS.oc[1]} unit="%" badge={t('optional')} />
+              <Num label={t('ph')} v={form.ph} on={(v) => set('ph', v)} step="0.1" min={LIMITS.ph[0]} max={LIMITS.ph[1]} t={t} />
+              <Num label={t('oc')} v={form.oc} on={(v) => set('oc', v)} step="0.01" min={LIMITS.oc[0]} max={LIMITS.oc[1]} unit="%" badge={t('optional')} t={t} />
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <Num label={t('availN')} v={form.n} on={(v) => set('n', v)} max={LIMITS.n[1]} unit="kg/ha" />
-              <Num label={t('availP')} v={form.p} on={(v) => set('p', v)} max={LIMITS.p[1]} unit="kg/ha" />
-              <Num label={t('availK')} v={form.k} on={(v) => set('k', v)} max={LIMITS.k[1]} unit="kg/ha" />
+              <Num label={t('availN')} v={form.n} on={(v) => set('n', v)} max={LIMITS.n[1]} unit="kg/ha" t={t} />
+              <Num label={t('availP')} v={form.p} on={(v) => set('p', v)} max={LIMITS.p[1]} unit="kg/ha" t={t} />
+              <Num label={t('availK')} v={form.k} on={(v) => set('k', v)} max={LIMITS.k[1]} unit="kg/ha" t={t} />
             </div>
 
             <div className="grid grid-cols-3 gap-4">
-              <Num label={t('ec')} v={form.ec} on={(v) => set('ec', v)} step="0.1" max={LIMITS.ec[1]} unit="dS/m" badge={t('optional')} />
-              <Num label={t('sulphur')} v={form.s} on={(v) => set('s', v)} step="0.1" max={LIMITS.s[1]} unit="ppm" badge={t('optional')} />
-              <Num label={t('zinc')} v={form.zn} on={(v) => set('zn', v)} step="0.01" max={LIMITS.zn[1]} unit="ppm" badge={t('optional')} />
+              <Num label={t('ec')} v={form.ec} on={(v) => set('ec', v)} step="0.1" max={LIMITS.ec[1]} unit="dS/m" badge={t('optional')} t={t} />
+              <Num label={t('sulphur')} v={form.s} on={(v) => set('s', v)} step="0.1" max={LIMITS.s[1]} unit="ppm" badge={t('optional')} t={t} />
+              <Num label={t('zinc')} v={form.zn} on={(v) => set('zn', v)} step="0.01" max={LIMITS.zn[1]} unit="ppm" badge={t('optional')} t={t} />
             </div>
 
             <button type="button" onClick={fillDefaults}
@@ -321,9 +343,10 @@ export default function Wizard({ meta, t, lang, onSubmit, busy, error }) {
               <Field label={t('targetYield')} hint={crop ? yieldRange(crop.target.min, crop.target.max) : ''}>
                 <div className="flex gap-2">
                   <input type="number" step="0.01"
-                    min={crop ? crop.target.min / QUINTAL_PER_UNIT[yieldUnit] : 0.01}
-                    max={crop ? crop.target.max / QUINTAL_PER_UNIT[yieldUnit] : 1000}
-                    className="field tabular-nums flex-1"
+                    min={targetMin}
+                    max={targetMax}
+                    aria-invalid={!!targetError}
+                    className={`field tabular-nums flex-1 ${targetError ? 'border-earth-500 focus:border-earth-500' : ''}`}
                     placeholder={crop ? String(Math.round((crop.target.default / QUINTAL_PER_UNIT[yieldUnit]) * 100) / 100) : ''}
                     value={yieldText} onChange={(e) => onYieldTextChange(e.target.value)} />
                   <select className="field w-28" value={yieldUnit} onChange={(e) => onYieldUnitChange(e.target.value)}>
@@ -332,6 +355,7 @@ export default function Wizard({ meta, t, lang, onSubmit, busy, error }) {
                     <option value="kg">{t('unitKg')}</option>
                   </select>
                 </div>
+                {targetError && <FieldError message={targetError} />}
               </Field>
             )}
 
@@ -378,19 +402,23 @@ export default function Wizard({ meta, t, lang, onSubmit, busy, error }) {
                   {meta.organics.map((o) => <option key={o.id} value={o.id}>{o.name[lang] || o.name.en}</option>)}
                 </select>
                 <input type="number" step="0.5" min={LIMITS.organicTonnes[0]} max={LIMITS.organicTonnes[1]} disabled={!form.organicId}
-                  placeholder={t('tonnesHa')} className="field tabular-nums disabled:bg-leaf-50/50"
+                  aria-invalid={!!organicError}
+                  placeholder={t('tonnesHa')} className={`field tabular-nums disabled:bg-leaf-50/50 ${organicError ? 'border-earth-500 focus:border-earth-500' : ''}`}
                   value={form.organicTonnes} onChange={(e) => set('organicTonnes', e.target.value)} />
               </div>
+              {organicError && <FieldError message={organicError} />}
             </Field>
 
             <Field label={t('budgetQ')} hint={t('budgetHint')}>
               <input
                 type="number" min={LIMITS.budget[0]} max={LIMITS.budget[1]} step="100" inputMode="numeric"
-                className="field tabular-nums"
+                aria-invalid={!!budgetError}
+                className={`field tabular-nums ${budgetError ? 'border-earth-500 focus:border-earth-500' : ''}`}
                 placeholder="₹"
                 value={form.budget}
                 onChange={(e) => set('budget', e.target.value)}
               />
+              {budgetError && <FieldError message={budgetError} />}
             </Field>
 
             <label className="flex items-center gap-3 border border-leaf-300 bg-white px-4 py-3 cursor-pointer hover:bg-sprout transition">
@@ -431,15 +459,22 @@ const Head = ({ title, sub }) => (
   </div>
 );
 
-function Num({ label, v, on, step = '1', unit, badge, min = 0, max }) {
+const FieldError = ({ message }) => (
+  <p className="mt-1.5 text-xs font-medium text-earth-700" role="alert">{message}</p>
+);
+
+function Num({ label, v, on, step = '1', unit, badge, min = 0, max, t }) {
+  const error = rangeError(v, min, max, t);
   return (
     <Field label={label} badge={badge} hint={unit}>
       <input
         type="number" step={step} inputMode="decimal"
         min={min} max={max}
-        className="field tabular-nums text-lg font-semibold"
+        aria-invalid={!!error}
+        className={`field tabular-nums text-lg font-semibold ${error ? 'border-earth-500 focus:border-earth-500' : ''}`}
         value={v} onChange={(e) => on(e.target.value)} placeholder="—"
       />
+      {error && <FieldError message={error} />}
     </Field>
   );
 }

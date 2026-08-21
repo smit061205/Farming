@@ -62,6 +62,8 @@ const S = {
     back: 'Back',
     calculate: 'Calculate my plan',
     calculating: 'Working it out…',
+    enterValidNumber: 'Enter a valid number.',
+    enterRange: 'Enter a value from',
 
     s1Title: 'Your field',
     s1Sub: 'Where it is and how big it is.',
@@ -268,6 +270,7 @@ const S = {
 
     step: 'चरण', of: 'में से', next: 'आगे', back: 'पीछे',
     calculate: 'मेरी योजना बनाएँ', calculating: 'गणना हो रही है…',
+    enterValidNumber: 'मान्य संख्या दर्ज करें।', enterRange: 'मान दर्ज करें',
 
     s1Title: 'आपका खेत', s1Sub: 'कहाँ है और कितना बड़ा है।',
     zone: 'कृषि-जलवायु क्षेत्र', area: 'खेत का आकार', hectare: 'हेक्टेयर',
@@ -416,6 +419,7 @@ const S = {
 
     step: 'પગલું', of: 'માંથી', next: 'આગળ', back: 'પાછળ',
     calculate: 'મારી યોજના બનાવો', calculating: 'ગણતરી ચાલુ છે…',
+    enterValidNumber: 'માન્ય સંખ્યા દાખલ કરો.', enterRange: 'આ રેન્જમાં મૂલ્ય દાખલ કરો',
 
     s1Title: 'તમારું ખેતર', s1Sub: 'ક્યાં છે અને કેટલું મોટું છે.',
     zone: 'કૃષિ-આબોહવા વિસ્તાર', area: 'ખેતરનું કદ', hectare: 'હેક્ટર',
