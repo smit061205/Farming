@@ -16,6 +16,7 @@ from zoneinfo import ZoneInfo
 from typing import Optional
 
 from gemini_client import gemini_generate, gemini_key
+from groq_client import groq_generate, groq_available
 
 _IST = ZoneInfo("Asia/Kolkata")
 
@@ -206,8 +207,11 @@ def no_info(lang: str) -> str:
 # --------------------------------------------------------- provider calls
 
 def ai_status() -> dict:
-    enabled = bool(gemini_key())
-    return {"enabled": enabled, "provider": "gemini" if enabled else "template", "mode": "llm" if enabled else "rule-based fallback"}
+    if groq_available():
+        return {"enabled": True, "provider": "groq", "mode": "llm"}
+    if gemini_key():
+        return {"enabled": True, "provider": "gemini", "mode": "llm"}
+    return {"enabled": False, "provider": "template", "mode": "rule-based fallback"}
 
 
 _LANG_NAME = {"en": "English", "hi": "Hindi", "gu": "Gujarati"}
@@ -215,7 +219,9 @@ _LANG_TAG = {"en": "(Reply in English.)", "hi": "(उत्तर हिन्�
 
 
 async def chat(messages: list, recommendation: dict, lang: str = "en") -> dict:
-    key = gemini_key()
+    if not groq_available() and not gemini_key():
+        return {"text": _fallback_answer(messages, recommendation, lang), "provider": "template"}
+
     lang_name = _LANG_NAME.get(lang, "English")
     context = (
         "RECOMMENDATION JSON (the only source of numbers you may use):\n"
@@ -224,9 +230,6 @@ async def chat(messages: list, recommendation: dict, lang: str = "en") -> dict:
         "whatever language the question or the data above happens to be in."
     )
 
-    if not key:
-        return {"text": _fallback_answer(messages, recommendation, lang), "provider": "template"}
-
     # A system-prompt instruction still drifted against a large JSON payload, so the
     # directive is repeated on the final user turn — the position models weight most.
     tagged = list(messages)
@@ -234,10 +237,26 @@ async def chat(messages: list, recommendation: dict, lang: str = "en") -> dict:
         tag = _LANG_TAG.get(lang, _LANG_TAG["en"])
         tagged[-1] = {**tagged[-1], "content": f"{tagged[-1]['content']}\n\n{tag}"}
 
-    out = await gemini_generate(system=f"{SYSTEM}\n\n{context}", messages=tagged, max_tokens=2000, temperature=0.4)
-    if not out["ok"]:
-        return {"text": _fallback_answer(messages, recommendation, lang), "provider": "template", "degraded": out.get("reason")}
-    return {"text": out["text"], "provider": "gemini", "model": out.get("model")}
+    system_prompt = f"{SYSTEM}\n\n{context}"
+    last_reason = None
+
+    # Groq first — it's been the reliable provider tonight (Gemini is on a
+    # monthly spend cap that won't clear on retry). Gemini is a genuine
+    # fallback, not dead code, in case Groq's daily quota is the one that's
+    # out instead.
+    if groq_available():
+        out = await groq_generate(system=system_prompt, messages=tagged, max_tokens=2000, temperature=0.4)
+        if out["ok"]:
+            return {"text": out["text"], "provider": "groq", "model": out.get("model")}
+        last_reason = out.get("reason")
+
+    if gemini_key():
+        out = await gemini_generate(system=system_prompt, messages=tagged, max_tokens=2000, temperature=0.4)
+        if out["ok"]:
+            return {"text": out["text"], "provider": "gemini", "model": out.get("model")}
+        last_reason = out.get("reason")
+
+    return {"text": _fallback_answer(messages, recommendation, lang), "provider": "template", "degraded": last_reason}
 
 
 # --------------------------------------------- keyword fallback answering
