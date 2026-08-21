@@ -15,11 +15,18 @@ const ZONE_DEFAULTS = {
 // need a state to convert correctly.
 const HA_PER_ACRE = 0.404686;
 
+// The STCR "targeted yield" coefficient (a) is calibrated per crop against
+// quintal/ha specifically — that unit stays canonical internally. 1 quintal
+// = 100 kg = 0.1 tonne, both exact SI-derived conversions.
+const QUINTAL_PER_UNIT = { quintal: 1, tonne: 10, kg: 0.01 };
+
 export default function Wizard({ meta, t, lang, onSubmit, busy, error }) {
   const [step, setStep] = useState(1);
   const [usedDefaults, setUsedDefaults] = useState(false);
   const [areaUnit, setAreaUnit] = useState('ha');
   const [areaText, setAreaText] = useState('2');
+  const [yieldUnit, setYieldUnit] = useState('quintal');
+  const [yieldText, setYieldText] = useState('');
 
   const [form, setForm] = useState({
     areaHa: 2,
@@ -107,6 +114,30 @@ export default function Wizard({ meta, t, lang, onSubmit, busy, error }) {
     const ha = form.areaHa || 0;
     const display = unit === 'acre' ? ha / HA_PER_ACRE : ha;
     setAreaText(display ? String(Math.round(display * 100) / 100) : '');
+  };
+
+  // Same pattern as area: form.targetYield stays canonical in quintal/ha
+  // (what the STCR formula actually uses), yieldText mirrors the typed
+  // digits in whichever unit is selected.
+  const onYieldTextChange = (v) => {
+    setYieldText(v);
+    const num = parseFloat(v);
+    set('targetYield', isNaN(num) ? '' : num * QUINTAL_PER_UNIT[yieldUnit]);
+  };
+
+  const onYieldUnitChange = (unit) => {
+    setYieldUnit(unit);
+    const q = parseFloat(form.targetYield);
+    if (!isNaN(q)) {
+      const display = q / QUINTAL_PER_UNIT[unit];
+      setYieldText(String(Math.round(display * 100) / 100));
+    }
+  };
+
+  const yieldRange = (min, max) => {
+    const f = QUINTAL_PER_UNIT[yieldUnit];
+    const r = (n) => Math.round((n / f) * 100) / 100;
+    return `${r(min)}–${r(max)}`;
   };
 
   const canNext =
@@ -251,7 +282,7 @@ export default function Wizard({ meta, t, lang, onSubmit, busy, error }) {
             <Head title={t('s3Title')} sub={t('s3Sub')} />
 
             <Field label={t('crop')}>
-              <select className="field" value={form.cropId} onChange={(e) => { set('cropId', e.target.value); set('targetYield', ''); }}>
+              <select className="field" value={form.cropId} onChange={(e) => { set('cropId', e.target.value); set('targetYield', ''); setYieldText(''); }}>
                 {Object.entries(groups).map(([g, list]) => (
                   <optgroup key={g} label={g}>
                     {list.map((c) => <option key={c.id} value={c.id}>{c.name[lang] || c.name.en}</option>)}
@@ -270,10 +301,17 @@ export default function Wizard({ meta, t, lang, onSubmit, busy, error }) {
             </div>
 
             {tier === 'A' && (
-              <Field label={t('targetYield')} hint={`${t('quintal')} · ${crop?.target.min}–${crop?.target.max}`}>
-                <input type="number" className="field tabular-nums"
-                  placeholder={String(crop?.target.default ?? '')}
-                  value={form.targetYield} onChange={(e) => set('targetYield', e.target.value)} />
+              <Field label={t('targetYield')} hint={crop ? yieldRange(crop.target.min, crop.target.max) : ''}>
+                <div className="flex gap-2">
+                  <input type="number" step="0.01" className="field tabular-nums flex-1"
+                    placeholder={crop ? String(Math.round((crop.target.default / QUINTAL_PER_UNIT[yieldUnit]) * 100) / 100) : ''}
+                    value={yieldText} onChange={(e) => onYieldTextChange(e.target.value)} />
+                  <select className="field w-28" value={yieldUnit} onChange={(e) => onYieldUnitChange(e.target.value)}>
+                    <option value="quintal">{t('unitQuintal')}</option>
+                    <option value="tonne">{t('unitTonne')}</option>
+                    <option value="kg">{t('unitKg')}</option>
+                  </select>
+                </div>
               </Field>
             )}
 
