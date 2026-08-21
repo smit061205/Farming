@@ -177,10 +177,18 @@ function CropCard({ title, subtitle, values, onChange, onRemove }) {
   )
 }
 
+const STEPS = [
+  { id: 1, title: 'Your Account', sub: "Who's this field plan for?" },
+  { id: 2, title: 'Your Field', sub: 'Pin its location — this drives your weather and timing advice.' },
+  { id: 3, title: 'Your Crops', sub: 'Crop, soil test, and fertilizer use — add every field you grow.' },
+  { id: 4, title: 'Finish Up', sub: "Review and you're in." },
+]
+
 export default function OnboardingPage() {
   const navigate = useNavigate()
   const { login } = useAuth()
 
+  const [step, setStep] = useState(1)
   const [fullName, setFullName] = useState('')
   const [mode, setMode] = useState('email')
   const [identifier, setIdentifier] = useState('')
@@ -223,9 +231,54 @@ export default function OnboardingPage() {
     return null
   }
 
+  // Same validation rules handleSubmit already enforces, just checked one
+  // step earlier so a farmer finds out about a missing field before reaching
+  // the end, not after clicking Create Account.
+  const validateStep = (n) => {
+    if (n === 1) {
+      if (!fullName.trim()) return 'Enter your name.'
+      if (!identifier.trim()) return mode === 'email' ? 'Enter your email.' : 'Enter your phone number.'
+      if (password.length < 8) return 'Password must be at least 8 characters.'
+      if (password !== confirmPassword) return 'Passwords do not match.'
+      return null
+    }
+    if (n === 2) {
+      if (!coordinates?.lat) return 'Please set your field location — tap "Use My Location" or click the map.'
+      return null
+    }
+    if (n === 3) {
+      const primaryError = validateCrop(primaryCrop, 'your primary crop')
+      if (primaryError) return primaryError
+      for (let i = 0; i < additionalCrops.length; i++) {
+        const rowError = validateCrop(additionalCrops[i], `crop ${i + 2}`)
+        if (rowError) return rowError
+      }
+      return null
+    }
+    return null
+  }
+
+  const goNext = () => {
+    const stepError = validateStep(step)
+    if (stepError) { setError(stepError); return }
+    setError('')
+    setStep(s => Math.min(4, s + 1))
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+  const goBack = () => {
+    setError('')
+    setStep(s => Math.max(1, s - 1))
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
+
+    // Guards against Enter-key submission reaching this early — the only
+    // type="submit" button in the DOM is on the last step, but this keeps
+    // the real submission logic from ever running before then regardless.
+    if (step !== STEPS.length) { goNext(); return }
 
     if (password.length < 8) { setError('Password must be at least 8 characters.'); return }
     if (password !== confirmPassword) { setError('Passwords do not match.'); return }
@@ -295,19 +348,33 @@ export default function OnboardingPage() {
     }
   }
 
+  const current = STEPS[step - 1]
+
   return (
     <div className="bg-[#fefae0] text-[#1d1c0d] min-h-screen overflow-x-hidden">
       <Navbar />
 
       <main className="min-h-screen flex items-center justify-center px-6 py-32">
-        <div className="w-full max-w-md">
+        <div className="w-full max-w-2xl">
+          {/* Progress */}
+          <div className="mb-8">
+            <div className="flex items-center justify-between text-xs font-bold text-[#173809]/60 mb-2 uppercase tracking-widest">
+              <span>Step {step} of {STEPS.length}</span>
+              <span className="tabular-nums">{Math.round((step / STEPS.length) * 100)}%</span>
+            </div>
+            <div className="h-1.5 bg-[#e7e3ca] rounded-full overflow-hidden">
+              <div
+                className="h-full bg-[#173809] rounded-full transition-all duration-500 ease-out"
+                style={{ width: `${(step / STEPS.length) * 100}%` }}
+              />
+            </div>
+          </div>
+
           <div className="text-center mb-10">
             <h1 className="font-headline text-4xl font-bold text-[#173809] tracking-tight mb-3">
-              Create Your Account
+              {current.title}
             </h1>
-            <p className="text-[#43493e]">
-              Tell us about your field so we can give you real numbers, not guesses.
-            </p>
+            <p className="text-[#43493e]">{current.sub}</p>
           </div>
 
           <div
@@ -321,161 +388,201 @@ export default function OnboardingPage() {
             )}
 
             <form onSubmit={handleSubmit} className="space-y-5">
-              {/* Name */}
-              <div>
-                <label className="block font-label text-xs uppercase tracking-widest text-[#43493e] mb-2 ml-2">
-                  Your Name
-                </label>
-                <input
-                  type="text"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  placeholder="Ramesh Patel"
-                  autoComplete="name"
-                  required
-                  className="w-full bg-white border-0 rounded-full px-6 py-4 text-base font-body text-[#173809] focus:outline-none focus:ring-2 focus:ring-[#173809]/20 transition-shadow placeholder:text-[#73796d]"
-                />
-              </div>
+              {/* ── Step 1 — Account ── */}
+              {step === 1 && (
+                <div className="space-y-5">
+                  <div>
+                    <label className="block font-label text-xs uppercase tracking-widest text-[#43493e] mb-2 ml-2">
+                      Your Name
+                    </label>
+                    <input
+                      type="text"
+                      value={fullName}
+                      onChange={(e) => setFullName(e.target.value)}
+                      placeholder="Ramesh Patel"
+                      autoComplete="name"
+                      required
+                      className="w-full bg-white border-0 rounded-full px-6 py-4 text-base font-body text-[#173809] focus:outline-none focus:ring-2 focus:ring-[#173809]/20 transition-shadow placeholder:text-[#73796d]"
+                    />
+                  </div>
 
-              {/* Email / Phone toggle */}
-              <div>
-                <div className="flex bg-[#e7e3ca] rounded-full p-1 mb-3">
-                  {[
-                    { key: 'email', icon: 'mail', label: 'Email' },
-                    { key: 'phone', icon: 'smartphone', label: 'Phone' },
-                  ].map(({ key, icon, label }) => (
-                    <button
-                      key={key}
-                      type="button"
-                      onClick={() => { setMode(key); setIdentifier(''); setError('') }}
-                      className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-full text-sm font-bold transition-all ${
-                        mode === key
-                          ? 'bg-[#173809] text-white shadow'
-                          : 'text-[#173809]/60 hover:text-[#173809]'
-                      }`}
-                    >
-                      <span className="material-symbols-outlined text-[18px]">{icon}</span>
-                      {label}
-                    </button>
+                  {/* Email / Phone toggle */}
+                  <div>
+                    <div className="flex bg-[#e7e3ca] rounded-full p-1 mb-3">
+                      {[
+                        { key: 'email', icon: 'mail', label: 'Email' },
+                        { key: 'phone', icon: 'smartphone', label: 'Phone' },
+                      ].map(({ key, icon, label }) => (
+                        <button
+                          key={key}
+                          type="button"
+                          onClick={() => { setMode(key); setIdentifier(''); setError('') }}
+                          className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-full text-sm font-bold transition-all ${
+                            mode === key
+                              ? 'bg-[#173809] text-white shadow'
+                              : 'text-[#173809]/60 hover:text-[#173809]'
+                          }`}
+                        >
+                          <span className="material-symbols-outlined text-[18px]">{icon}</span>
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                    <div className="relative flex items-center">
+                      {mode === 'phone' && (
+                        <span className="absolute left-6 text-sm font-bold text-[#173809]/60 pointer-events-none">+91</span>
+                      )}
+                      <input
+                        type={mode === 'email' ? 'email' : 'tel'}
+                        inputMode={mode === 'phone' ? 'numeric' : undefined}
+                        maxLength={mode === 'phone' ? 10 : undefined}
+                        value={identifier}
+                        onChange={(e) => setIdentifier(mode === 'phone' ? e.target.value.replace(/\D/g, '') : e.target.value)}
+                        placeholder={mode === 'email' ? 'you@example.com' : '98765 43210'}
+                        autoComplete={mode === 'email' ? 'username' : 'tel'}
+                        required
+                        className={`w-full bg-white border-0 rounded-full py-4 text-base font-body text-[#173809] focus:outline-none focus:ring-2 focus:ring-[#173809]/20 transition-shadow placeholder:text-[#73796d] ${
+                          mode === 'phone' ? 'pl-16 pr-6' : 'px-6'
+                        }`}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Password */}
+                  <div>
+                    <label className="block font-label text-xs uppercase tracking-widest text-[#43493e] mb-2 ml-2">
+                      Password <span className="normal-case font-normal text-[#43493e]/60">(min 8 characters)</span>
+                    </label>
+                    <div className="relative">
+                      <input
+                        type={showPassword ? 'text' : 'password'}
+                        autoComplete="new-password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder="••••••••••"
+                        required
+                        className="w-full bg-white border-0 rounded-full px-6 py-4 pr-14 text-base font-body text-[#173809] focus:outline-none focus:ring-2 focus:ring-[#173809]/20 transition-shadow placeholder:text-[#73796d]"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(v => !v)}
+                        className="absolute right-5 top-1/2 -translate-y-1/2 text-[#173809]/40 hover:text-[#173809] transition-colors"
+                      >
+                        <span className="material-symbols-outlined text-[20px]">{showPassword ? 'visibility_off' : 'visibility'}</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Confirm Password */}
+                  <div>
+                    <label className="block font-label text-xs uppercase tracking-widest text-[#43493e] mb-2 ml-2">
+                      Confirm Password
+                    </label>
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      autoComplete="new-password"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      placeholder="••••••••••"
+                      required
+                      className="w-full bg-white border-0 rounded-full px-6 py-4 text-base font-body text-[#173809] focus:outline-none focus:ring-2 focus:ring-[#173809]/20 transition-shadow placeholder:text-[#73796d]"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* ── Step 2 — Field Location ── */}
+              {step === 2 && (
+                <div>
+                  <label className="block font-label text-xs uppercase tracking-widest text-[#43493e] mb-2 ml-2">
+                    Field Location
+                  </label>
+                  <MapPicker value={coordinates} onChange={setCoordinates} autoDetect />
+                </div>
+              )}
+
+              {/* ── Step 3 — Crops ── */}
+              {step === 3 && (
+                <div className="space-y-5">
+                  <CropCard
+                    title="Primary Crop"
+                    values={primaryCrop}
+                    onChange={setPrimaryCrop}
+                  />
+
+                  {additionalCrops.map((row, idx) => (
+                    <CropCard
+                      key={idx}
+                      title={`Crop ${idx + 2}`}
+                      subtitle="Soil test and fertilizer use prefilled from your primary crop — edit as needed"
+                      values={row}
+                      onChange={(v) => updateCropRow(idx, v)}
+                      onRemove={() => removeCropRow(idx)}
+                    />
                   ))}
-                </div>
-                <div className="relative flex items-center">
-                  {mode === 'phone' && (
-                    <span className="absolute left-6 text-sm font-bold text-[#173809]/60 pointer-events-none">+91</span>
-                  )}
-                  <input
-                    type={mode === 'email' ? 'email' : 'tel'}
-                    inputMode={mode === 'phone' ? 'numeric' : undefined}
-                    maxLength={mode === 'phone' ? 10 : undefined}
-                    value={identifier}
-                    onChange={(e) => setIdentifier(mode === 'phone' ? e.target.value.replace(/\D/g, '') : e.target.value)}
-                    placeholder={mode === 'email' ? 'you@example.com' : '98765 43210'}
-                    autoComplete={mode === 'email' ? 'username' : 'tel'}
-                    required
-                    className={`w-full bg-white border-0 rounded-full py-4 text-base font-body text-[#173809] focus:outline-none focus:ring-2 focus:ring-[#173809]/20 transition-shadow placeholder:text-[#73796d] ${
-                      mode === 'phone' ? 'pl-16 pr-6' : 'px-6'
-                    }`}
-                  />
-                </div>
-              </div>
-
-              {/* Password */}
-              <div>
-                <label className="block font-label text-xs uppercase tracking-widest text-[#43493e] mb-2 ml-2">
-                  Password <span className="normal-case font-normal text-[#43493e]/60">(min 8 characters)</span>
-                </label>
-                <div className="relative">
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    autoComplete="new-password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••••"
-                    required
-                    className="w-full bg-white border-0 rounded-full px-6 py-4 pr-14 text-base font-body text-[#173809] focus:outline-none focus:ring-2 focus:ring-[#173809]/20 transition-shadow placeholder:text-[#73796d]"
-                  />
                   <button
                     type="button"
-                    onClick={() => setShowPassword(v => !v)}
-                    className="absolute right-5 top-1/2 -translate-y-1/2 text-[#173809]/40 hover:text-[#173809] transition-colors"
+                    onClick={addCropRow}
+                    className="flex items-center gap-1.5 text-sm font-bold text-[#173809]/60 hover:text-[#173809] px-2"
                   >
-                    <span className="material-symbols-outlined text-[20px]">{showPassword ? 'visibility_off' : 'visibility'}</span>
+                    <span className="material-symbols-outlined text-[18px]">add_circle</span>
+                    Grow another crop too?
                   </button>
                 </div>
+              )}
+
+              {/* ── Step 4 — Finish ── */}
+              {step === 4 && (
+                <div className="space-y-5">
+                  <div className="bg-white/60 rounded-2xl p-5 space-y-2.5">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-[#173809]/45">Ready to create</p>
+                    <SummaryRow label="Name" value={fullName} />
+                    <SummaryRow label={mode === 'email' ? 'Email' : 'Phone'} value={mode === 'phone' ? `+91 ${identifier}` : identifier} />
+                    <SummaryRow label="Field location" value={coordinates?.label || (coordinates?.lat ? `${coordinates.lat.toFixed(3)}, ${coordinates.lng.toFixed(3)}` : '—')} />
+                    <SummaryRow label="Crops" value={[primaryCrop.cropType, ...additionalCrops.map(c => c.cropType)].join(', ')} />
+                  </div>
+
+                  <label className="flex items-center gap-3 cursor-pointer select-none px-2">
+                    <input
+                      type="checkbox"
+                      checked={keepSignedIn}
+                      onChange={(e) => setKeepSignedIn(e.target.checked)}
+                      className="w-5 h-5 rounded-md border-2 border-[#173809]/30 text-[#173809] accent-[#173809] cursor-pointer"
+                    />
+                    <span className="text-sm font-medium text-[#43493e]">Keep me signed in</span>
+                  </label>
+                </div>
+              )}
+
+              {/* Nav buttons */}
+              <div className="flex gap-3 pt-2">
+                {step > 1 && (
+                  <button
+                    type="button"
+                    onClick={goBack}
+                    className="px-6 py-4 rounded-full font-headline font-bold text-[#173809] border border-[#173809]/20 hover:bg-white transition-colors"
+                  >
+                    Back
+                  </button>
+                )}
+                {step < STEPS.length ? (
+                  <button
+                    type="button"
+                    onClick={goNext}
+                    className="notranslate flex-1 bg-[#173809] text-white rounded-full py-4 font-headline text-lg font-bold hover:bg-[#2d4f1e] active:scale-[0.98] transition-all"
+                  >
+                    Next
+                  </button>
+                ) : (
+                  <button
+                    type="submit"
+                    disabled={isLoading}
+                    className="notranslate flex-1 bg-[#173809] text-white rounded-full py-4 font-headline text-lg font-bold hover:bg-[#2d4f1e] active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                  >
+                    {isLoading ? 'Creating your account…' : 'Create Account'}
+                  </button>
+                )}
               </div>
-
-              {/* Confirm Password */}
-              <div>
-                <label className="block font-label text-xs uppercase tracking-widest text-[#43493e] mb-2 ml-2">
-                  Confirm Password
-                </label>
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  autoComplete="new-password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="••••••••••"
-                  required
-                  className="w-full bg-white border-0 rounded-full px-6 py-4 text-base font-body text-[#173809] focus:outline-none focus:ring-2 focus:ring-[#173809]/20 transition-shadow placeholder:text-[#73796d]"
-                />
-              </div>
-
-              {/* ── Field Location (required, farm-wide) ── */}
-              <div className="pt-4 border-t border-[#173809]/10">
-                <h3 className="font-headline text-lg font-bold text-[#173809] mb-1">Your Field</h3>
-                <p className="text-xs text-[#43493e]/70 mb-4">This is how we tell you exactly what to apply and how much.</p>
-
-                <label className="block font-label text-xs uppercase tracking-widest text-[#43493e] mb-2 ml-2">
-                  Field Location
-                </label>
-                <MapPicker value={coordinates} onChange={setCoordinates} autoDetect />
-              </div>
-
-              {/* ── Primary crop — crop, soil test, and fertilizer use together ── */}
-              <CropCard
-                title="Primary Crop"
-                values={primaryCrop}
-                onChange={setPrimaryCrop}
-              />
-
-              {/* ── Other crops — same depth, prefilled from the primary crop ── */}
-              {additionalCrops.map((row, idx) => (
-                <CropCard
-                  key={idx}
-                  title={`Crop ${idx + 2}`}
-                  subtitle="Soil test and fertilizer use prefilled from your primary crop — edit as needed"
-                  values={row}
-                  onChange={(v) => updateCropRow(idx, v)}
-                  onRemove={() => removeCropRow(idx)}
-                />
-              ))}
-              <button
-                type="button"
-                onClick={addCropRow}
-                className="flex items-center gap-1.5 text-sm font-bold text-[#173809]/60 hover:text-[#173809] px-2"
-              >
-                <span className="material-symbols-outlined text-[18px]">add_circle</span>
-                Grow another crop too?
-              </button>
-
-              {/* Keep signed in */}
-              <label className="flex items-center gap-3 cursor-pointer select-none px-2">
-                <input
-                  type="checkbox"
-                  checked={keepSignedIn}
-                  onChange={(e) => setKeepSignedIn(e.target.checked)}
-                  className="w-5 h-5 rounded-md border-2 border-[#173809]/30 text-[#173809] accent-[#173809] cursor-pointer"
-                />
-                <span className="text-sm font-medium text-[#43493e]">Keep me signed in</span>
-              </label>
-
-              <button
-                type="submit"
-                disabled={isLoading}
-                className="notranslate w-full bg-[#173809] text-white rounded-full py-4 font-headline text-lg font-bold hover:bg-[#2d4f1e] active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-50"
-              >
-                {isLoading ? 'Creating your account…' : 'Create Account'}
-              </button>
             </form>
 
             <div className="mt-6 text-center">
@@ -489,6 +596,15 @@ export default function OnboardingPage() {
           </div>
         </div>
       </main>
+    </div>
+  )
+}
+
+function SummaryRow({ label, value }) {
+  return (
+    <div className="flex justify-between gap-4 text-sm">
+      <span className="text-[#43493e]/60">{label}</span>
+      <span className="font-bold text-[#173809] text-right truncate">{value || '—'}</span>
     </div>
   )
 }
