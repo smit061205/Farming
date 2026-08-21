@@ -96,8 +96,9 @@ class SoilDataUpdate(BaseModel):
     currentFertilizer: Optional[str] = None  # what the farmer says they're already applying, if anything
     pastFertilizer: Optional[str] = None     # what they used previously, before the current one
     plantingMethod: Optional[str] = None     # e.g. 'Transplanting', 'Broadcasting'
-    irrigation: Optional[str] = None         # 'rainfed' | 'canal' | 'drip' | 'sprinkler' | 'flood' —
-                                              # collected, not yet a dosing-engine input
+    irrigation: Optional[str] = None         # 'rainfed' | 'canal' | 'drip' | 'sprinkler' | 'flood'
+    applicationMethod: Optional[str] = None  # how fertilizer is placed: 'broadcast' | 'incorporated' | 'banded' | 'fertigation'
+    waterlogged: Optional[bool] = None       # field currently has standing water
 
 
 @router.put("/soil-data")
@@ -125,6 +126,8 @@ async def update_soil_data(
     if payload.pastFertilizer is not None: soil_patch["soil_data.pastFertilizer"] = payload.pastFertilizer
     if payload.plantingMethod is not None: soil_patch["soil_data.plantingMethod"] = payload.plantingMethod
     if payload.irrigation is not None: soil_patch["soil_data.irrigation"] = payload.irrigation
+    if payload.applicationMethod is not None: soil_patch["soil_data.applicationMethod"] = payload.applicationMethod
+    if payload.waterlogged is not None: soil_patch["soil_data.waterlogged"] = payload.waterlogged
 
     # Whenever a fresh soil chemistry reading comes in, recompute the derived
     # diagnostics (organic matter, CEC, lime requirement, salinity risk, ...)
@@ -179,6 +182,8 @@ class FieldPayload(BaseModel):
     currentFertilizer: Optional[str] = None
     pastFertilizer: Optional[str] = None
     irrigation: Optional[str] = None
+    applicationMethod: Optional[str] = None
+    waterlogged: Optional[bool] = None
 
 
 class FieldUpdatePayload(BaseModel):
@@ -195,6 +200,8 @@ class FieldUpdatePayload(BaseModel):
     currentFertilizer: Optional[str] = None
     pastFertilizer: Optional[str] = None
     irrigation: Optional[str] = None
+    applicationMethod: Optional[str] = None
+    waterlogged: Optional[bool] = None
 
 
 @router.post("/fields")

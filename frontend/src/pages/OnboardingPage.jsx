@@ -36,12 +36,9 @@ const FERTILIZER_OPTIONS = [
   'Other / a mix',
 ]
 
-// Mirrors the irrigation options in the reference AgriSense wizard
-// (Downloads/Goal/agrisense/client/src/components/Wizard.jsx). Collected and
-// saved, but not yet a dosing-engine input — no split-application or
-// leaching-risk rule reads it today. See fertilizer_engine.py's other
-// documented not-yet-modeled gaps (DAP's secondary N, Zn) for the same
-// "collected honestly, not silently assumed" pattern.
+// Drives the nitrogen split-application schedule in fertilizer_engine.py —
+// drip/sprinkler fields get a real fertigation split, flood/canal fields
+// under heavy rain get a more conservative split.
 const IRRIGATION_OPTIONS = [
   { value: 'rainfed', label: 'Rainfed' },
   { value: 'canal', label: 'Canal' },
@@ -50,11 +47,23 @@ const IRRIGATION_OPTIONS = [
   { value: 'flood', label: 'Flood' },
 ]
 
+// How the fertilizer itself is placed in the field — distinct from
+// "Planting Method" (how the crop went in). Feeds the heat-volatilization
+// warning: broadcasting loses more nitrogen to the air than incorporating
+// or banding it.
+const APPLICATION_METHOD_OPTIONS = [
+  { value: 'broadcast', label: 'Broadcast on surface' },
+  { value: 'incorporated', label: 'Mixed into soil' },
+  { value: 'banded', label: 'Placed in bands' },
+  { value: 'fertigation', label: 'Through irrigation water' },
+]
+
 function emptyCrop() {
   return {
     cropType: CROP_OPTIONS[0], fieldSize: '', fieldSizeUnit: 'acres',
     ph: '', nitrogen: '', phosphorus: '', potassium: '',
     currentFertilizer: '', pastFertilizer: '', irrigation: 'canal',
+    applicationMethod: 'broadcast', waterlogged: false,
   }
 }
 
@@ -159,6 +168,23 @@ function CropCard({ title, subtitle, values, onChange, onRemove }) {
             {IRRIGATION_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
           </select>
         </Field>
+        <Field label="Fertilizer Application Method" hint="How you place fertilizer, not how you planted — broadcasting on the surface loses more nitrogen to the air than mixing it in.">
+          <select
+            value={values.applicationMethod}
+            onChange={(e) => set({ applicationMethod: e.target.value })}
+            className="w-full bg-white border-0 rounded-full px-5 py-3.5 text-sm font-body text-[#173809] focus:outline-none focus:ring-2 focus:ring-[#173809]/20 shadow-sm"
+          >
+            {APPLICATION_METHOD_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+          </select>
+        </Field>
+        <Field label="Standing Water">
+          <Toggle
+            cols={2}
+            value={values.waterlogged}
+            onChange={(v) => set({ waterlogged: v })}
+            options={[{ value: false, label: 'No' }, { value: true, label: 'Yes, right now' }]}
+          />
+        </Field>
       </div>
 
       {/* Soil test — upload a lab report to auto-fill, or type the values in directly */}
@@ -239,7 +265,7 @@ export default function OnboardingPage() {
     ...emptyCrop(),
     ph: primaryCrop.ph, nitrogen: primaryCrop.nitrogen, phosphorus: primaryCrop.phosphorus, potassium: primaryCrop.potassium,
     currentFertilizer: primaryCrop.currentFertilizer, pastFertilizer: primaryCrop.pastFertilizer,
-    irrigation: primaryCrop.irrigation,
+    irrigation: primaryCrop.irrigation, applicationMethod: primaryCrop.applicationMethod,
   }])
   const removeCropRow = (idx) => setAdditionalCrops(prev => prev.filter((_, i) => i !== idx))
   const updateCropRow = (idx, values) => setAdditionalCrops(prev => prev.map((row, i) => i === idx ? values : row))
@@ -321,7 +347,7 @@ export default function OnboardingPage() {
       ph: parseFloat(primaryCrop.ph), nitrogen: parseFloat(primaryCrop.nitrogen),
       phosphorus: parseFloat(primaryCrop.phosphorus), potassium: parseFloat(primaryCrop.potassium),
       currentFertilizer: primaryCrop.currentFertilizer, pastFertilizer: primaryCrop.pastFertilizer,
-      irrigation: primaryCrop.irrigation,
+      irrigation: primaryCrop.irrigation, applicationMethod: primaryCrop.applicationMethod, waterlogged: primaryCrop.waterlogged,
     }
 
     setIsLoading(true)
@@ -356,7 +382,7 @@ export default function OnboardingPage() {
             ph: parseFloat(row.ph), nitrogen: parseFloat(row.nitrogen),
             phosphorus: parseFloat(row.phosphorus), potassium: parseFloat(row.potassium),
             currentFertilizer: row.currentFertilizer, pastFertilizer: row.pastFertilizer,
-            irrigation: row.irrigation,
+            irrigation: row.irrigation, applicationMethod: row.applicationMethod,
           }
           await fetch(`${API_BASE}/api/users/fields`, {
             method: 'POST',

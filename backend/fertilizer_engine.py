@@ -94,6 +94,10 @@ NUTRIENT_CARRIER = {
     "k": {"name": "Muriate of Potash (MOP)", "npk_fraction": 0.60},
 }
 
+# DAP's other 18% (it's 18-46-0) — the nitrogen this field's phosphorus dose
+# delivers as a side effect, credited against the separate nitrogen need.
+DAP_N_FRACTION = 0.18
+
 # Rain over this many mm across the next 5 days is treated as leaching/runoff risk
 RAIN_RISK_MM_5D = 25.0
 # Average max temp above this is treated as urea volatilization risk
@@ -126,6 +130,16 @@ def get_crop_targets(crop_type: Optional[str]) -> dict:
     key = (crop_type or "").strip().lower()
     key = CROP_ALIASES.get(key, key)
     return CROP_NUTRIENT_TARGETS.get(key, DEFAULT_TARGET)
+
+
+def is_verified_crop(crop_type: Optional[str]) -> bool:
+    """True when this crop has a real, individually ICAR/institute-sourced
+    entry in CROP_NUTRIENT_TARGETS (see the citations above the table) —
+    False when it's silently using DEFAULT_TARGET, a generic placeholder
+    that isn't tailored to this crop at all."""
+    key = (crop_type or "").strip().lower()
+    key = CROP_ALIASES.get(key, key)
+    return key in CROP_NUTRIENT_TARGETS
 
 
 async def fetch_rain_forecast(lat: float, lng: float) -> dict:
@@ -179,12 +193,16 @@ def compute_precision_dose(
     field_size_unit: str,
     weather: Optional[dict] = None,
     irrigation: Optional[str] = None,
+    application_method: Optional[str] = None,
+    waterlogged: bool = False,
 ) -> dict:
     weather = weather or {
         "rain_forecast_mm_5d": None, "avg_temp_c": None,
         "high_rain_risk": False, "heat_volatilization_risk": False,
     }
     irrigation = (irrigation or "").strip().lower() or None
+    application_method = (application_method or "").strip().lower() or None
+    INCORPORATED_METHODS = {"incorporated", "banded"}
     targets = get_crop_targets(crop_type)
     hectares = field_size_to_hectares(field_size, field_size_unit) or 0.0
 
@@ -195,13 +213,31 @@ def compute_precision_dose(
     }
 
     nutrients = {}
-    for key, label in (("n", "nitrogen"), ("p", "phosphorus"), ("k", "potassium")):
+    # P and K first, N last — DAP (18-46-0) is 18% nitrogen alongside its 46%
+    # P2O5, so whatever DAP this field needs for phosphorus also delivers a
+    # real chunk of its nitrogen requirement for free. Sizing urea from the
+    # raw N deficit without crediting that would double-count nitrogen and
+    # systematically over-recommend urea on any P-deficient field — the most
+    # common way a fertilizer calculator over-recommends nitrogen.
+    dap_n_credit_kg_ha = 0.0
+    for key, label in (("p", "phosphorus"), ("k", "potassium"), ("n", "nitrogen")):
         target_kg_ha = targets[key]
         available_kg_ha = round(available[key], 1)
         deficit_kg_ha = max(0.0, round(target_kg_ha - available_kg_ha, 1))
         surplus_kg_ha = max(0.0, round(available_kg_ha - target_kg_ha, 1))
         carrier = NUTRIENT_CARRIER[key]
-        product_kg_ha = round(deficit_kg_ha / carrier["npk_fraction"], 1) if deficit_kg_ha > 0 else 0.0
+
+        raw_product_kg_ha = round(deficit_kg_ha / carrier["npk_fraction"], 1) if deficit_kg_ha > 0 else 0.0
+        if key == "n":
+            # Residual need after the nitrogen already arriving via this
+            # field's DAP dose — diagnostics below still reflect the true
+            # soil deficit, only the urea quantity to buy is adjusted.
+            credited_deficit_kg_ha = max(0.0, round(deficit_kg_ha - dap_n_credit_kg_ha, 1))
+            product_kg_ha = round(credited_deficit_kg_ha / carrier["npk_fraction"], 1) if credited_deficit_kg_ha > 0 else 0.0
+        else:
+            product_kg_ha = raw_product_kg_ha
+            if key == "p":
+                dap_n_credit_kg_ha = round(product_kg_ha * DAP_N_FRACTION, 1)
         product_kg_total = round(product_kg_ha * hectares, 1) if hectares else product_kg_ha
 
         if deficit_kg_ha > 0:
@@ -221,6 +257,12 @@ def compute_precision_dose(
             "product_kg_per_ha": product_kg_ha,
             "product_kg_total": product_kg_total,
         }
+        if key == "n" and dap_n_credit_kg_ha > 0:
+            nutrients[label]["n_credited_from_dap_kg_ha"] = dap_n_credit_kg_ha
+
+    # Re-order back to n/phosphorus/potassium for every existing caller that
+    # iterates this dict expecting that order (charts, UI cards, AI prompt).
+    nutrients = {k: nutrients[k] for k in ("nitrogen", "phosphorus", "potassium")}
 
     # Split-dose schedule. Drip/sprinkler systems can feed nitrogen through the
     # irrigation line itself (fertigation) — standard practice there is several
@@ -230,7 +272,15 @@ def compute_precision_dose(
     # risk of nitrogen loss to runoff and waterlogging-driven denitrification,
     # which calls for a more conservative split than the rainfed-default case.
     n_total = nutrients["nitrogen"]["product_kg_total"]
-    if irrigation in FERTIGATION_IRRIGATION and n_total > 0:
+    # Standing water overrides every other timing consideration — nitrogen
+    # applied into waterlogged soil is lost almost immediately to runoff and
+    # denitrification, so the only real advice is to wait, not to split.
+    if waterlogged and n_total > 0:
+        application_plan = [
+            {"stage": "Wait — field is waterlogged", "pct_of_nitrogen": 0},
+            {"stage": "Once water has drained", "pct_of_nitrogen": 100},
+        ]
+    elif irrigation in FERTIGATION_IRRIGATION and n_total > 0:
         application_plan = [
             {"stage": "Basal (at sowing)", "pct_of_nitrogen": 25},
             {"stage": "Vegetative growth", "pct_of_nitrogen": 25},
@@ -253,20 +303,39 @@ def compute_precision_dose(
 
     return {
         "crop_type": crop_type,
+        "data_confidence": "verified" if is_verified_crop(crop_type) else "generic",
         "field_size": field_size,
         "field_size_unit": field_size_unit,
         "field_size_hectares": round(hectares, 3),
         "ph": ph,
         "irrigation": irrigation,
+        "application_method": application_method,
+        "waterlogged": waterlogged,
         "nutrients": nutrients,
         "weather": weather,
         "application_plan": application_plan,
-        "notes": _build_notes(weather, irrigation, n_total),
+        "notes": _build_notes(weather, irrigation, n_total, dap_n_credit_kg_ha, application_method, waterlogged, INCORPORATED_METHODS),
     }
 
 
-def _build_notes(weather: dict, irrigation: Optional[str] = None, n_total: float = 0) -> list[str]:
+def _build_notes(
+    weather: dict, irrigation: Optional[str] = None, n_total: float = 0, dap_n_credit_kg_ha: float = 0,
+    application_method: Optional[str] = None, waterlogged: bool = False, incorporated_methods: Optional[set] = None,
+) -> list[str]:
+    incorporated_methods = incorporated_methods or {"incorporated", "banded"}
     notes = []
+    if waterlogged and n_total > 0:
+        notes.append(
+            "This field currently has standing water — hold off on applying nitrogen until it drains. "
+            "Fertilizer applied into waterlogged soil is lost almost immediately to runoff and to bacteria "
+            "converting it to gas (denitrification), so applying now would mostly be wasted product."
+        )
+    if dap_n_credit_kg_ha > 0:
+        notes.append(
+            f"The DAP in this plan already carries {dap_n_credit_kg_ha} kg/ha of nitrogen (DAP is "
+            "18% nitrogen, not just phosphorus) — that's been subtracted from the urea amount below "
+            "so this field isn't over-dosed on nitrogen from the two products combined."
+        )
     if irrigation in FERTIGATION_IRRIGATION and n_total > 0:
         notes.append(
             f"{irrigation.capitalize()} irrigation lets nitrogen be fed in small doses through the "
@@ -284,11 +353,19 @@ def _build_notes(weather: dict, irrigation: Optional[str] = None, n_total: float
             f"Heavy rain forecast ({weather.get('rain_forecast_mm_5d')}mm over 5 days) — "
             "split the nitrogen dose to avoid leaching/runoff loss."
         )
-    if weather.get("heat_volatilization_risk"):
+    if weather.get("heat_volatilization_risk") and application_method not in incorporated_methods:
         notes.append(
             f"High temperatures forecast (avg {weather.get('avg_temp_c')}°C) — "
             "incorporate urea into the soil rather than surface-broadcasting to limit "
             "ammonia volatilization."
+            + (" This matters even more since broadcasting was selected as the application method."
+               if application_method == "broadcast" else "")
+        )
+    elif weather.get("heat_volatilization_risk") and application_method in incorporated_methods:
+        notes.append(
+            f"High temperatures forecast (avg {weather.get('avg_temp_c')}°C), but since fertilizer here "
+            f"goes in {application_method} rather than surface-broadcast, ammonia volatilization loss "
+            "should already be limited."
         )
     return notes
 

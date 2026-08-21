@@ -91,6 +91,13 @@ const IRRIGATION_OPTIONS = [
 ]
 const IRRIGATION_LABEL = Object.fromEntries(IRRIGATION_OPTIONS.map(o => [o.value, o.label]))
 
+const APPLICATION_METHOD_OPTIONS = [
+  { value: 'broadcast', label: 'Broadcast on surface' },
+  { value: 'incorporated', label: 'Mixed into soil' },
+  { value: 'banded', label: 'Placed in bands' },
+  { value: 'fertigation', label: 'Through irrigation water' },
+]
+
 // Connects to ICAR's Krishi Vigyan Kendra network — the real, local channel
 // through which Indian farmers get hands-on training on application
 // methods (broadcasting, banding, fertigation) — verified reachable.
@@ -126,6 +133,7 @@ function AddFieldModal({ token, onClose, onSaved }) {
   const [form, setForm] = useState({
     cropType: CROP_OPTIONS[0], plantingMethod: PLANTING_METHODS[0], soilType: 'Clay Loam',
     fieldSize: '', fieldSizeUnit: 'acres', growthStage: 'sowing', irrigation: 'canal',
+    applicationMethod: 'broadcast', waterlogged: false,
     ph: '', nitrogen: '', phosphorus: '', potassium: '',
     currentFertilizer: '', pastFertilizer: '',
   })
@@ -144,7 +152,7 @@ function AddFieldModal({ token, onClose, onSaved }) {
         cropType: form.cropType, plantingMethod: form.plantingMethod, soilType: form.soilType,
         fieldSize: parseFloat(form.fieldSize), fieldSizeUnit: form.fieldSizeUnit, growthStage: form.growthStage,
         currentFertilizer: form.currentFertilizer, pastFertilizer: form.pastFertilizer,
-        irrigation: form.irrigation,
+        irrigation: form.irrigation, applicationMethod: form.applicationMethod, waterlogged: form.waterlogged,
       }
       if (form.ph !== '') payload.ph = parseFloat(form.ph)
       if (form.nitrogen !== '') payload.nitrogen = parseFloat(form.nitrogen)
@@ -222,13 +230,27 @@ function AddFieldModal({ token, onClose, onSaved }) {
             </div>
           </div>
 
-          <div>
-            <label className="block text-[10px] font-bold uppercase tracking-widest text-[#173809]/50 mb-2">Irrigation</label>
-            <select value={form.irrigation} onChange={e => set('irrigation', e.target.value)} className="w-full bg-white border border-[#173809]/10 rounded-xl px-4 py-3 text-sm font-bold text-[#173809]">
-              {IRRIGATION_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-            </select>
-            <p className="text-[11px] text-[#43493e]/60 mt-1.5">Affects how the nitrogen dose is split across the season.</p>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-[10px] font-bold uppercase tracking-widest text-[#173809]/50 mb-2">Irrigation</label>
+              <select value={form.irrigation} onChange={e => set('irrigation', e.target.value)} className="w-full bg-white border border-[#173809]/10 rounded-xl px-4 py-3 text-sm font-bold text-[#173809]">
+                {IRRIGATION_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+              </select>
+              <p className="text-[11px] text-[#43493e]/60 mt-1.5">Affects how the nitrogen dose is split across the season.</p>
+            </div>
+            <div>
+              <label className="block text-[10px] font-bold uppercase tracking-widest text-[#173809]/50 mb-2">Fertilizer Application</label>
+              <select value={form.applicationMethod} onChange={e => set('applicationMethod', e.target.value)} className="w-full bg-white border border-[#173809]/10 rounded-xl px-4 py-3 text-sm font-bold text-[#173809]">
+                {APPLICATION_METHOD_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+              </select>
+              <p className="text-[11px] text-[#43493e]/60 mt-1.5">How you place it — not how you planted the crop.</p>
+            </div>
           </div>
+          <label className="flex items-center gap-2.5 cursor-pointer">
+            <input type="checkbox" checked={form.waterlogged} onChange={e => set('waterlogged', e.target.checked)}
+              className="w-4 h-4 rounded accent-[#9f402d]" />
+            <span className="text-sm font-bold text-[#173809]">This field currently has standing water</span>
+          </label>
 
           <div className="pt-4 border-t border-[#173809]/10">
             <h3 className="font-headline text-base font-bold text-[#173809] mb-1">Soil Test <span className="font-body font-normal text-xs text-[#43493e]/60">(optional)</span></h3>
@@ -284,6 +306,25 @@ export default function FertilizerHubPage() {
   const [cost, setCost] = useState(null)
   const [history, setHistory] = useState([])
   const [showAddField, setShowAddField] = useState(false)
+  const [budgetInput, setBudgetInput] = useState('')
+  const [budgetPlan, setBudgetPlan] = useState(null)
+  const [budgetLoading, setBudgetLoading] = useState(false)
+
+  const checkBudget = async () => {
+    const amount = parseFloat(budgetInput)
+    if (!amount || amount <= 0) return
+    setBudgetLoading(true)
+    try {
+      const fieldQuery = activeFieldId ? `&field_id=${activeFieldId}` : ''
+      const res = await fetch(`${API_BASE}/api/engine/precision-recommendation?budget_inr=${amount}${fieldQuery}`, { headers: { Authorization: `Bearer ${token}` } })
+      const data = await res.json()
+      if (data.status === 'success') setBudgetPlan(data.budget_plan)
+    } catch {
+      // silent — the input just won't update, matching other soft-fail fetches on this page
+    } finally {
+      setBudgetLoading(false)
+    }
+  }
   const [encyclopedia, setEncyclopedia] = useState(() => {
     try { return JSON.parse(localStorage.getItem('cached_fert_encyc')) || [] } catch { return [] }
   })
@@ -298,6 +339,8 @@ export default function FertilizerHubPage() {
   useEffect(() => {
     if (!token) return
     setIsLoadingPrecision(true)
+    setBudgetPlan(null)
+    setBudgetInput('')
     const fieldQuery = activeFieldId ? `?field_id=${activeFieldId}` : ''
     fetch(`${API_BASE}/api/engine/precision-recommendation${fieldQuery}`, { headers: { Authorization: `Bearer ${token}` } })
       .then(res => res.json())
@@ -485,10 +528,20 @@ export default function FertilizerHubPage() {
               {/* Summary strip */}
               <div className="flex flex-col md:flex-row md:items-start justify-between gap-6 pb-8 mb-8 border-b border-[#173809]/8">
                 <div className="max-w-2xl">
-                  <span className="text-xs font-bold text-[#9f402d] uppercase tracking-widest">
-                    {precision.dose.crop_type} · {precision.dose.field_size} {precision.dose.field_size_unit}
-                    {precision.dose.irrigation && ` · ${IRRIGATION_LABEL[precision.dose.irrigation] || precision.dose.irrigation} Irrigation`}
-                  </span>
+                  <div className="flex items-center gap-2.5 flex-wrap">
+                    <span className="text-xs font-bold text-[#9f402d] uppercase tracking-widest">
+                      {precision.dose.crop_type} · {precision.dose.field_size} {precision.dose.field_size_unit}
+                      {precision.dose.irrigation && ` · ${IRRIGATION_LABEL[precision.dose.irrigation] || precision.dose.irrigation} Irrigation`}
+                    </span>
+                    <span
+                      className={`text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full ${precision.dose.data_confidence === 'verified' ? 'bg-[#173809]/8 text-[#173809]' : 'bg-[#b8862e]/12 text-[#8a641c]'}`}
+                      title={precision.dose.data_confidence === 'verified'
+                        ? 'This crop has its own ICAR/institute-sourced nutrient targets.'
+                        : 'No specific research target on file for this crop yet — using a generic fallback target, so treat the numbers below as a rough estimate.'}
+                    >
+                      {precision.dose.data_confidence === 'verified' ? 'ICAR-Verified' : 'Generic Estimate'}
+                    </span>
+                  </div>
                   <h3 className="text-2xl font-headline font-bold text-[#173809] mt-2 mb-3 leading-tight">{precision.ai.headline}</h3>
                   <p className="text-[#43493e] text-sm leading-relaxed">{precision.ai.explanation}</p>
                 </div>
@@ -591,6 +644,55 @@ export default function FertilizerHubPage() {
                     </div>
                   )
                 })}
+              </div>
+
+              {/* Budget planner — what if I can't afford the full plan */}
+              <div className="rounded-2xl bg-[#f8f4db] p-5 mb-6">
+                <p className="text-sm font-bold text-[#173809] mb-1">Working with a limited budget?</p>
+                <p className="text-xs text-[#173809]/60 mb-3">Tell us what you can spend — we'll prioritize which nutrient to buy first, not just cut everything evenly.</p>
+                <div className="flex gap-2">
+                  <div className="relative flex-1 max-w-[220px]">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-[#173809]/40">₹</span>
+                    <input
+                      type="number" min="0" value={budgetInput} onChange={e => setBudgetInput(e.target.value)}
+                      onKeyDown={e => e.key === 'Enter' && checkBudget()}
+                      placeholder="e.g. 3000"
+                      className="w-full bg-white rounded-full pl-8 pr-4 py-2.5 text-sm font-bold text-[#173809] border border-[#173809]/10 focus:outline-none focus:ring-2 focus:ring-[#173809]/20"
+                    />
+                  </div>
+                  <button onClick={checkBudget} disabled={budgetLoading || !budgetInput} className="bg-[#173809] text-white rounded-full px-5 py-2.5 text-sm font-bold disabled:opacity-40 hover:bg-[#2d4f1e] transition-colors">
+                    {budgetLoading ? '…' : 'Check'}
+                  </button>
+                </div>
+
+                {budgetPlan && (
+                  <div className="mt-4 pt-4 border-t border-[#173809]/10">
+                    {budgetPlan.sufficient ? (
+                      <p className="text-sm font-bold text-[#173809]">₹{budgetPlan.budget_inr.toLocaleString('en-IN')} covers the full plan (₹{budgetPlan.total_cost_inr.toLocaleString('en-IN')}) — no trade-offs needed.</p>
+                    ) : (
+                      <>
+                        <p className="text-sm font-bold text-[#9f402d] mb-3">₹{budgetPlan.budget_inr.toLocaleString('en-IN')} doesn't cover the full ₹{budgetPlan.total_cost_inr.toLocaleString('en-IN')} plan — here's what to prioritize:</p>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                          {budgetPlan.priority_order.map((label, i) => {
+                            const a = budgetPlan.allocation[label]
+                            return (
+                              <div key={label} className={`rounded-xl p-3 ${a.deferred ? 'bg-white/60 opacity-60' : 'bg-white'}`}>
+                                <div className="flex items-center justify-between mb-1">
+                                  <span className="text-[10px] font-bold uppercase tracking-widest text-[#173809]/40">#{i + 1} · {label}</span>
+                                  {!a.deferred && <span className="text-[10px] font-bold text-[#173809]">{a.funded_pct}%</span>}
+                                </div>
+                                <p className="text-sm font-bold text-[#173809]">
+                                  {a.deferred ? 'Wait for next purchase' : `${a.funded_kg_total} kg · ₹${a.funded_cost_inr.toLocaleString('en-IN')}`}
+                                </p>
+                              </div>
+                            )
+                          })}
+                        </div>
+                        <p className="text-[11px] text-[#173809]/50 mt-3">Priority follows agronomic urgency: nitrogen first (most yield-limiting and easiest to lose), then phosphorus (has to go in near sowing), then potassium.</p>
+                      </>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Notes */}

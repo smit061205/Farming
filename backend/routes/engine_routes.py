@@ -682,6 +682,8 @@ def _resolve_field_inputs(user: dict, n, p, k, ph, crop_type, field_size, field_
         "past_fertilizer": soil.get("pastFertilizer") or None,
         "planting_method": soil.get("plantingMethod") or None,
         "irrigation": soil.get("irrigation") or None,
+        "application_method": soil.get("applicationMethod") or None,
+        "waterlogged": bool(soil.get("waterlogged") or False),
     }
 
 
@@ -694,9 +696,50 @@ async def _compute_dose_for_user(user: dict, n, p, k, ph, crop_type, field_size,
     dose = fertilizer_engine.compute_precision_dose(
         crop_type=f["crop"], ph=f["ph"], n_ppm=f["n"], p_ppm=f["p"], k_ppm=f["k"],
         field_size=f["size"], field_size_unit=f["size_unit"], weather=weather,
-        irrigation=f["irrigation"],
+        irrigation=f["irrigation"], application_method=f["application_method"], waterlogged=f["waterlogged"],
     )
     return dose, f
+
+
+_BUDGET_PRIORITY = ("nitrogen", "phosphorus", "potassium")
+
+
+def _apply_budget(nutrients: dict, budget_inr: float) -> dict:
+    """Greedy allocation of a limited budget across deficient nutrients, most
+    agronomically urgent first: nitrogen (most yield-limiting and most easily
+    lost to leaching/volatilization if delayed), then phosphorus (immobile —
+    has to go in near sowing or the window is missed), then potassium. Fully
+    funds a nutrient before moving to the next; the last one affordable gets
+    partially funded rather than skipped outright."""
+    total_cost = sum(d["cost_inr"] for d in nutrients.values() if d["status"] == "deficient")
+    remaining = max(0.0, budget_inr)
+    allocation = {}
+    for label in _BUDGET_PRIORITY:
+        data = nutrients[label]
+        if data["status"] != "deficient" or data["cost_inr"] <= 0:
+            allocation[label] = {"funded_pct": 100, "funded_kg_total": data["product_kg_total"], "funded_cost_inr": 0, "deferred": False}
+            continue
+        if remaining >= data["cost_inr"]:
+            allocation[label] = {"funded_pct": 100, "funded_kg_total": data["product_kg_total"], "funded_cost_inr": data["cost_inr"], "deferred": False}
+            remaining -= data["cost_inr"]
+        elif remaining > 0:
+            pct = round((remaining / data["cost_inr"]) * 100)
+            allocation[label] = {
+                "funded_pct": pct,
+                "funded_kg_total": round(data["product_kg_total"] * remaining / data["cost_inr"], 1),
+                "funded_cost_inr": round(remaining),
+                "deferred": False,
+            }
+            remaining = 0
+        else:
+            allocation[label] = {"funded_pct": 0, "funded_kg_total": 0, "funded_cost_inr": 0, "deferred": True}
+    return {
+        "budget_inr": budget_inr,
+        "total_cost_inr": total_cost,
+        "sufficient": budget_inr >= total_cost,
+        "priority_order": list(_BUDGET_PRIORITY),
+        "allocation": allocation,
+    }
 
 
 @router.get("/precision-recommendation")
@@ -710,22 +753,26 @@ async def get_precision_recommendation(
     field_size: float = None,
     field_size_unit: str = None,
     field_id: str = None,
+    budget_inr: float = None,
 ):
     """
     The core endpoint: computes exact fertilizer type + quantity for this field,
     adjusted for the 5-day rain/heat forecast, then asks the AI to explain it.
     field_id selects which of the farmer's fields to compute for — omitted or
     'primary' uses the main field (soil_data); any other id looks it up in
-    the farmer's additional fields[] list.
+    the farmer's additional fields[] list. budget_inr, if given, prioritizes
+    which nutrient purchase matters most within a limited budget instead of
+    assuming the farmer can afford the full plan — bypasses the response
+    cache since it's a what-if query, not the field's standing plan.
     """
     f = _resolve_field_inputs(user, n, p, k, ph, crop_type, field_size, field_size_unit, field_id)
     soil_ph, soil_n, soil_p, soil_k = f["ph"], f["n"], f["p"], f["k"]
     crop, size, size_unit = f["crop"], f["size"], f["size_unit"]
 
-    cache_key = f"{soil_ph}_{soil_n}_{soil_p}_{soil_k}_{crop}_{size}_{size_unit}_{f['irrigation']}"
+    cache_key = f"{soil_ph}_{soil_n}_{soil_p}_{soil_k}_{crop}_{size}_{size_unit}_{f['irrigation']}_{f['application_method']}_{f['waterlogged']}"
     user_id = f"{user.get('_id', '')}_{field_id or 'primary'}"
     cached = _precision_cache.get(user_id)
-    if cached and cached[1] == cache_key and (_time.time() - cached[0]) < _PRECISION_TTL:
+    if budget_inr is None and cached and cached[1] == cache_key and (_time.time() - cached[0]) < _PRECISION_TTL:
         return cached[2]
 
     dose, _ = await _compute_dose_for_user(user, n, p, k, ph, crop_type, field_size, field_size_unit, field_id)
@@ -736,6 +783,8 @@ async def get_precision_recommendation(
     for nutrient in dose["nutrients"].values():
         price_per_kg = sustainability_engine.PRODUCT_PRICE_PER_KG.get(nutrient["product"], 10)
         nutrient["cost_inr"] = round(nutrient["product_kg_total"] * price_per_kg)
+
+    budget_plan = _apply_budget(dose["nutrients"], budget_inr) if budget_inr is not None else None
 
     current_fertilizer = f["current_fertilizer"]
     past_fertilizer = f["past_fertilizer"]
@@ -834,25 +883,29 @@ Return ONLY this JSON:
             "trend_note": None,
         }
 
-    result = {"status": "success", "dose": dose, "ai": narrative}
-    _precision_cache[user_id] = (_time.time(), cache_key, result)
+    result = {"status": "success", "dose": dose, "ai": narrative, "budget_plan": budget_plan}
+    if budget_inr is None:
+        _precision_cache[user_id] = (_time.time(), cache_key, result)
 
-    # Persist to history (best-effort — a logging failure shouldn't break the response)
-    try:
-        db = get_db()
-        await db["recommendation_history"].insert_one({
-            "user_id": user["_id"],
-            "field_id": field_id or "primary",
-            "created_at": _time.time(),
-            "crop_type": crop,
-            "field_size": size,
-            "field_size_unit": size_unit,
-            "ph": soil_ph, "n": soil_n, "p": soil_p, "k": soil_k,
-            "dose": dose,
-            "headline": narrative.get("headline"),
-        })
-    except Exception as e:
-        print(f"Recommendation history logging error: {e}")
+    # Persist to history (best-effort — a logging failure shouldn't break the
+    # response). Skipped for budget what-if queries — those aren't a real
+    # recommendation run and shouldn't pollute the field's trend history.
+    if budget_inr is None:
+        try:
+            db = get_db()
+            await db["recommendation_history"].insert_one({
+                "user_id": user["_id"],
+                "field_id": field_id or "primary",
+                "created_at": _time.time(),
+                "crop_type": crop,
+                "field_size": size,
+                "field_size_unit": size_unit,
+                "ph": soil_ph, "n": soil_n, "p": soil_p, "k": soil_k,
+                "dose": dose,
+                "headline": narrative.get("headline"),
+            })
+        except Exception as e:
+            print(f"Recommendation history logging error: {e}")
 
     return result
 
@@ -1070,3 +1123,52 @@ Do not offer generalities. Use the exact data below to answer their questions.
         if _is_rate_limit_error(e):
             return {"status": "error", "reply": "I'm getting a lot of questions right now and hit today's usage limit — please try again in a little while."}
         return {"status": "error", "reply": "I couldn't reach the AI advisor just now. Please try again shortly."}
+
+
+# ── SMS / IVR Simulator ───────────────────────────────────────────────────────
+# Demonstrates the same deterministic dosing engine reachable from a plain
+# feature phone with no internet and no app account — a structured text
+# command in, a plain-text dose reply out. No login required, matching how a
+# real SMS gateway integration would work (the farmer never opens an app).
+
+class SmsSimRequest(BaseModel):
+    text: str
+
+
+@router.post("/sms-sim")
+async def sms_simulator(req: SmsSimRequest):
+    text = (req.text or "").strip()
+    parts = text.split()
+    usage = "Send: AGRI <CROP> <pH> <N> <P> <K> <SIZE-ACRES>\ne.g. AGRI WHEAT 6.5 20 10 10 2"
+
+    if not parts or parts[0].upper() != "AGRI":
+        return {"reply": usage, "segments": 1}
+    if len(parts) < 6:
+        return {"reply": f"Missing values.\n{usage}", "segments": 1}
+
+    try:
+        crop = parts[1].capitalize()
+        ph, n, p, k = float(parts[2]), float(parts[3]), float(parts[4]), float(parts[5])
+        size = float(parts[6]) if len(parts) > 6 else 1.0
+    except ValueError:
+        return {"reply": f"Couldn't read those numbers.\n{usage}", "segments": 1}
+
+    dose = fertilizer_engine.compute_precision_dose(crop, ph, n, p, k, size, "acres")
+    lines = [f"AgriSense - {crop}, {size} acres:"]
+    short_code = {"nitrogen": "N", "phosphorus": "P", "potassium": "K"}
+    for label, data in dose["nutrients"].items():
+        short = short_code[label]
+        if data["status"] == "deficient":
+            lines.append(f"{short}: {data['product_kg_total']}kg {data['product']}")
+        elif data["status"] == "excess":
+            lines.append(f"{short}: STOP - {data['surplus_kg_ha']}kg/ha too much")
+        else:
+            lines.append(f"{short}: OK, none needed")
+    if dose["data_confidence"] == "generic":
+        lines.append("(No specific data for this crop - generic estimate)")
+
+    reply = "\n".join(lines)
+    # Standard GSM SMS segment size — informational only, shown so the demo
+    # is honest about what this would actually cost over a real SMS gateway.
+    segments = -(-len(reply) // 160)
+    return {"reply": reply, "segments": segments}
