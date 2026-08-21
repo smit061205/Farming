@@ -869,6 +869,14 @@ async def get_recommendation_history(user: dict = Depends(get_current_user), lim
     cursor = db["recommendation_history"].find(query).sort("created_at", -1).limit(limit)
     history = []
     async for doc in cursor:
+        ph = doc.get("ph")
+        # Same real weighted pH/N/P/K formula used everywhere else in the app —
+        # lets the Soil Health page chart an actual trend across this field's
+        # past soil tests instead of a fabricated placeholder series.
+        health_score = (
+            fertilizer_engine.compute_health_score(ph, doc.get("n") or 0, doc.get("p"), doc.get("k"), doc.get("crop_type"))
+            if ph is not None else None
+        )
         history.append({
             "id": str(doc["_id"]),
             "field_id": doc.get("field_id") or "primary",
@@ -878,6 +886,8 @@ async def get_recommendation_history(user: dict = Depends(get_current_user), lim
             "field_size_unit": doc.get("field_size_unit"),
             "headline": doc.get("headline"),
             "nutrients": doc.get("dose", {}).get("nutrients", {}),
+            "ph": ph,
+            "health_score": health_score,
         })
     return {"status": "success", "history": history}
 

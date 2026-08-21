@@ -7,7 +7,7 @@ import API_BASE from '../../api'
 import { resolveField } from '../../utils/fields'
 
 export default function SensorNetworkView({ fieldId }) {
-  const { user } = useAuth()
+  const { user, token } = useAuth()
   const navigate = useNavigate()
 
   // Parse metrics — the farmer's saved profile is the single source of truth
@@ -32,7 +32,29 @@ export default function SensorNetworkView({ fieldId }) {
   const phStatus = soilPh < 6 ? 'Acidic' : soilPh > 7.5 ? 'Alkaline' : 'Neutral'
 
   const [satelliteData, setSatelliteData] = useState(null)
-  
+  const [trendData, setTrendData] = useState([])
+  const [trendLoading, setTrendLoading] = useState(true)
+
+  useEffect(() => {
+    if (!token) return
+    setTrendLoading(true)
+    const fieldQuery = fieldId ? `&field_id=${fieldId}` : ''
+    fetch(`${API_BASE}/api/engine/recommendation-history?limit=12${fieldQuery}`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(res => res.json())
+      .then(data => {
+        const points = (data.history || [])
+          .filter(h => h.health_score != null)
+          .reverse() // oldest first, for a left-to-right timeline
+          .map(h => ({
+            label: h.created_at ? new Date(h.created_at * 1000).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : '',
+            health_score: h.health_score,
+          }))
+        setTrendData(points)
+        setTrendLoading(false)
+      })
+      .catch(() => setTrendLoading(false))
+  }, [token, fieldId])
+
   // Map Lens Switcher State
   const [activeLayer, setActiveLayer] = useState('ndvi')
   const [mapUrl, setMapUrl] = useState(null)
@@ -371,7 +393,19 @@ export default function SensorNetworkView({ fieldId }) {
           </div>
 
           <div className="h-full min-h-[280px] mt-auto">
-            <SoilTrendsChart />
+            {trendLoading ? (
+              <div className="h-full min-h-[280px] flex items-center justify-center text-sm text-[#173809]/40">Loading trend…</div>
+            ) : trendData.length >= 2 ? (
+              <SoilTrendsChart data={trendData} />
+            ) : (
+              <div className="h-full min-h-[280px] flex flex-col items-center justify-center text-center px-6 bg-[#f8f4db] rounded-2xl">
+                <p className="text-sm font-bold text-[#173809]">Not enough history yet</p>
+                <p className="text-xs text-[#173809]/50 mt-1.5 max-w-sm">
+                  This chart plots this field's real AgriSense Score across past soil tests. Run a fertilizer
+                  recommendation here a few times over the season and a real trend line will appear.
+                </p>
+              </div>
+            )}
           </div>
         </div>
 
