@@ -367,12 +367,14 @@ A field at {coords} has the following soil analysis:
 
 Based on this data, recommend 3 crops from this list: {crop_list}
 
+Score each crop 0-99 based on its ACTUAL suitability for this exact soil — never inflate a score just because a crop is the best of the three on offer. If pH {soil_ph} or the N/P/K levels are badly mismatched for a crop's real tolerance range, that crop's score MUST be low (under 30), even the "Primary Match". If none of the three crops genuinely suit this soil, all three scores should be low and the reasoning must say plainly that the soil needs correction before planting — do not paper over a bad match with a reassuring-sounding percentage.
+
 Return ONLY this JSON structure (no markdown, no backticks):
 {{
     "cropCards": [
-        {{"tag": "Primary Match", "name": "<Best crop>", "score": <integer 70-99>, "bg": "#f2efd5", "reason": "<2-3 concise sentences about why this crop suits pH {soil_ph} with N={soil_n} ppm, P={soil_p} ppm, K={soil_k} ppm. Mention pH tolerance, key nutrient benefit, and yield advantage.>"}},
-        {{"tag": "Soil Rotation", "name": "<Second crop>", "score": <integer 50-80>, "bg": "#e7e3ca", "reason": "<2-3 sentences: suitability and rotation soil health benefit.>"}},
-        {{"tag": "Alternative", "name": "<Third crop>", "score": <integer 40-70>, "bg": "#f2efd5", "reason": "<2-3 sentences: viable alternative given the NPK and pH constraints.>"}}
+        {{"tag": "Primary Match", "name": "<Highest genuine suitability of the 3>", "score": <integer 0-99, real suitability, not rank>, "bg": "#f2efd5", "reason": "<2-3 concise sentences about why this crop suits (or doesn't suit) pH {soil_ph} with N={soil_n} ppm, P={soil_p} ppm, K={soil_k} ppm — if the score is low, say so and what needs to change first.>"}},
+        {{"tag": "Soil Rotation", "name": "<Second-highest>", "score": <integer 0-99, real suitability, not rank>, "bg": "#e7e3ca", "reason": "<2-3 sentences: suitability and rotation soil health benefit.>"}},
+        {{"tag": "Alternative", "name": "<Third>", "score": <integer 0-99, real suitability, not rank>, "bg": "#f2efd5", "reason": "<2-3 sentences: viable alternative given the NPK and pH constraints.>"}}
     ],
 
     "activeIntelligence": [
@@ -403,6 +405,14 @@ Return ONLY this JSON structure (no markdown, no backticks):
             card.pop("img", None)
             card.pop("offset", None)
 
+        # Defense in depth: if pH is outside the range where essentially any
+        # common crop can grow, don't trust the AI to have scored it low on
+        # its own — cap every score so the UI can't show a reassuring-looking
+        # percentage for soil that needs correction before anything is planted.
+        if soil_ph < 4.0 or soil_ph > 9.0:
+            for card in data.get("cropCards", []):
+                if isinstance(card.get("score"), (int, float)):
+                    card["score"] = min(card["score"], 25)
 
         await db["users"].update_one(
             {"_id": user["_id"]},
@@ -884,7 +894,9 @@ async def get_sustainability_impact(
     """
     dose, f = await _compute_dose_for_user(user, n, p, k, ph, crop_type, field_size, field_size_unit, field_id)
     impact = sustainability_engine.compute_sustainability_impact(dose, f["ph"], f["n"], f["p"], f["k"])
-    return {"status": "success", "impact": impact}
+    soil = _get_soil_source(user, field_id)
+    roadmap = sustainability_engine.build_roadmap(dose, soil)
+    return {"status": "success", "impact": impact, "roadmap": roadmap}
 
 
 # ── Fertilizer Hub ───────────────────────────────────────────────────────────

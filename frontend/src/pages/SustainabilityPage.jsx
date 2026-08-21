@@ -9,6 +9,49 @@ import { buildFieldTabs } from '../utils/fields'
 
 const inr = (v) => `₹${Number(v || 0).toLocaleString('en-IN')}`
 
+const CATEGORY_ICON = {
+  soil: 'science',
+  fertilizer: 'eco',
+  timing: 'schedule',
+  'soil-health': 'compost',
+  monitor: 'history',
+}
+
+const PRIORITY_STYLE = {
+  critical: { label: 'Do This First', dot: '#9f402d', chipBg: 'rgba(159,64,45,0.1)', chipText: '#9f402d' },
+  important: { label: 'This Season', dot: '#b8862e', chipBg: 'rgba(184,134,46,0.12)', chipText: '#8a641c' },
+  routine: { label: 'Ongoing', dot: '#173809', chipBg: 'rgba(23,56,9,0.08)', chipText: '#173809' },
+}
+
+function RoadmapStep({ step, isLast }) {
+  const style = PRIORITY_STYLE[step.priority] || PRIORITY_STYLE.routine
+  return (
+    <div className="flex gap-5">
+      <div className="flex flex-col items-center shrink-0">
+        <div
+          className="w-10 h-10 rounded-full flex items-center justify-center font-headline font-bold text-white text-sm"
+          style={{ backgroundColor: style.dot }}
+        >
+          {step.order}
+        </div>
+        {!isLast && <div className="w-px flex-1 bg-[#173809]/10 my-2" />}
+      </div>
+      <div className={isLast ? 'pb-0' : 'pb-8'}>
+        <div className="flex items-center gap-3 mb-1.5 flex-wrap">
+          <h4 className="font-headline text-lg font-bold text-[#173809]">{step.title}</h4>
+          <span
+            className="text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-full"
+            style={{ backgroundColor: style.chipBg, color: style.chipText }}
+          >
+            {style.label}
+          </span>
+        </div>
+        <p className="text-[#43493e] text-sm leading-relaxed max-w-2xl">{step.description}</p>
+      </div>
+    </div>
+  )
+}
+
 function ImpactStat({ icon, label, value, sub, dark }) {
   return (
     <div className={`p-8 rounded-[2rem] soil-shadow ${dark ? 'bg-[#173809] text-white' : 'bg-white'}`}>
@@ -26,6 +69,7 @@ export default function SustainabilityPage() {
   const { token, user } = useAuth()
   const navigate = useNavigate()
   const [impact, setImpact] = useState(null)
+  const [roadmap, setRoadmap] = useState([])
   const [isLoading, setIsLoading] = useState(!!token)
   const [activeFieldId, setActiveFieldId] = useState(null) // null = primary field
 
@@ -39,6 +83,7 @@ export default function SustainabilityPage() {
       .then(res => res.json())
       .then(data => {
         setImpact(data.status === 'success' ? data.impact : null)
+        setRoadmap(data.status === 'success' ? (data.roadmap || []) : [])
         setIsLoading(false)
       })
       .catch(() => setIsLoading(false))
@@ -152,6 +197,23 @@ export default function SustainabilityPage() {
                 </ResponsiveContainer>
                 <p className="text-xs text-[#173809]/40 mt-4">{impact.baseline_method} {impact.disclaimer}</p>
               </div>
+
+              {roadmap.length > 0 && (
+                <div className="bg-white rounded-[2.5rem] p-8 md:p-10 border border-[#173809]/8 shadow-sm mt-8">
+                  <div className="mb-8">
+                    <span className="text-[#9f402d] font-headline font-bold tracking-widest text-xs uppercase mb-2 block">Your Plan</span>
+                    <h3 className="text-2xl font-headline font-bold text-[#173809]">Fertilizer &amp; Soil Health Roadmap</h3>
+                    <p className="text-[#43493e] text-sm mt-2 max-w-2xl">
+                      In order, built from this field's own soil test and precision dose — not a generic checklist.
+                    </p>
+                  </div>
+                  <div>
+                    {roadmap.map((step, i) => (
+                      <RoadmapStep key={step.order} step={step} isLast={i === roadmap.length - 1} />
+                    ))}
+                  </div>
+                </div>
+              )}
             </>
           )}
           </>

@@ -137,3 +137,120 @@ def compute_sustainability_impact(dose: dict, ph: float, n_ppm: float, p_ppm: fl
         "baseline_method": "Blanket full-target application without a soil test, plus a 25% typical safety margin.",
         "disclaimer": "Illustrative estimate from reference yield/price data, not a financial guarantee.",
     }
+
+
+def build_roadmap(dose: dict, soil: dict) -> list:
+    """
+    A concrete, ordered action plan for this specific field — built entirely
+    from the soil diagnostics and precision dose already computed for it, not
+    a separate AI call. That keeps it consistent with the rest of the app
+    (it can't recommend something the Fertilizer Hub contradicts) and
+    available even when the AI advisor itself is rate-limited.
+    """
+    steps = []
+    order = 1
+    ph = dose["ph"]
+    ph_adequacy = soil.get("ph_adequacy")
+    lime_req = soil.get("lime_requirement_kg_ha") or 0
+
+    # 1. Soil pH correction — nothing else matters until this is fixed if severe
+    if ph_adequacy == "critical" or ph < 5.5 or ph > 8.5:
+        if ph < 6.0:
+            desc = (
+                f"pH {ph} is too acidic for most crops to take up nutrients efficiently. "
+                f"Apply agricultural lime at roughly {lime_req} kg/ha, worked into the top "
+                f"15cm of soil, and retest in 4-6 weeks before relying on this season's "
+                f"fertilizer plan — nutrients applied now will be largely locked up."
+            )
+        else:
+            desc = (
+                f"pH {ph} is too alkaline for nutrients to stay available to roots. Apply "
+                f"elemental sulfur or gypsum and retest in 4-6 weeks — fertilizer applied "
+                f"before this is corrected will be substantially wasted."
+            )
+        steps.append({"order": order, "category": "soil", "priority": "critical",
+                       "title": "Correct soil pH first", "description": desc})
+        order += 1
+    elif ph_adequacy == "slightly off":
+        desc = (
+            f"pH {ph} is a little outside the 6.0-7.5 range most crops prefer. A light "
+            f"{'lime' if ph < 6.0 else 'sulfur or gypsum'} application over the next few "
+            f"weeks will improve nutrient uptake."
+        )
+        steps.append({"order": order, "category": "soil", "priority": "important",
+                       "title": "Fine-tune soil pH", "description": desc})
+        order += 1
+
+    # 2. Nutrient corrections — stop excess before adding more deficits
+    excess = [(label, d) for label, d in dose["nutrients"].items() if d["status"] == "excess"]
+    deficient = [(label, d) for label, d in dose["nutrients"].items() if d["status"] == "deficient"]
+
+    for label, d in excess:
+        steps.append({
+            "order": order, "category": "fertilizer", "priority": "critical",
+            "title": f"Stop applying {label}",
+            "description": (
+                f"Your soil already holds {d['available_kg_ha']} kg/ha of {label} against a "
+                f"{d['target_kg_ha']} kg/ha target — {d['surplus_kg_ha']} kg/ha more than "
+                f"needed. Skip {label} fertilizer this season; any more will leach into "
+                f"groundwater or run off without helping yield."
+            ),
+        })
+        order += 1
+
+    for label, d in deficient:
+        steps.append({
+            "order": order, "category": "fertilizer", "priority": "important",
+            "title": f"Apply {d['product']} for {label}",
+            "description": (
+                f"{label.capitalize()} is short by {d['deficit_kg_ha']} kg/ha against target. "
+                f"Apply {d['product_kg_total']} kg of {d['product']} across the field to close "
+                f"the gap."
+            ),
+        })
+        order += 1
+
+    if not excess and not deficient:
+        steps.append({
+            "order": order, "category": "fertilizer", "priority": "routine",
+            "title": "Hold your current fertilizer plan",
+            "description": "Nitrogen, phosphorus, and potassium are all within target range — no additional fertilizer is needed right now.",
+        })
+        order += 1
+
+    # 3. Weather-aware timing
+    weather = dose.get("weather") or {}
+    if weather.get("high_rain_risk") and deficient:
+        steps.append({
+            "order": order, "category": "timing", "priority": "important",
+            "title": "Split your nitrogen application",
+            "description": "Heavy rain is forecast in the next 5 days. Apply about 60% of the nitrogen dose now and hold the remaining 40% for roughly 3 weeks out, so less washes away before the crop can use it.",
+        })
+        order += 1
+
+    # 4. Long-term soil health
+    om = soil.get("organic_matter_pct")
+    if om is not None and om < 2.0:
+        steps.append({
+            "order": order, "category": "soil-health", "priority": "routine",
+            "title": "Build up organic matter",
+            "description": f"Organic matter is only {om}% — below the 3-5% range that improves water retention and nutrient holding. Work in compost, farmyard manure, or a green-manure cover crop between seasons.",
+        })
+        order += 1
+
+    if soil.get("salinity_risk") == "high":
+        steps.append({
+            "order": order, "category": "soil-health", "priority": "important",
+            "title": "Manage salinity risk",
+            "description": "Potassium and salt levels are high enough to risk salinity buildup. Improve field drainage where possible and consider a gypsum application to help leach excess salts below the root zone.",
+        })
+        order += 1
+
+    # 5. Always end with a monitoring step
+    steps.append({
+        "order": order, "category": "monitor", "priority": "routine",
+        "title": "Re-test and track",
+        "description": "Soil chemistry shifts over a season. Re-test in 4-6 weeks and check back here — this plan updates automatically from your latest reading.",
+    })
+
+    return steps
