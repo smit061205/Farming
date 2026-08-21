@@ -165,6 +165,10 @@ async def fetch_rain_forecast(lat: float, lng: float) -> dict:
     }
 
 
+FERTIGATION_IRRIGATION = {"drip", "sprinkler"}
+STANDING_WATER_IRRIGATION = {"flood", "canal"}
+
+
 def compute_precision_dose(
     crop_type: str,
     ph: float,
@@ -174,11 +178,13 @@ def compute_precision_dose(
     field_size: float,
     field_size_unit: str,
     weather: Optional[dict] = None,
+    irrigation: Optional[str] = None,
 ) -> dict:
     weather = weather or {
         "rain_forecast_mm_5d": None, "avg_temp_c": None,
         "high_rain_risk": False, "heat_volatilization_risk": False,
     }
+    irrigation = (irrigation or "").strip().lower() or None
     targets = get_crop_targets(crop_type)
     hectares = field_size_to_hectares(field_size, field_size_unit) or 0.0
 
@@ -216,9 +222,28 @@ def compute_precision_dose(
             "product_kg_total": product_kg_total,
         }
 
-    # Split-dose schedule when heavy rain is forecast — cuts nitrogen leaching/runoff,
-    # the direct mechanism behind "improper fertilizer use degrades soil".
-    if weather.get("high_rain_risk") and nutrients["nitrogen"]["product_kg_total"] > 0:
+    # Split-dose schedule. Drip/sprinkler systems can feed nitrogen through the
+    # irrigation line itself (fertigation) — standard practice there is several
+    # small doses across the season rather than one bulk application, regardless
+    # of rain, since that's simply how the delivery system is used. Flood/canal
+    # fields sit in standing water, so heavy rain on top of that compounds the
+    # risk of nitrogen loss to runoff and waterlogging-driven denitrification,
+    # which calls for a more conservative split than the rainfed-default case.
+    n_total = nutrients["nitrogen"]["product_kg_total"]
+    if irrigation in FERTIGATION_IRRIGATION and n_total > 0:
+        application_plan = [
+            {"stage": "Basal (at sowing)", "pct_of_nitrogen": 25},
+            {"stage": "Vegetative growth", "pct_of_nitrogen": 25},
+            {"stage": "Flowering", "pct_of_nitrogen": 25},
+            {"stage": "Grain/fruit fill", "pct_of_nitrogen": 25},
+        ]
+    elif weather.get("high_rain_risk") and irrigation in STANDING_WATER_IRRIGATION and n_total > 0:
+        application_plan = [
+            {"stage": "Now (pre-rain)", "pct_of_nitrogen": 50},
+            {"stage": "+3 weeks", "pct_of_nitrogen": 30},
+            {"stage": "+6 weeks", "pct_of_nitrogen": 20},
+        ]
+    elif weather.get("high_rain_risk") and n_total > 0:
         application_plan = [
             {"stage": "Now (pre-rain)", "pct_of_nitrogen": 60},
             {"stage": "+3 weeks", "pct_of_nitrogen": 40},
@@ -232,16 +257,29 @@ def compute_precision_dose(
         "field_size_unit": field_size_unit,
         "field_size_hectares": round(hectares, 3),
         "ph": ph,
+        "irrigation": irrigation,
         "nutrients": nutrients,
         "weather": weather,
         "application_plan": application_plan,
-        "notes": _build_notes(weather),
+        "notes": _build_notes(weather, irrigation, n_total),
     }
 
 
-def _build_notes(weather: dict) -> list[str]:
+def _build_notes(weather: dict, irrigation: Optional[str] = None, n_total: float = 0) -> list[str]:
     notes = []
-    if weather.get("high_rain_risk"):
+    if irrigation in FERTIGATION_IRRIGATION and n_total > 0:
+        notes.append(
+            f"{irrigation.capitalize()} irrigation lets nitrogen be fed in small doses through the "
+            "season (fertigation) instead of one bulk application — spread it across the plan below "
+            "for better nutrient-use efficiency and less runoff loss."
+        )
+    if weather.get("high_rain_risk") and irrigation in STANDING_WATER_IRRIGATION:
+        notes.append(
+            f"Heavy rain forecast ({weather.get('rain_forecast_mm_5d')}mm over 5 days) on top of "
+            f"{irrigation} irrigation raises the risk of waterlogging — split the nitrogen dose further "
+            "to limit runoff and denitrification loss."
+        )
+    elif weather.get("high_rain_risk") and irrigation not in FERTIGATION_IRRIGATION:
         notes.append(
             f"Heavy rain forecast ({weather.get('rain_forecast_mm_5d')}mm over 5 days) — "
             "split the nitrogen dose to avoid leaching/runoff loss."

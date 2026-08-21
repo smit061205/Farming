@@ -681,6 +681,7 @@ def _resolve_field_inputs(user: dict, n, p, k, ph, crop_type, field_size, field_
         "current_fertilizer": soil.get("currentFertilizer") or None,
         "past_fertilizer": soil.get("pastFertilizer") or None,
         "planting_method": soil.get("plantingMethod") or None,
+        "irrigation": soil.get("irrigation") or None,
     }
 
 
@@ -693,6 +694,7 @@ async def _compute_dose_for_user(user: dict, n, p, k, ph, crop_type, field_size,
     dose = fertilizer_engine.compute_precision_dose(
         crop_type=f["crop"], ph=f["ph"], n_ppm=f["n"], p_ppm=f["p"], k_ppm=f["k"],
         field_size=f["size"], field_size_unit=f["size_unit"], weather=weather,
+        irrigation=f["irrigation"],
     )
     return dose, f
 
@@ -720,7 +722,7 @@ async def get_precision_recommendation(
     soil_ph, soil_n, soil_p, soil_k = f["ph"], f["n"], f["p"], f["k"]
     crop, size, size_unit = f["crop"], f["size"], f["size_unit"]
 
-    cache_key = f"{soil_ph}_{soil_n}_{soil_p}_{soil_k}_{crop}_{size}_{size_unit}"
+    cache_key = f"{soil_ph}_{soil_n}_{soil_p}_{soil_k}_{crop}_{size}_{size_unit}_{f['irrigation']}"
     user_id = f"{user.get('_id', '')}_{field_id or 'primary'}"
     cached = _precision_cache.get(user_id)
     if cached and cached[1] == cache_key and (_time.time() - cached[0]) < _PRECISION_TTL:

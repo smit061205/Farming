@@ -82,6 +82,15 @@ const PLANTING_METHODS = [
   'Direct Seeding', 'Drip / Fertigation', 'SRI (System of Rice Intensification)',
 ]
 
+const IRRIGATION_OPTIONS = [
+  { value: 'rainfed', label: 'Rainfed' },
+  { value: 'canal', label: 'Canal' },
+  { value: 'drip', label: 'Drip' },
+  { value: 'sprinkler', label: 'Sprinkler' },
+  { value: 'flood', label: 'Flood' },
+]
+const IRRIGATION_LABEL = Object.fromEntries(IRRIGATION_OPTIONS.map(o => [o.value, o.label]))
+
 // Connects to ICAR's Krishi Vigyan Kendra network — the real, local channel
 // through which Indian farmers get hands-on training on application
 // methods (broadcasting, banding, fertigation) — verified reachable.
@@ -116,7 +125,7 @@ function StatusBadge({ status }) {
 function AddFieldModal({ token, onClose, onSaved }) {
   const [form, setForm] = useState({
     cropType: CROP_OPTIONS[0], plantingMethod: PLANTING_METHODS[0], soilType: 'Clay Loam',
-    fieldSize: '', fieldSizeUnit: 'acres', growthStage: 'sowing',
+    fieldSize: '', fieldSizeUnit: 'acres', growthStage: 'sowing', irrigation: 'canal',
     ph: '', nitrogen: '', phosphorus: '', potassium: '',
     currentFertilizer: '', pastFertilizer: '',
   })
@@ -135,6 +144,7 @@ function AddFieldModal({ token, onClose, onSaved }) {
         cropType: form.cropType, plantingMethod: form.plantingMethod, soilType: form.soilType,
         fieldSize: parseFloat(form.fieldSize), fieldSizeUnit: form.fieldSizeUnit, growthStage: form.growthStage,
         currentFertilizer: form.currentFertilizer, pastFertilizer: form.pastFertilizer,
+        irrigation: form.irrigation,
       }
       if (form.ph !== '') payload.ph = parseFloat(form.ph)
       if (form.nitrogen !== '') payload.nitrogen = parseFloat(form.nitrogen)
@@ -210,6 +220,14 @@ function AddFieldModal({ token, onClose, onSaved }) {
                 {GROWTH_STAGE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
               </select>
             </div>
+          </div>
+
+          <div>
+            <label className="block text-[10px] font-bold uppercase tracking-widest text-[#173809]/50 mb-2">Irrigation</label>
+            <select value={form.irrigation} onChange={e => set('irrigation', e.target.value)} className="w-full bg-white border border-[#173809]/10 rounded-xl px-4 py-3 text-sm font-bold text-[#173809]">
+              {IRRIGATION_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
+            <p className="text-[11px] text-[#43493e]/60 mt-1.5">Affects how the nitrogen dose is split across the season.</p>
           </div>
 
           <div className="pt-4 border-t border-[#173809]/10">
@@ -467,7 +485,10 @@ export default function FertilizerHubPage() {
               {/* Summary strip */}
               <div className="flex flex-col md:flex-row md:items-start justify-between gap-6 pb-8 mb-8 border-b border-[#173809]/8">
                 <div className="max-w-2xl">
-                  <span className="text-xs font-bold text-[#9f402d] uppercase tracking-widest">{precision.dose.crop_type} · {precision.dose.field_size} {precision.dose.field_size_unit}</span>
+                  <span className="text-xs font-bold text-[#9f402d] uppercase tracking-widest">
+                    {precision.dose.crop_type} · {precision.dose.field_size} {precision.dose.field_size_unit}
+                    {precision.dose.irrigation && ` · ${IRRIGATION_LABEL[precision.dose.irrigation] || precision.dose.irrigation} Irrigation`}
+                  </span>
                   <h3 className="text-2xl font-headline font-bold text-[#173809] mt-2 mb-3 leading-tight">{precision.ai.headline}</h3>
                   <p className="text-[#43493e] text-sm leading-relaxed">{precision.ai.explanation}</p>
                 </div>
@@ -601,9 +622,9 @@ export default function FertilizerHubPage() {
               {precision.dose.application_plan.length > 1 && (
                 <div className="mt-6 pt-6 border-t border-[#173809]/6">
                   <p className="text-[10px] uppercase tracking-widest text-[#173809]/40 font-bold mb-3">When to Apply</p>
-                  <div className="flex gap-3">
+                  <div className="flex flex-wrap gap-3">
                     {precision.dose.application_plan.map((stage, i) => (
-                      <div key={i} className="flex-1 bg-[#f8f4db] rounded-xl p-4 text-center">
+                      <div key={i} className="flex-1 min-w-[6.5rem] bg-[#f8f4db] rounded-xl p-4 text-center">
                         <p className="text-2xl font-headline font-bold text-[#173809]">{stage.pct_of_nitrogen}%</p>
                         <p className="text-xs text-[#173809]/50 mt-1">{stage.stage}</p>
                       </div>
