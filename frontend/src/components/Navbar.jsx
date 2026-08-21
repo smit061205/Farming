@@ -6,6 +6,7 @@ const NAV_LINKS = [
   { label: "Dashboard", path: "/dashboard" },
   { label: "Soil Health", path: "/soil-health" },
   { label: "Fertilizers", path: "/fertilizer-hub" },
+  { label: "Sustainability", path: "/sustainability" },
   { label: "Consult", path: "/consult" },
 ];
 

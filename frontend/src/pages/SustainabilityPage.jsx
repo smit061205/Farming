@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
 import { useAuth } from '../context/AuthContext'
+import { buildFieldTabs } from '../utils/fields'
 
 const inr = (v) => `₹${Number(v || 0).toLocaleString('en-IN')}`
 
@@ -22,21 +23,26 @@ function ImpactStat({ icon, label, value, sub, dark }) {
 }
 
 export default function SustainabilityPage() {
-  const { token } = useAuth()
+  const { token, user } = useAuth()
   const navigate = useNavigate()
   const [impact, setImpact] = useState(null)
   const [isLoading, setIsLoading] = useState(!!token)
+  const [activeFieldId, setActiveFieldId] = useState(null) // null = primary field
+
+  const fieldTabs = buildFieldTabs(user)
 
   useEffect(() => {
     if (!token) return
-    fetch(`${API_BASE}/api/engine/sustainability-impact`, { headers: { Authorization: `Bearer ${token}` } })
+    setIsLoading(true)
+    const fieldQuery = activeFieldId ? `?field_id=${activeFieldId}` : ''
+    fetch(`${API_BASE}/api/engine/sustainability-impact${fieldQuery}`, { headers: { Authorization: `Bearer ${token}` } })
       .then(res => res.json())
       .then(data => {
-        if (data.status === 'success') setImpact(data.impact)
+        setImpact(data.status === 'success' ? data.impact : null)
         setIsLoading(false)
       })
       .catch(() => setIsLoading(false))
-  }, [token])
+  }, [token, activeFieldId])
 
   const costData = impact ? [
     { name: 'Blanket Application', value: impact.cost.baseline_inr, fill: '#e7e3ca' },
@@ -75,9 +81,30 @@ export default function SustainabilityPage() {
                 Sign In
               </button>
             </div>
-          ) : isLoading ? (
+          ) : (
+          <>
+            {fieldTabs.length > 1 && (
+              <div className="flex flex-wrap items-center gap-2 mb-8">
+                {fieldTabs.map(tab => (
+                  <button
+                    key={tab.id || 'primary'}
+                    onClick={() => setActiveFieldId(tab.id)}
+                    className={`px-5 py-2.5 rounded-full text-sm font-bold capitalize transition-colors ${
+                      activeFieldId === tab.id ? 'bg-[#173809] text-white' : 'bg-white text-[#173809]/60 border border-[#173809]/10 hover:text-[#173809]'
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          {isLoading ? (
             <div className="animate-pulse bg-[#e7e3ca] h-96 rounded-[2.5rem] w-full" />
-          ) : !impact ? null : (
+          ) : !impact ? (
+            <div className="bg-white rounded-[2.5rem] p-12 border border-[#173809]/8 text-center text-[#173809]/50">
+              Add a soil test for this field to see its personalized sustainability impact.
+            </div>
+          ) : (
             <>
               <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
                 <ImpactStat
@@ -126,6 +153,8 @@ export default function SustainabilityPage() {
                 <p className="text-xs text-[#173809]/40 mt-4">{impact.baseline_method} {impact.disclaimer}</p>
               </div>
             </>
+          )}
+          </>
           )}
         </div>
 
