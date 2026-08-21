@@ -55,6 +55,9 @@ Refusing a question you can answer from the JSON is a failure, not caution. In p
   window's exact day and time when it exists, plus any relevant timing condition.
 - "Is this good for my soil?" -> soilHealth, nutrientBalance, environment.
 - "Where is this for?" / "which location?" -> the location field names the place.
+- "Which crops suit my soil/field?" -> cropRecommendations.recommendations. List all
+  three ranked crops and their supplied reasons. Do not replace them with a generic
+  soil-health score.
 
 The JSON also contains the full live weather blocks, crop-season calendar, organic
 input, amendments, product list, cost comparison, budget notice, nutrient ratio,
@@ -343,6 +346,34 @@ def _fallback_answer(messages: list, rec: dict, lang: str) -> str:
         if compact:
             return compact.get("when"), compact.get("why") or []
         return None, []
+
+    def crop_suggestions_answer():
+        rows = ((rec.get("cropRecommendations") or {}).get("recommendations") or [])[:3]
+        if not rows:
+            return None
+        # These rows were already selected from the wizard details by the crop
+        # recommendation endpoint. Reuse them verbatim instead of making a
+        # generic soil-health answer when the LLM is unavailable.
+        items = []
+        for index, row in enumerate(rows, start=1):
+            name = label(row.get("name")) or row.get("cropId") or "Crop"
+            reason = str(row.get("reason") or "").strip()
+            items.append(f"{index}. {name}" + (f" — {reason}" if reason else ""))
+        return " ".join(items)
+
+    def asks_for_crops():
+        return has(
+            "crop", "crops", "best crop", "best crops", "which crop", "which crops",
+            "फसल", "फसलें", "कौन सी फसल", "પાક", "કયા પાક",
+        )
+
+    # This check must happen before the broad soil/health intent below: a
+    # question such as "what crops suit my soil?" contains both word groups.
+    if asks_for_crops():
+        suggestions = crop_suggestions_answer()
+        if suggestions:
+            return suggestions
+        return t["noinfo"]
 
     if has("why", "क्यों", "કેમ", "reason"):
         method = rec.get("method_explain") or rec.get("method") or {}
