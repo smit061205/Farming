@@ -900,8 +900,8 @@ async def get_sustainability_impact(
     dose, f = await _compute_dose_for_user(user, n, p, k, ph, crop_type, field_size, field_size_unit, field_id)
     impact = sustainability_engine.compute_sustainability_impact(dose, f["ph"], f["n"], f["p"], f["k"])
     soil = _get_soil_source(user, field_id)
-    roadmap = sustainability_engine.build_roadmap(dose, soil)
-    return {"status": "success", "impact": impact, "roadmap": roadmap}
+    season_plan = sustainability_engine.build_season_plan(dose, soil)
+    return {"status": "success", "impact": impact, "season_plan": season_plan}
 
 
 # ── Fertilizer Hub ───────────────────────────────────────────────────────────

@@ -155,118 +155,145 @@ def compute_sustainability_impact(dose: dict, ph: float, n_ppm: float, p_ppm: fl
     }
 
 
-def build_roadmap(dose: dict, soil: dict) -> list:
+def build_season_plan(dose: dict, soil: dict) -> dict:
     """
-    A concrete, ordered action plan for this specific field — built entirely
-    from the soil diagnostics and precision dose already computed for it, not
-    a separate AI call. That keeps it consistent with the rest of the app
-    (it can't recommend something the Fertilizer Hub contradicts) and
-    available even when the AI advisor itself is rate-limited.
+    A stage-by-stage plan across the whole growing season — soil prep, sowing
+    (basal dose), vegetative top-dress, flowering, post-harvest — built
+    entirely from this field's own precision dose and soil diagnostics, not a
+    separate AI call. Splits phosphorus and potassium fully into the basal
+    stage (both are immobile in soil, so they have to reach the root zone at
+    sowing) and nitrogen across the same stages the dose engine's own
+    weather-aware application_plan already computes, rather than inventing a
+    separate timing scheme.
     """
-    steps = []
-    order = 1
     ph = dose["ph"]
+    crop = dose["crop_type"]
     ph_adequacy = soil.get("ph_adequacy")
     lime_req = soil.get("lime_requirement_kg_ha") or 0
+    n, p, k = dose["nutrients"]["nitrogen"], dose["nutrients"]["phosphorus"], dose["nutrients"]["potassium"]
+    application_plan = dose.get("application_plan") or [{"stage": "Now", "pct_of_nitrogen": 100}]
+    weather = dose.get("weather") or {}
 
-    # 1. Soil pH correction — nothing else matters until this is fixed if severe
+    stages = []
+
+    # ── Stage 1: Soil Preparation ──
+    prep_actions = []
     if ph_adequacy == "critical" or ph < 5.5 or ph > 8.5:
         if ph < 6.0:
-            desc = (
-                f"pH {ph} is too acidic for most crops to take up nutrients efficiently. "
+            prep_actions.append(
                 f"Apply agricultural lime at roughly {lime_req} kg/ha, worked into the top "
-                f"15cm of soil, and retest in 4-6 weeks before relying on this season's "
-                f"fertilizer plan — nutrients applied now will be largely locked up."
+                f"15cm of soil. Retest in 4-6 weeks — nutrients applied to acidic, "
+                f"uncorrected soil are largely locked up and wasted."
             )
         else:
-            desc = (
-                f"pH {ph} is too alkaline for nutrients to stay available to roots. Apply "
-                f"elemental sulfur or gypsum and retest in 4-6 weeks — fertilizer applied "
-                f"before this is corrected will be substantially wasted."
+            prep_actions.append(
+                f"Apply elemental sulfur or gypsum to bring pH down from {ph}. Retest in "
+                f"4-6 weeks before the rest of this plan can work as calculated."
             )
-        steps.append({"order": order, "category": "soil", "priority": "critical",
-                       "title": "Correct soil pH first", "description": desc})
-        order += 1
     elif ph_adequacy == "slightly off":
-        desc = (
-            f"pH {ph} is a little outside the 6.0-7.5 range most crops prefer. A light "
-            f"{'lime' if ph < 6.0 else 'sulfur or gypsum'} application over the next few "
-            f"weeks will improve nutrient uptake."
+        prep_actions.append(
+            f"pH {ph} is a little outside the 6.0-7.5 range {crop} prefers. A light "
+            f"{'lime' if ph < 6.0 else 'sulfur or gypsum'} application now will improve "
+            f"how well the rest of this plan performs."
         )
-        steps.append({"order": order, "category": "soil", "priority": "important",
-                       "title": "Fine-tune soil pH", "description": desc})
-        order += 1
-
-    # 2. Nutrient corrections — stop excess before adding more deficits
-    excess = [(label, d) for label, d in dose["nutrients"].items() if d["status"] == "excess"]
-    deficient = [(label, d) for label, d in dose["nutrients"].items() if d["status"] == "deficient"]
-
-    for label, d in excess:
-        steps.append({
-            "order": order, "category": "fertilizer", "priority": "critical",
-            "title": f"Stop applying {label}",
-            "description": (
-                f"Your soil already holds {d['available_kg_ha']} kg/ha of {label} against a "
-                f"{d['target_kg_ha']} kg/ha target — {d['surplus_kg_ha']} kg/ha more than "
-                f"needed. Skip {label} fertilizer this season; any more will leach into "
-                f"groundwater or run off without helping yield."
-            ),
-        })
-        order += 1
-
-    for label, d in deficient:
-        steps.append({
-            "order": order, "category": "fertilizer", "priority": "important",
-            "title": f"Apply {d['product']} for {label}",
-            "description": (
-                f"{label.capitalize()} is short by {d['deficit_kg_ha']} kg/ha against target. "
-                f"Apply {d['product_kg_total']} kg of {d['product']} across the field to close "
-                f"the gap."
-            ),
-        })
-        order += 1
-
-    if not excess and not deficient:
-        steps.append({
-            "order": order, "category": "fertilizer", "priority": "routine",
-            "title": "Hold your current fertilizer plan",
-            "description": "Nitrogen, phosphorus, and potassium are all within target range — no additional fertilizer is needed right now.",
-        })
-        order += 1
-
-    # 3. Weather-aware timing
-    weather = dose.get("weather") or {}
-    if weather.get("high_rain_risk") and deficient:
-        steps.append({
-            "order": order, "category": "timing", "priority": "important",
-            "title": "Split your nitrogen application",
-            "description": "Heavy rain is forecast in the next 5 days. Apply about 60% of the nitrogen dose now and hold the remaining 40% for roughly 3 weeks out, so less washes away before the crop can use it.",
-        })
-        order += 1
-
-    # 4. Long-term soil health
-    om = soil.get("organic_matter_pct")
-    if om is not None and om < 2.0:
-        steps.append({
-            "order": order, "category": "soil-health", "priority": "routine",
-            "title": "Build up organic matter",
-            "description": f"Organic matter is only {om}% — below the 3-5% range that improves water retention and nutrient holding. Work in compost, farmyard manure, or a green-manure cover crop between seasons.",
-        })
-        order += 1
-
-    if soil.get("salinity_risk") == "high":
-        steps.append({
-            "order": order, "category": "soil-health", "priority": "important",
-            "title": "Manage salinity risk",
-            "description": "Potassium and salt levels are high enough to risk salinity buildup. Improve field drainage where possible and consider a gypsum application to help leach excess salts below the root zone.",
-        })
-        order += 1
-
-    # 5. Always end with a monitoring step
-    steps.append({
-        "order": order, "category": "monitor", "priority": "routine",
-        "title": "Re-test and track",
-        "description": "Soil chemistry shifts over a season. Re-test in 4-6 weeks and check back here — this plan updates automatically from your latest reading.",
+    else:
+        prep_actions.append(f"pH {ph} is already in a good range for {crop} — no correction needed before sowing.")
+    stages.append({
+        "id": "prep", "label": "Soil Preparation", "window": "2-3 weeks before sowing",
+        "icon": "science", "actions": prep_actions, "product_kg": {},
     })
 
-    return steps
+    # ── Stage 2: Sowing / Basal Dose — P and K don't move in soil, so both
+    #    go in fully now regardless of the nitrogen timing split ──
+    basal_actions = []
+    basal_product_kg = {}
+    for label, data in (("phosphorus", p), ("potassium", k)):
+        if data["status"] == "excess":
+            basal_actions.append(f"Skip {label} — soil already holds {data['surplus_kg_ha']} kg/ha more than {crop} needs.")
+        elif data["product_kg_total"] > 0:
+            basal_actions.append(
+                f"Apply the full {data['product_kg_total']} kg of {data['product']} now, worked "
+                f"into the root zone — {label} barely moves through soil, so it has to go in at "
+                f"sowing to be reachable once roots need it."
+            )
+            basal_product_kg[data["product"]] = round(basal_product_kg.get(data["product"], 0) + data["product_kg_total"], 1)
+        else:
+            basal_actions.append(f"{label.capitalize()} is already at target — nothing to add.")
+
+    first_n_pct = application_plan[0]["pct_of_nitrogen"]
+    basal_n_kg = round(n["product_kg_total"] * first_n_pct / 100, 1) if n["product_kg_total"] > 0 else 0
+    if n["status"] == "excess":
+        basal_actions.append(f"Skip nitrogen at sowing too — soil already holds {n['surplus_kg_ha']} kg/ha more than needed.")
+    elif basal_n_kg > 0:
+        basal_actions.append(f"Apply {basal_n_kg} kg of {n['product']} ({first_n_pct}% of the season's nitrogen) at sowing.")
+        basal_product_kg[n["product"]] = round(basal_product_kg.get(n["product"], 0) + basal_n_kg, 1)
+
+    stages.append({
+        "id": "sowing", "label": "Sowing", "window": "At sowing / transplanting",
+        "icon": "grass", "actions": basal_actions, "product_kg": basal_product_kg,
+    })
+
+    # ── Stage 3: Vegetative Growth / Top-Dress — remaining nitrogen ──
+    veg_actions = []
+    veg_product_kg = {}
+    if n["status"] == "excess":
+        veg_actions.append("No nitrogen top-dress needed — the excess already in the soil will carry the crop through vegetative growth.")
+    elif len(application_plan) > 1 and n["product_kg_total"] > 0:
+        remaining_pct = application_plan[1]["pct_of_nitrogen"]
+        remaining_n_kg = round(n["product_kg_total"] * remaining_pct / 100, 1)
+        veg_actions.append(f"Apply the remaining {remaining_n_kg} kg of {n['product']} ({remaining_pct}% of the season's nitrogen) at {application_plan[1]['stage']}.")
+        veg_product_kg[n["product"]] = remaining_n_kg
+        if weather.get("high_rain_risk"):
+            veg_actions.append(
+                f"This split exists because {weather.get('rain_forecast_mm_5d')}mm of rain is "
+                f"forecast in the next 5 days — applying the full dose at sowing would mean "
+                f"losing a chunk of it to runoff before the crop could use it."
+            )
+    elif n["product_kg_total"] > 0:
+        veg_actions.append("Nitrogen was fully covered at sowing — no top-dress needed this stage.")
+    else:
+        veg_actions.append("Nitrogen is already at target — no top-dress needed this stage.")
+    if weather.get("heat_volatilization_risk"):
+        veg_actions.append(
+            f"Average temperatures are forecast around {weather.get('avg_temp_c')}°C — "
+            f"incorporate any urea into the soil rather than surface-broadcasting it, or a "
+            f"meaningful share will be lost to ammonia volatilization."
+        )
+    stages.append({
+        "id": "vegetative", "label": "Vegetative Growth",
+        "window": application_plan[1]["stage"] if len(application_plan) > 1 else "~3-4 weeks after sowing",
+        "icon": "eco", "actions": veg_actions, "product_kg": veg_product_kg,
+    })
+
+    # ── Stage 4: Flowering & Fill — monitoring, not new inputs ──
+    flowering_actions = ["No new fertilizer is typically needed here if the basal and top-dress doses above were applied on schedule."]
+    if p["status"] == "deficient":
+        flowering_actions.append("Watch for phosphorus deficiency signs — dark or purple-tinged leaves, delayed flowering — a hint this crop may still be short despite the basal dose.")
+    if k["status"] == "deficient":
+        flowering_actions.append("Watch for potassium deficiency signs — scorched leaf edges, weak stems — since this field started short on potassium; a light foliar feed can help if symptoms appear.")
+    stages.append({
+        "id": "flowering", "label": "Flowering & Fill", "window": "Flowering through grain/fruit fill",
+        "icon": "local_florist", "actions": flowering_actions, "product_kg": {},
+    })
+
+    # ── Stage 5: Post-Harvest — reset for next season ──
+    post_actions = ["Re-test your soil — this season's crop will have drawn down nutrients differently than this plan assumed."]
+    om = soil.get("organic_matter_pct")
+    if om is not None and om < 2.0:
+        post_actions.append(f"Organic matter is only {om}% — work in compost, farmyard manure, or a green-manure cover crop before the next season to rebuild it.")
+    if soil.get("salinity_risk") == "high":
+        post_actions.append("Salinity risk is elevated — improve drainage where possible and consider a gypsum application before next season.")
+    post_actions.append("Come back here once your new soil test is in — this plan regenerates from your latest reading.")
+    stages.append({
+        "id": "post-harvest", "label": "Post-Harvest", "window": "After harvest, before next season",
+        "icon": "history", "actions": post_actions, "product_kg": {},
+    })
+
+    # Chart data: kg of each product applied at each stage, for a season-wide view
+    all_products = sorted({prod for s in stages for prod in s["product_kg"]})
+    chart_data = [
+        {"stage": s["label"], **{prod: round(s["product_kg"].get(prod, 0), 1) for prod in all_products}}
+        for s in stages
+    ]
+
+    return {"stages": stages, "chart_products": all_products, "chart_data": chart_data}

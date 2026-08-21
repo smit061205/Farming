@@ -1,6 +1,6 @@
 import API_BASE from "../api.js"
 import { useEffect, useState } from 'react'
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts'
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 import { useNavigate } from 'react-router-dom'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
@@ -9,53 +9,16 @@ import { buildFieldTabs } from '../utils/fields'
 
 const inr = (v) => `₹${Number(v || 0).toLocaleString('en-IN')}`
 
-const CATEGORY_ICON = {
-  soil: 'science',
-  fertilizer: 'eco',
-  timing: 'schedule',
-  'soil-health': 'compost',
-  monitor: 'history',
-}
-
-const PRIORITY_STYLE = {
-  critical: { label: 'Do This First', dot: '#9f402d', chipBg: 'rgba(159,64,45,0.1)', chipText: '#9f402d' },
-  important: { label: 'This Season', dot: '#b8862e', chipBg: 'rgba(184,134,46,0.12)', chipText: '#8a641c' },
-  routine: { label: 'Ongoing', dot: '#173809', chipBg: 'rgba(23,56,9,0.08)', chipText: '#173809' },
-}
-
 const NUTRIENT_STATUS_STYLE = {
   deficient: { label: 'Apply Now', color: '#9f402d', bg: 'rgba(159,64,45,0.1)' },
   excess: { label: 'Over-Supplied', color: '#8a641c', bg: 'rgba(184,134,46,0.14)' },
   sufficient: { label: 'On Target', color: '#173809', bg: 'rgba(23,56,9,0.08)' },
 }
 
-function RoadmapStep({ step, isLast }) {
-  const style = PRIORITY_STYLE[step.priority] || PRIORITY_STYLE.routine
-  return (
-    <div className="flex gap-5">
-      <div className="flex flex-col items-center shrink-0">
-        <div
-          className="w-10 h-10 rounded-full flex items-center justify-center font-headline font-bold text-white text-sm"
-          style={{ backgroundColor: style.dot }}
-        >
-          {step.order}
-        </div>
-        {!isLast && <div className="w-px flex-1 bg-[#173809]/10 my-2" />}
-      </div>
-      <div className={isLast ? 'pb-0' : 'pb-8'}>
-        <div className="flex items-center gap-3 mb-1.5 flex-wrap">
-          <h4 className="font-headline text-lg font-bold text-[#173809]">{step.title}</h4>
-          <span
-            className="text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-full"
-            style={{ backgroundColor: style.chipBg, color: style.chipText }}
-          >
-            {style.label}
-          </span>
-        </div>
-        <p className="text-[#43493e] text-sm leading-relaxed max-w-2xl">{step.description}</p>
-      </div>
-    </div>
-  )
+const PRODUCT_COLOR = {
+  'Granular Urea': '#173809',
+  'DAP (Diammonium Phosphate)': '#b8862e',
+  'Muriate of Potash (MOP)': '#9f402d',
 }
 
 function ImpactStat({ icon, label, value, sub, dark }) {
@@ -109,11 +72,83 @@ function NutrientBeforeAfter({ label, data }) {
   )
 }
 
+function SeasonTimeline({ seasonPlan }) {
+  const [activeId, setActiveId] = useState(seasonPlan.stages[0]?.id)
+  const active = seasonPlan.stages.find(s => s.id === activeId) || seasonPlan.stages[0]
+  const hasChart = seasonPlan.chart_products.length > 0
+
+  return (
+    <div>
+      {/* Stage timeline — clickable */}
+      <div className="flex items-center gap-1 mb-8 overflow-x-auto pb-2">
+        {seasonPlan.stages.map((stage, i) => (
+          <div key={stage.id} className="flex items-center shrink-0">
+            <button
+              onClick={() => setActiveId(stage.id)}
+              className={`flex flex-col items-center gap-2 px-4 py-3 rounded-2xl transition-colors ${
+                activeId === stage.id ? 'bg-[#173809] text-white' : 'bg-[#f8f4db] text-[#173809]/60 hover:text-[#173809]'
+              }`}
+            >
+              <span className="material-symbols-outlined text-xl">{stage.icon}</span>
+              <span className="text-xs font-bold whitespace-nowrap">{stage.label}</span>
+            </button>
+            {i < seasonPlan.stages.length - 1 && (
+              <span className="material-symbols-outlined text-[#173809]/20 mx-1">chevron_right</span>
+            )}
+          </div>
+        ))}
+      </div>
+
+      {/* Active stage detail */}
+      {active && (
+        <div className="bg-[#f8f4db] rounded-2xl p-6 md:p-8 mb-8">
+          <div className="flex items-center gap-3 mb-5">
+            <div className="w-11 h-11 rounded-full bg-[#173809]/10 flex items-center justify-center shrink-0">
+              <span className="material-symbols-outlined text-[#173809] text-xl">{active.icon}</span>
+            </div>
+            <div>
+              <h4 className="font-headline text-lg font-bold text-[#173809]">{active.label}</h4>
+              <p className="text-xs text-[#173809]/50">{active.window}</p>
+            </div>
+          </div>
+          <ul className="space-y-3">
+            {active.actions.map((action, i) => (
+              <li key={i} className="flex gap-3 text-sm text-[#43493e] leading-relaxed">
+                <span className="material-symbols-outlined text-[#173809]/40 text-[18px] mt-0.5 shrink-0">arrow_right</span>
+                {action}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {/* Season-wide chart */}
+      {hasChart && (
+        <div>
+          <h4 className="font-bold text-[#173809] mb-4">Fertilizer Applied, By Stage</h4>
+          <ResponsiveContainer width="100%" height={260}>
+            <BarChart data={seasonPlan.chart_data} margin={{ left: 0, right: 8, top: 8 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#173809" strokeOpacity={0.08} vertical={false} />
+              <XAxis dataKey="stage" tick={{ fill: '#173809', fontSize: 11, fontWeight: 700 }} axisLine={false} tickLine={false} />
+              <YAxis tickFormatter={(v) => `${v}kg`} tick={{ fill: '#173809', fontSize: 11 }} axisLine={false} tickLine={false} />
+              <Tooltip formatter={(v) => `${v} kg`} cursor={{ fill: '#173809', fillOpacity: 0.04 }} />
+              <Legend wrapperStyle={{ fontSize: 12, fontWeight: 700, color: '#173809' }} />
+              {seasonPlan.chart_products.map(product => (
+                <Bar key={product} dataKey={product} stackId="fert" fill={PRODUCT_COLOR[product] || '#173809'} radius={[4, 4, 0, 0]} maxBarSize={60} />
+              ))}
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function RoadmapPage() {
   const { token, user } = useAuth()
   const navigate = useNavigate()
   const [impact, setImpact] = useState(null)
-  const [roadmap, setRoadmap] = useState([])
+  const [seasonPlan, setSeasonPlan] = useState(null)
   const [isLoading, setIsLoading] = useState(!!token)
   const [activeFieldId, setActiveFieldId] = useState(null) // null = primary field
 
@@ -130,7 +165,7 @@ export default function RoadmapPage() {
       .then(res => res.json())
       .then(data => {
         setImpact(data.status === 'success' ? data.impact : null)
-        setRoadmap(data.status === 'success' ? (data.roadmap || []) : [])
+        setSeasonPlan(data.status === 'success' ? data.season_plan : null)
         setIsLoading(false)
       })
       .catch(() => setIsLoading(false))
@@ -275,38 +310,51 @@ export default function RoadmapPage() {
                 </div>
               </div>
 
-              {/* ── The roadmap itself ── */}
-              {roadmap.length > 0 && (
+              {/* ── The season plan ── */}
+              {seasonPlan && (
                 <div className="bg-white rounded-[2.5rem] p-8 md:p-10 border border-[#173809]/8 shadow-sm mb-8">
                   <div className="mb-8">
-                    <span className="text-[#9f402d] font-headline font-bold tracking-widest text-xs uppercase mb-2 block">In Order</span>
+                    <span className="text-[#9f402d] font-headline font-bold tracking-widest text-xs uppercase mb-2 block">The Whole Season</span>
                     <h3 className="text-2xl font-headline font-bold text-[#173809]">How To Get There</h3>
+                    <p className="text-[#43493e] text-sm mt-2 max-w-2xl">
+                      Tap a stage to see what to do then and why — phosphorus and potassium go in fully at sowing since neither moves through soil, while nitrogen is timed and split around this field's own rain forecast.
+                    </p>
                   </div>
-                  <div>
-                    {roadmap.map((step, i) => (
-                      <RoadmapStep key={step.order} step={step} isLast={i === roadmap.length - 1} />
-                    ))}
-                  </div>
+                  <SeasonTimeline seasonPlan={seasonPlan} />
                 </div>
               )}
 
               {/* ── Cost comparison ── */}
               <div className="bg-white rounded-[2.5rem] p-8 md:p-10 border border-[#173809]/8 shadow-sm">
-                <div className="flex items-center justify-between mb-6 flex-wrap gap-2">
+                <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
                   <h3 className="text-xl font-bold text-[#173809]">Fertilizer Cost: Blanket vs. This Plan</h3>
                 </div>
-                <ResponsiveContainer width="100%" height={220}>
-                  <BarChart data={costData} layout="vertical" margin={{ left: 40 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#173809" strokeOpacity={0.08} horizontal={false} />
-                    <XAxis type="number" tickFormatter={(v) => `₹${v}`} tick={{ fill: '#173809', fontSize: 11 }} axisLine={false} tickLine={false} />
-                    <YAxis type="category" dataKey="name" tick={{ fill: '#173809', fontWeight: 700, fontSize: 12 }} axisLine={false} tickLine={false} width={140} />
-                    <Tooltip formatter={(v) => inr(v)} cursor={{ fill: '#173809', fillOpacity: 0.04 }} />
-                    <Bar dataKey="value" radius={[0, 8, 8, 0]} maxBarSize={44}>
-                      {costData.map((entry, i) => <Cell key={i} fill={entry.fill} />)}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-                <p className="text-xs text-[#173809]/40 mt-4">{impact.baseline_method} {impact.disclaimer}</p>
+                <p className="text-sm text-[#43493e] mb-6">
+                  {impact.cost.recommended_inr === 0
+                    ? "This plan costs you nothing this season — your soil already meets or exceeds every target, so there's nothing worth buying."
+                    : `This plan costs ${inr(impact.cost.recommended_inr)} against ${inr(impact.cost.baseline_inr)} for a blanket application without a soil test.`}
+                </p>
+                <div className="space-y-5">
+                  {costData.map((entry) => {
+                    const maxVal = Math.max(costData[0].value, costData[1].value, 1)
+                    const pct = entry.value > 0 ? Math.max((entry.value / maxVal) * 100, 3) : 0
+                    return (
+                      <div key={entry.name}>
+                        <div className="flex justify-between items-baseline mb-2">
+                          <span className="text-sm font-bold text-[#173809]">{entry.name}</span>
+                          <span className="text-sm font-bold text-[#173809]">{inr(entry.value)}</span>
+                        </div>
+                        <div className="h-8 bg-[#f8f4db] rounded-full overflow-hidden">
+                          <div
+                            className="h-full rounded-full transition-all duration-500"
+                            style={{ width: `${pct}%`, backgroundColor: entry.fill }}
+                          />
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+                <p className="text-xs text-[#173809]/40 mt-6">{impact.baseline_method} {impact.disclaimer}</p>
               </div>
             </>
           )}
