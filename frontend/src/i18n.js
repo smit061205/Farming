@@ -96,6 +96,8 @@ const S = {
     optional: 'optional',
     noCard: 'No soil test? Use typical values for my area',
     usedDefaults: 'Using typical values for your area — get a soil test for a real recommendation.',
+    noCardGeneric: 'No soil test? Use typical (medium) values',
+    usedDefaultsGeneric: 'Using typical medium-range values — get a soil test for a real recommendation.',
 
     s3Title: 'Your crop',
     s3Sub: 'What you are growing, and how much you expect.',
@@ -277,6 +279,8 @@ const S = {
     ec: 'लवणता (EC)', sulphur: 'सल्फर (S)', zinc: 'जिंक (Zn)', optional: 'वैकल्पिक',
     noCard: 'जाँच नहीं है? मेरे इलाके के सामान्य मान लें',
     usedDefaults: 'इलाके के सामान्य मान लिए गए हैं — सही सलाह के लिए मिट्टी जाँच कराएँ।',
+    noCardGeneric: 'जाँच नहीं है? सामान्य (मध्यम) मान लें',
+    usedDefaultsGeneric: 'सामान्य मध्यम-श्रेणी के मान लिए गए हैं — सही सलाह के लिए मिट्टी जाँच कराएँ।',
 
     s3Title: 'आपकी फसल', s3Sub: 'क्या उगा रहे हैं और कितनी उपज चाहिए।',
     crop: 'फसल', targetYield: 'लक्ष्य उपज', quintal: 'क्विंटल/हे.', sowingDate: 'बुवाई की तारीख',
@@ -413,6 +417,8 @@ const S = {
     ec: 'ક્ષારતા (EC)', sulphur: 'સલ્ફર (S)', zinc: 'ઝીંક (Zn)', optional: 'વૈકલ્પિક',
     noCard: 'ચકાસણી નથી? મારી જગ્યાના સામાન્ય આંકડા લો',
     usedDefaults: 'જગ્યાના સામાન્ય આંકડા વપરાયા છે — સાચી સલાહ માટે જમીન ચકાસણી કરાવો.',
+    noCardGeneric: 'ચકાસણી નથી? સામાન્ય (મધ્યમ) આંકડા લો',
+    usedDefaultsGeneric: 'સામાન્ય મધ્યમ-શ્રેણીના આંકડા વપરાયા છે — સાચી સલાહ માટે જમીન ચકાસણી કરાવો.',
 
     s3Title: 'તમારો પાક', s3Sub: 'શું વાવ્યું છે અને કેટલી ઉપજ જોઈએ.',
     crop: 'પાક', targetYield: 'લક્ષ્ય ઉપજ', quintal: 'ક્વિન્ટલ/હે.', sowingDate: 'વાવણી તારીખ',

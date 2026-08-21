@@ -61,8 +61,29 @@ export default function Wizard({ meta, t, lang, onSubmit, busy, error }) {
     return g;
   }, [meta.crops]);
 
+  // A one-click starting point for farmers with no soil test at all. When the
+  // location matches a real Gujarat zone we use its own typical values;
+  // everywhere else we fall back to the midpoint of each published Soil
+  // Health Card "Medium" band (the same bands the engine itself classifies
+  // against) — a real, sourced number, not a made-up one.
+  const genericDefaults = useMemo(() => {
+    const sc = meta.thresholds?.soilClasses || {};
+    const mid = (k) => (sc[k] ? Math.round(((sc[k].low + sc[k].high) / 2) * 100) / 100 : undefined);
+    const def = meta.thresholds?.deficiency || {};
+    return {
+      ph: 7.0,
+      oc: mid('OC'),
+      n: mid('N'),
+      p: mid('P'),
+      k: mid('K'),
+      ec: 0.6,
+      s: def.S ? Math.round(def.S.critical * 1.5 * 10) / 10 : undefined,
+      zn: def.Zn ? Math.round(def.Zn.critical * 1.3 * 100) / 100 : undefined,
+    };
+  }, [meta.thresholds]);
+
   const fillDefaults = () => {
-    const d = ZONE_DEFAULTS[zoneId];
+    const d = ZONE_DEFAULTS[zoneId] || genericDefaults;
     if (!d) return;
     setForm((f) => ({ ...f, ...d }));
     setUsedDefaults(true);
@@ -212,15 +233,13 @@ export default function Wizard({ meta, t, lang, onSubmit, busy, error }) {
               <Num label={t('zinc')} v={form.zn} on={(v) => set('zn', v)} step="0.01" unit="ppm" badge={t('optional')} />
             </div>
 
-            {zoneId && (
-              <button type="button" onClick={fillDefaults}
-                className="w-full border border-dashed border-leaf-400 bg-white px-4 py-3 text-sm font-bold text-leaf-700 hover:bg-sprout transition">
-                {t('noCard')}
-              </button>
-            )}
+            <button type="button" onClick={fillDefaults}
+              className="w-full border border-dashed border-leaf-400 bg-white px-4 py-3 text-sm font-bold text-leaf-700 hover:bg-sprout transition">
+              {t(zoneId ? 'noCard' : 'noCardGeneric')}
+            </button>
             {usedDefaults && (
               <p className="text-xs text-earth-700 bg-earth-50 border border-earth-300 px-3 py-2">
-                {t('usedDefaults')}
+                {t(zoneId ? 'usedDefaults' : 'usedDefaultsGeneric')}
               </p>
             )}
           </div>

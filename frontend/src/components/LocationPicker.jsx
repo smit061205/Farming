@@ -34,6 +34,10 @@ export default function LocationPicker({ lat, lon, onChange, onPlaceChange, zone
   // A search pick already knows its place name — skip the one reverse-geocode
   // round trip that would otherwise fire right after it changes lat/lon.
   const skipNextReverseGeocode = useRef(false);
+  // A reverse-geocode from an earlier map click/drag can resolve after the
+  // farmer has already started typing a new search — don't let it clobber
+  // text they're actively editing.
+  const inputFocused = useRef(false);
 
   // ---- map init (once) ----
   useEffect(() => {
@@ -95,8 +99,8 @@ export default function LocationPicker({ lat, lon, onChange, onPlaceChange, zone
         const a = data.address || {};
         const place = [a.city || a.town || a.village || a.county || a.state_district, a.state].filter(Boolean).join(', ') || data.display_name;
         if (place) {
-          setQuery(place);
           onPlaceChange?.(place);
+          if (!inputFocused.current) setQuery(place);
         }
       } catch {
         // No place label this time — the recommendation still works, just
@@ -147,7 +151,8 @@ export default function LocationPicker({ lat, lon, onChange, onPlaceChange, zone
             placeholder={t('locationSearchPlaceholder')}
             value={query}
             onChange={(e) => { setQuery(e.target.value); setOpen(true); }}
-            onFocus={() => setOpen(true)}
+            onFocus={() => { setOpen(true); inputFocused.current = true; }}
+            onBlur={() => { inputFocused.current = false; }}
           />
           <button type="button" onClick={detect} className="btn-ghost whitespace-nowrap">
             {locating ? t('detecting') : t('detect')}
