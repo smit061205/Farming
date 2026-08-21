@@ -96,6 +96,8 @@ class SoilDataUpdate(BaseModel):
     currentFertilizer: Optional[str] = None  # what the farmer says they're already applying, if anything
     pastFertilizer: Optional[str] = None     # what they used previously, before the current one
     plantingMethod: Optional[str] = None     # e.g. 'Transplanting', 'Broadcasting'
+    irrigation: Optional[str] = None         # 'rainfed' | 'canal' | 'drip' | 'sprinkler' | 'flood' —
+                                              # collected, not yet a dosing-engine input
 
 
 @router.put("/soil-data")
@@ -122,6 +124,7 @@ async def update_soil_data(
     if payload.currentFertilizer is not None: soil_patch["soil_data.currentFertilizer"] = payload.currentFertilizer
     if payload.pastFertilizer is not None: soil_patch["soil_data.pastFertilizer"] = payload.pastFertilizer
     if payload.plantingMethod is not None: soil_patch["soil_data.plantingMethod"] = payload.plantingMethod
+    if payload.irrigation is not None: soil_patch["soil_data.irrigation"] = payload.irrigation
 
     # Whenever a fresh soil chemistry reading comes in, recompute the derived
     # diagnostics (organic matter, CEC, lime requirement, salinity risk, ...)
@@ -175,6 +178,7 @@ class FieldPayload(BaseModel):
     potassium: Optional[float] = None
     currentFertilizer: Optional[str] = None
     pastFertilizer: Optional[str] = None
+    irrigation: Optional[str] = None
 
 
 class FieldUpdatePayload(BaseModel):
@@ -190,6 +194,7 @@ class FieldUpdatePayload(BaseModel):
     potassium: Optional[float] = None
     currentFertilizer: Optional[str] = None
     pastFertilizer: Optional[str] = None
+    irrigation: Optional[str] = None
 
 
 @router.post("/fields")

@@ -3,6 +3,8 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Navbar from '../components/Navbar'
 import MapPicker from '../components/onboarding/MapPicker'
+import SoilOCRUploader from '../components/onboarding/SoilOCRUploader'
+import { Field, Toggle, Num } from '../components/onboarding/WizardUI'
 import { useAuth } from '../context/AuthContext'
 import { CROP_OPTIONS } from '../constants/crops'
 
@@ -34,11 +36,25 @@ const FERTILIZER_OPTIONS = [
   'Other / a mix',
 ]
 
+// Mirrors the irrigation options in the reference AgriSense wizard
+// (Downloads/Goal/agrisense/client/src/components/Wizard.jsx). Collected and
+// saved, but not yet a dosing-engine input — no split-application or
+// leaching-risk rule reads it today. See fertilizer_engine.py's other
+// documented not-yet-modeled gaps (DAP's secondary N, Zn) for the same
+// "collected honestly, not silently assumed" pattern.
+const IRRIGATION_OPTIONS = [
+  { value: 'rainfed', label: 'Rainfed' },
+  { value: 'canal', label: 'Canal' },
+  { value: 'drip', label: 'Drip' },
+  { value: 'sprinkler', label: 'Sprinkler' },
+  { value: 'flood', label: 'Flood' },
+]
+
 function emptyCrop() {
   return {
     cropType: CROP_OPTIONS[0], fieldSize: '', fieldSizeUnit: 'acres',
     ph: '', nitrogen: '', phosphorus: '', potassium: '',
-    currentFertilizer: '', pastFertilizer: '',
+    currentFertilizer: '', pastFertilizer: '', irrigation: 'canal',
   }
 }
 
@@ -107,59 +123,67 @@ function CropCard({ title, subtitle, values, onChange, onRemove }) {
 
       {/* Crop + size */}
       <div className="space-y-3">
-        <select
-          value={values.cropType}
-          onChange={(e) => set({ cropType: e.target.value })}
-          className="w-full bg-white border-0 rounded-full px-5 py-3.5 text-sm font-body text-[#173809] focus:outline-none focus:ring-2 focus:ring-[#173809]/20 shadow-sm"
-        >
-          {CROP_OPTIONS.map(c => <option key={c} value={c}>{c}</option>)}
-        </select>
-        <div className="flex gap-2">
-          <input
-            type="number" min="0" step="0.1" value={values.fieldSize}
-            onChange={(e) => set({ fieldSize: e.target.value })}
-            placeholder="Field size" required
-            className="w-full min-w-0 bg-white border-0 rounded-full px-5 py-3.5 text-sm font-body text-[#173809] focus:outline-none focus:ring-2 focus:ring-[#173809]/20 placeholder:text-[#73796d] shadow-sm"
-          />
+        <Field label="Crop">
           <select
-            value={values.fieldSizeUnit}
-            onChange={(e) => set({ fieldSizeUnit: e.target.value })}
-            className="bg-white border-0 rounded-full px-4 text-xs font-bold text-[#173809] focus:outline-none focus:ring-2 focus:ring-[#173809]/20 shrink-0 shadow-sm"
+            value={values.cropType}
+            onChange={(e) => set({ cropType: e.target.value })}
+            className="w-full bg-white border-0 rounded-full px-5 py-3.5 text-sm font-body text-[#173809] focus:outline-none focus:ring-2 focus:ring-[#173809]/20 shadow-sm"
           >
-            <option value="acres">acres</option>
-            <option value="hectares">hectares</option>
+            {CROP_OPTIONS.map(c => <option key={c} value={c}>{c}</option>)}
           </select>
+        </Field>
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Field Size">
+            <input
+              type="number" min="0" step="0.1" value={values.fieldSize}
+              onChange={(e) => set({ fieldSize: e.target.value })}
+              placeholder="e.g. 2.5" required
+              className="w-full bg-white border-0 rounded-full px-5 py-3.5 text-sm font-body text-[#173809] focus:outline-none focus:ring-2 focus:ring-[#173809]/20 placeholder:text-[#73796d] shadow-sm"
+            />
+          </Field>
+          <Field label="Unit">
+            <Toggle
+              cols={2}
+              value={values.fieldSizeUnit}
+              onChange={(v) => set({ fieldSizeUnit: v })}
+              options={[{ value: 'acres', label: 'Acres' }, { value: 'hectares', label: 'Hectares' }]}
+            />
+          </Field>
         </div>
+        <Field label="Irrigation">
+          <select
+            value={values.irrigation}
+            onChange={(e) => set({ irrigation: e.target.value })}
+            className="w-full bg-white border-0 rounded-full px-5 py-3.5 text-sm font-body text-[#173809] focus:outline-none focus:ring-2 focus:ring-[#173809]/20 shadow-sm"
+          >
+            {IRRIGATION_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+          </select>
+        </Field>
       </div>
 
-      {/* Soil test */}
+      {/* Soil test — upload a lab report to auto-fill, or type the values in directly */}
       <div className="pt-4 border-t border-[#173809]/10">
         <p className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-[#173809]/45 mb-3">
           <span className="material-symbols-outlined text-[13px]">science</span> Soil Test
         </p>
+        <SoilOCRUploader onExtracted={(extracted) => {
+          const patch = {}
+          if (extracted.ph !== null) patch.ph = extracted.ph
+          if (extracted.nitrogen_ppm !== null) patch.nitrogen = extracted.nitrogen_ppm
+          if (extracted.phosphorus_ppm !== null) patch.phosphorus = extracted.phosphorus_ppm
+          if (extracted.potassium_ppm !== null) patch.potassium = extracted.potassium_ppm
+          if (Object.keys(patch).length > 0) set(patch)
+        }} />
+        <div className="flex items-center gap-3 my-4">
+          <span className="h-px flex-1 bg-[#173809]/10" />
+          <span className="text-[10px] font-bold uppercase tracking-widest text-[#173809]/30">Or type it in</span>
+          <span className="h-px flex-1 bg-[#173809]/10" />
+        </div>
         <div className="grid grid-cols-2 gap-3">
-          {[
-            { key: 'ph', label: 'pH', flagKey: 'pH' },
-            { key: 'nitrogen', label: 'Nitrogen (ppm)', flagKey: 'N' },
-            { key: 'phosphorus', label: 'Phosphorus (ppm)', flagKey: 'P' },
-            { key: 'potassium', label: 'Potassium (ppm)', flagKey: 'K' },
-          ].map(({ key, label, flagKey }) => {
-            const unusual = isUnusual(flagKey, parseFloat(values[key]))
-            return (
-              <div key={key}>
-                <input
-                  type="number" step={key === 'ph' ? '0.1' : 'any'} min="0" required
-                  value={values[key]}
-                  onChange={(e) => set({ [key]: e.target.value })}
-                  placeholder={label}
-                  className={`w-full bg-white rounded-full px-5 py-3 text-sm font-body text-[#173809] focus:outline-none focus:ring-2 transition-shadow placeholder:text-[#73796d] shadow-sm border ${
-                    unusual ? 'border-[#9f402d]/50 focus:ring-[#9f402d]/20' : 'border-transparent focus:ring-[#173809]/20'
-                  }`}
-                />
-                {unusual && <p className="text-[9px] text-[#9f402d] font-bold mt-1 ml-2">Unusual — double-check</p>}
-              </div>
-            )
-          })}
+          <Num label="pH" value={values.ph} onChange={(v) => set({ ph: v })} step="0.1" ph required unusual={isUnusual('pH', parseFloat(values.ph))} />
+          <Num label="Nitrogen" value={values.nitrogen} onChange={(v) => set({ nitrogen: v })} unit="ppm" required unusual={isUnusual('N', parseFloat(values.nitrogen))} />
+          <Num label="Phosphorus" value={values.phosphorus} onChange={(v) => set({ phosphorus: v })} unit="ppm" required unusual={isUnusual('P', parseFloat(values.phosphorus))} />
+          <Num label="Potassium" value={values.potassium} onChange={(v) => set({ potassium: v })} unit="ppm" required unusual={isUnusual('K', parseFloat(values.potassium))} />
         </div>
       </div>
 
@@ -215,6 +239,7 @@ export default function OnboardingPage() {
     ...emptyCrop(),
     ph: primaryCrop.ph, nitrogen: primaryCrop.nitrogen, phosphorus: primaryCrop.phosphorus, potassium: primaryCrop.potassium,
     currentFertilizer: primaryCrop.currentFertilizer, pastFertilizer: primaryCrop.pastFertilizer,
+    irrigation: primaryCrop.irrigation,
   }])
   const removeCropRow = (idx) => setAdditionalCrops(prev => prev.filter((_, i) => i !== idx))
   const updateCropRow = (idx, values) => setAdditionalCrops(prev => prev.map((row, i) => i === idx ? values : row))
@@ -296,6 +321,7 @@ export default function OnboardingPage() {
       ph: parseFloat(primaryCrop.ph), nitrogen: parseFloat(primaryCrop.nitrogen),
       phosphorus: parseFloat(primaryCrop.phosphorus), potassium: parseFloat(primaryCrop.potassium),
       currentFertilizer: primaryCrop.currentFertilizer, pastFertilizer: primaryCrop.pastFertilizer,
+      irrigation: primaryCrop.irrigation,
     }
 
     setIsLoading(true)
@@ -330,6 +356,7 @@ export default function OnboardingPage() {
             ph: parseFloat(row.ph), nitrogen: parseFloat(row.nitrogen),
             phosphorus: parseFloat(row.phosphorus), potassium: parseFloat(row.potassium),
             currentFertilizer: row.currentFertilizer, pastFertilizer: row.pastFertilizer,
+            irrigation: row.irrigation,
           }
           await fetch(`${API_BASE}/api/users/fields`, {
             method: 'POST',
