@@ -178,6 +178,9 @@ export default function RoadmapPage() {
   const [seasonPlan, setSeasonPlan] = useState(null)
   const [isLoading, setIsLoading] = useState(!!token)
   const [activeFieldId, setActiveFieldId] = useState(null) // null = primary field
+  const [budgetInput, setBudgetInput] = useState('')
+  const [budgetPlan, setBudgetPlan] = useState(null)
+  const [budgetLoading, setBudgetLoading] = useState(false)
 
   const fieldTabs = buildFieldTabs(user)
   const activeCrop = activeFieldId
@@ -187,6 +190,8 @@ export default function RoadmapPage() {
   useEffect(() => {
     if (!token) return
     setIsLoading(true)
+    setBudgetPlan(null)
+    setBudgetInput('')
     const fieldQuery = activeFieldId ? `?field_id=${activeFieldId}` : ''
     fetch(`${API_BASE}/api/engine/sustainability-impact${fieldQuery}`, { headers: { Authorization: `Bearer ${token}` } })
       .then(res => res.json())
@@ -197,6 +202,22 @@ export default function RoadmapPage() {
       })
       .catch(() => setIsLoading(false))
   }, [token, activeFieldId])
+
+  const checkBudget = async () => {
+    const amount = parseFloat(budgetInput)
+    if (!amount || amount <= 0) return
+    setBudgetLoading(true)
+    try {
+      const fieldQuery = activeFieldId ? `&field_id=${activeFieldId}` : ''
+      const res = await fetch(`${API_BASE}/api/engine/precision-recommendation?budget_inr=${amount}${fieldQuery}`, { headers: { Authorization: `Bearer ${token}` } })
+      const data = await res.json()
+      if (data.status === 'success') setBudgetPlan(data.budget_plan)
+    } catch {
+      // silent — matches other soft-fail fetches on this page
+    } finally {
+      setBudgetLoading(false)
+    }
+  }
 
   const costData = impact ? [
     { name: `Average ${activeCrop || 'Crop'} Approach`, value: impact.cost.baseline_inr, fill: '#e7e3ca' },
@@ -401,6 +422,55 @@ export default function RoadmapPage() {
                   })}
                 </div>
                 <p className="text-xs text-[#173809]/40 mt-6">{impact.baseline_method} {impact.disclaimer}</p>
+              </div>
+
+              {/* Budget planner — what if I can't afford the full plan */}
+              <div className="rounded-[2.5rem] bg-white border border-[#173809]/8 shadow-sm p-8 md:p-10 mt-8">
+                <h3 className="text-xl font-bold text-[#173809] mb-1">Working with a limited budget?</h3>
+                <p className="text-sm text-[#43493e] mb-4">Tell us what you can spend — we'll prioritize whichever nutrient this field needs most urgently, not just cut everything evenly.</p>
+                <div className="flex gap-2">
+                  <div className="relative flex-1 max-w-[220px]">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-[#173809]/40">₹</span>
+                    <input
+                      type="number" min="0" value={budgetInput} onChange={e => setBudgetInput(e.target.value)}
+                      onKeyDown={e => e.key === 'Enter' && checkBudget()}
+                      placeholder="e.g. 3000"
+                      className="w-full bg-[#f8f4db] rounded-full pl-8 pr-4 py-2.5 text-sm font-bold text-[#173809] border border-[#173809]/10 focus:outline-none focus:ring-2 focus:ring-[#173809]/20"
+                    />
+                  </div>
+                  <button onClick={checkBudget} disabled={budgetLoading || !budgetInput} className="bg-[#173809] text-white rounded-full px-5 py-2.5 text-sm font-bold disabled:opacity-40 hover:bg-[#2d4f1e] transition-colors">
+                    {budgetLoading ? '…' : 'Check'}
+                  </button>
+                </div>
+
+                {budgetPlan && (
+                  <div className="mt-5 pt-5 border-t border-[#173809]/10">
+                    {budgetPlan.sufficient ? (
+                      <p className="text-sm font-bold text-[#173809]">₹{budgetPlan.budget_inr.toLocaleString('en-IN')} covers the full plan (₹{budgetPlan.total_cost_inr.toLocaleString('en-IN')}) — no trade-offs needed.</p>
+                    ) : (
+                      <>
+                        <p className="text-sm font-bold text-[#9f402d] mb-3">₹{budgetPlan.budget_inr.toLocaleString('en-IN')} doesn't cover the full ₹{budgetPlan.total_cost_inr.toLocaleString('en-IN')} plan — here's what to prioritize:</p>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                          {budgetPlan.priority_order.map((label, i) => {
+                            const a = budgetPlan.allocation[label]
+                            return (
+                              <div key={label} className={`rounded-xl p-3 ${a.deferred ? 'bg-[#f8f4db]/60 opacity-60' : 'bg-[#f8f4db]'}`}>
+                                <div className="flex items-center justify-between mb-1">
+                                  <span className="text-[10px] font-bold uppercase tracking-widest text-[#173809]/40">#{i + 1} · {label}</span>
+                                  {!a.deferred && <span className="text-[10px] font-bold text-[#173809]">{a.funded_pct}%</span>}
+                                </div>
+                                <p className="text-sm font-bold text-[#173809]">
+                                  {a.deferred ? 'Wait for next purchase' : `${a.funded_kg_total} kg · ₹${a.funded_cost_inr.toLocaleString('en-IN')}`}
+                                </p>
+                              </div>
+                            )
+                          })}
+                        </div>
+                        <p className="text-[11px] text-[#173809]/50 mt-3">Priority follows Liebig's law of the minimum: whichever nutrient is most severely short relative to this field's own target is funded first.</p>
+                      </>
+                    )}
+                  </div>
+                )}
               </div>
             </>
           )}

@@ -688,7 +688,7 @@ export default function FertilizerHubPage() {
                             )
                           })}
                         </div>
-                        <p className="text-[11px] text-[#173809]/50 mt-3">Priority follows agronomic urgency: nitrogen first (most yield-limiting and easiest to lose), then phosphorus (has to go in near sowing), then potassium.</p>
+                        <p className="text-[11px] text-[#173809]/50 mt-3">Priority follows Liebig's law of the minimum: whichever nutrient is most severely short relative to this field's own target is funded first, since that's the one capping what every other rupee can achieve.</p>
                       </>
                     )}
                   </div>

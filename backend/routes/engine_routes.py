@@ -345,88 +345,129 @@ async def get_insights(
     if cached and user.get("cached_insights_key") == cache_key:
         return {"status": "ok", **cached}
 
-    if not api_key or not _groq_available:
-        return {"status": "unavailable", "cropCards": [], "activeIntelligence": []}
-
-    system_prompt = (
-        "You are an expert farm advisor for the 'AgriSense' app, writing for smallholder farmers. "
-        "Use simple, everyday words — avoid technical jargon where a plain word works just as well. "
-        "Return ONLY valid JSON. Never use markdown, no code fences, no backticks. "
-        "Crop names must be real agricultural crops suitable for the given soil conditions."
+    # Real suitability per crop — the same weighted pH/N/P/K formula used
+    # everywhere else in the app (Soil Health score, sustainability impact),
+    # scored once for every crop the dosing engine actually has a real target
+    # for. Previously the AI both picked which 3 crops to consider AND
+    # invented their scores from scratch, so a field could get a different 3
+    # crops on every call with no guarantee the actual best fits were even
+    # among them. Scoring is now deterministic and reproducible — the AI's
+    # only job below is to narrate the numbers already computed here, the
+    # same "AI never produces a number" rule the dosing engine follows.
+    all_crops = list(fertilizer_engine.CROP_NUTRIENT_TARGETS.keys())
+    scored = sorted(
+        ((c, fertilizer_engine.compute_health_score(soil_ph, soil_n, soil_p, soil_k, c)) for c in all_crops),
+        key=lambda pair: pair[1], reverse=True,
     )
+    top3 = scored[:3]
+    # pH this far outside a workable range is a hard gate, not a 40%-weighted
+    # input a crop can average its way past on strong N/P/K alone — nothing
+    # grows in soil this acidic/alkaline regardless of nutrient levels, so no
+    # displayed score should look more confident than that.
+    if soil_ph < 4.0 or soil_ph > 9.0:
+        top3 = [(c, min(s, 25)) for c, s in top3]
+    TAGS = ["Primary Match", "Soil Rotation", "Alternative"]
+    BGS = ["#f2efd5", "#e7e3ca", "#f2efd5"]
 
-    # Only suggest crops the fertilizer engine has a real dosing target for —
-    # CROP_IMAGE_MAP is a larger, separate list (includes perennial/tree crops
-    # like mango and banana that don't fit this per-season kg/ha dosing model
-    # at all) and previously let the AI recommend a crop the rest of the app
-    # couldn't actually compute a real plan for.
-    crop_list = ", ".join(fertilizer_engine.CROP_NUTRIENT_TARGETS.keys())
-    user_prompt = f"""
-A field at {coords} has the following soil analysis:
-- Nitrogen (N): {soil_n} ppm
-- Phosphorus (P): {soil_p} ppm
-- Potassium (K): {soil_k} ppm
-- pH: {soil_ph}
-- Preferred Crop: {crop_hint or "not specified"}
-- Soil Type: {soil_hint or "not specified"}
+    def _deterministic_reason(crop: str, score: int) -> str:
+        targets = fertilizer_engine.get_crop_targets(crop)
+        fit = "suits this soil well" if score >= 60 else "is a workable but imperfect fit here" if score >= 30 else "is a poor fit for this soil right now"
+        sentences = [f"{crop.capitalize()} {fit} (suitability {score}/99)."]
+        if soil_ph < 4.0:
+            sentences.append(f"pH {soil_ph} is far too acidic for any crop here to take up nutrients properly — this needs correcting before nutrient levels matter at all.")
+        elif soil_ph > 9.0:
+            sentences.append(f"pH {soil_ph} is far too alkaline for any crop here to take up nutrients properly — this needs correcting before nutrient levels matter at all.")
+        elif soil_ph < 5.5:
+            sentences.append(f"pH {soil_ph} is acidic enough to limit how well {crop.lower()} can use the nutrients below.")
+        elif soil_ph > 8.0:
+            sentences.append(f"pH {soil_ph} is alkaline enough to limit how well {crop.lower()} can use the nutrients below.")
+        for label, avail, key in (("nitrogen", soil_n, "n"), ("phosphorus", soil_p, "p"), ("potassium", soil_k, "k")):
+            target_ppm = targets[key] / fertilizer_engine.PPM_TO_KG_HA
+            if target_ppm <= 0:
+                continue
+            ratio = avail / target_ppm
+            if ratio < 0.6:
+                sentences.append(f"{label.capitalize()} is well short of what {crop.lower()} needs.")
+            elif ratio > 1.8:
+                sentences.append(f"{label.capitalize()} is well above what {crop.lower()} can use.")
+        return " ".join(sentences)
 
-Based on this data, recommend 3 crops from this list: {crop_list}
+    crop_cards = [
+        {"tag": TAGS[i], "name": crop.capitalize(), "score": round(score), "bg": BGS[i], "reason": _deterministic_reason(crop, round(score))}
+        for i, (crop, score) in enumerate(top3)
+    ]
 
-Score each crop 0-99 based on its ACTUAL suitability for this exact soil — never inflate a score just because a crop is the best of the three on offer. If pH {soil_ph} or the N/P/K levels are badly mismatched for a crop's real tolerance range, that crop's score MUST be low (under 30), even the "Primary Match". If none of the three crops genuinely suit this soil, all three scores should be low and the reasoning must say plainly that the soil needs correction before planting — do not paper over a bad match with a reassuring-sounding percentage.
+    def _deterministic_alerts() -> list:
+        alerts = []
+        if soil_ph < 5.5 or soil_ph > 8.0:
+            alerts.append({
+                "color": "#9f402d", "glow": "0 0 15px 2px rgba(159,64,45,0.6)",
+                "title": "Soil pH needs correction", "desc": f"pH {soil_ph} is outside the range most crops can use efficiently — this is worth fixing before the next planting.",
+                "actionLabel": "View Plan →",
+            })
+        else:
+            alerts.append({
+                "color": "#173809", "glow": "0 0 15px 2px rgba(23,56,9,0.4)",
+                "title": "Soil pH is workable", "desc": f"pH {soil_ph} sits in a range most crops can use without correction.",
+                "actionLabel": "View Plan →",
+            })
+        return alerts
 
-Return ONLY this JSON structure (no markdown, no backticks):
+    data = {"cropCards": crop_cards, "activeIntelligence": _deterministic_alerts()}
+
+    # Optional AI polish pass — asked only to rewrite the reasoning above in
+    # friendlier language and add a genuinely location/weather-aware second
+    # alert; never to change which crops were picked or their scores. If this
+    # fails or Groq is unavailable, the deterministic version above stands on
+    # its own rather than leaving the whole feature blank.
+    if api_key and _groq_available:
+        try:
+            system_prompt = (
+                "You are an expert farm advisor for the 'AgriSense' app, writing for smallholder farmers. "
+                "Use simple, everyday words. Return ONLY valid JSON, no markdown, no backticks. "
+                "You are given ALREADY-COMPUTED crop suitability scores — do not change them or the crop "
+                "names, only write friendlier reasoning text for each, keeping every specific number given."
+            )
+            cards_json = json.dumps([{"tag": c["tag"], "name": c["name"], "score": c["score"]} for c in crop_cards])
+            user_prompt = f"""
+A field at {coords} has: pH {soil_ph}, N {soil_n} ppm, P {soil_p} ppm, K {soil_k} ppm.
+Preferred crop: {crop_hint or "not specified"}. Soil type: {soil_hint or "not specified"}.
+
+These 3 crops and suitability scores are ALREADY COMPUTED and must not change: {cards_json}
+
+Return ONLY this JSON:
 {{
     "cropCards": [
-        {{"tag": "Primary Match", "name": "<Highest genuine suitability of the 3>", "score": <integer 0-99, real suitability, not rank>, "bg": "#f2efd5", "reason": "<2-3 concise sentences about why this crop suits (or doesn't suit) pH {soil_ph} with N={soil_n} ppm, P={soil_p} ppm, K={soil_k} ppm — if the score is low, say so and what needs to change first.>"}},
-        {{"tag": "Soil Rotation", "name": "<Second-highest>", "score": <integer 0-99, real suitability, not rank>, "bg": "#e7e3ca", "reason": "<2-3 sentences: suitability and rotation soil health benefit.>"}},
-        {{"tag": "Alternative", "name": "<Third>", "score": <integer 0-99, real suitability, not rank>, "bg": "#f2efd5", "reason": "<2-3 sentences: viable alternative given the NPK and pH constraints.>"}}
+        {{"tag": "Primary Match", "name": "{crop_cards[0]['name']}", "score": {crop_cards[0]['score']}, "bg": "{crop_cards[0]['bg']}", "reason": "<2-3 sentences explaining this score using the real pH/N/P/K above — if the score is low, say plainly what needs to change first>"}},
+        {{"tag": "Soil Rotation", "name": "{crop_cards[1]['name']}", "score": {crop_cards[1]['score']}, "bg": "{crop_cards[1]['bg']}", "reason": "<2-3 sentences: suitability plus rotation soil-health benefit>"}},
+        {{"tag": "Alternative", "name": "{crop_cards[2]['name']}", "score": {crop_cards[2]['score']}, "bg": "{crop_cards[2]['bg']}", "reason": "<2-3 sentences: viable alternative given the constraints>"}}
     ],
-
     "activeIntelligence": [
-        {{
-            "color": "#9f402d",
-            "glow": "0 0 15px 2px rgba(159,64,45,0.6)",
-            "title": "<Specific alert based on the above NPK and pH>",
-            "desc": "<Actionable advice referencing actual values like pH {soil_ph} or N={soil_n} ppm>",
-            "actionLabel": "View Plan →"
-        }},
-        {{
-            "color": "#fb9f54",
-            "glow": "0 0 15px 2px rgba(251,159,84,0.6)",
-            "title": "<Weather or irrigation alert relevant to this location>",
-            "desc": "<Irrigation or timing advice>",
-            "actionLabel": null
-        }}
+        {{"color": "#9f402d", "glow": "0 0 15px 2px rgba(159,64,45,0.6)", "title": "<specific alert based on pH/NPK above>", "desc": "<actionable advice citing the real values>", "actionLabel": "View Plan →"}},
+        {{"color": "#fb9f54", "glow": "0 0 15px 2px rgba(251,159,84,0.6)", "title": "<weather or irrigation alert relevant to {coords}>", "desc": "<irrigation or timing advice>", "actionLabel": null}}
     ]
 }}
 """
+            text = await _call_groq(system_prompt, user_prompt, json_mode=True)
+            polished = json.loads(text)
+            # Trust the AI's reasoning text only — names/scores/tags/bg stay
+            # exactly what was already computed, so a bad AI response can
+            # only make the copy worse, never the underlying facts wrong.
+            for i, card in enumerate(polished.get("cropCards", [])):
+                if i < len(crop_cards) and isinstance(card.get("reason"), str) and card["reason"].strip():
+                    crop_cards[i]["reason"] = card["reason"]
+            if polished.get("activeIntelligence"):
+                data["activeIntelligence"] = polished["activeIntelligence"]
+            data["cropCards"] = crop_cards
+        except Exception as e:
+            print(f"Groq insights polish error: {e}")
+            # deterministic data computed above still stands
 
-    try:
-        text = await _call_groq(system_prompt, user_prompt, json_mode=True)
-        data = json.loads(text)
-
-        # Strip any leftover img/offset fields the AI may have included
-        for card in data.get("cropCards", []):
-            card.pop("img", None)
-            card.pop("offset", None)
-
-        # Defense in depth: if pH is outside the range where essentially any
-        # common crop can grow, don't trust the AI to have scored it low on
-        # its own — cap every score so the UI can't show a reassuring-looking
-        # percentage for soil that needs correction before anything is planted.
-        if soil_ph < 4.0 or soil_ph > 9.0:
-            for card in data.get("cropCards", []):
-                if isinstance(card.get("score"), (int, float)):
-                    card["score"] = min(card["score"], 25)
-
-        await db["users"].update_one(
-            {"_id": user["_id"]},
-            {"$set": {"cached_insights": data, "cached_insights_key": cache_key}}
-        )
-        return {"status": "ok", **data}
-    except Exception as e:
-        print(f"Groq insights error: {e}")
-        return {"status": "unavailable", "cropCards": [], "activeIntelligence": []}
+    await db["users"].update_one(
+        {"_id": user["_id"]},
+        {"$set": {"cached_insights": data, "cached_insights_key": cache_key}}
+    )
+    return {"status": "ok", **data}
 
 
 
@@ -701,20 +742,25 @@ async def _compute_dose_for_user(user: dict, n, p, k, ph, crop_type, field_size,
     return dose, f
 
 
-_BUDGET_PRIORITY = ("nitrogen", "phosphorus", "potassium")
-
-
 def _apply_budget(nutrients: dict, budget_inr: float) -> dict:
-    """Greedy allocation of a limited budget across deficient nutrients, most
-    agronomically urgent first: nitrogen (most yield-limiting and most easily
-    lost to leaching/volatilization if delayed), then phosphorus (immobile —
-    has to go in near sowing or the window is missed), then potassium. Fully
-    funds a nutrient before moving to the next; the last one affordable gets
+    """Greedy allocation of a limited budget across deficient nutrients.
+    Priority follows Liebig's law of the minimum: whichever nutrient is most
+    severely short RELATIVE TO ITS OWN TARGET (lowest available/target ratio)
+    caps what every other rupee spent can achieve, so it's funded first —
+    not a fixed nitrogen-always-first order, since which nutrient is actually
+    most urgent depends entirely on this field's own soil test. Fully funds
+    a nutrient before moving to the next; the last one affordable gets
     partially funded rather than skipped outright."""
     total_cost = sum(d["cost_inr"] for d in nutrients.values() if d["status"] == "deficient")
     remaining = max(0.0, budget_inr)
+
+    def _severity(label):
+        d = nutrients[label]
+        return (d["available_kg_ha"] / d["target_kg_ha"]) if d["target_kg_ha"] else 1.0
+
+    priority_order = sorted(nutrients.keys(), key=_severity)
     allocation = {}
-    for label in _BUDGET_PRIORITY:
+    for label in priority_order:
         data = nutrients[label]
         if data["status"] != "deficient" or data["cost_inr"] <= 0:
             allocation[label] = {"funded_pct": 100, "funded_kg_total": data["product_kg_total"], "funded_cost_inr": 0, "deferred": False}
@@ -737,7 +783,7 @@ def _apply_budget(nutrients: dict, budget_inr: float) -> dict:
         "budget_inr": budget_inr,
         "total_cost_inr": total_cost,
         "sufficient": budget_inr >= total_cost,
-        "priority_order": list(_BUDGET_PRIORITY),
+        "priority_order": priority_order,
         "allocation": allocation,
     }
 
