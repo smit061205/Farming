@@ -4,21 +4,38 @@ import { smsSim } from '../api.js';
 
 /* ------------------------------------------------------- SMS / IVR demo */
 
+const SMS_LANG_CODES = { h: 'hi', hi: 'hi', hindi: 'hi', g: 'gu', gu: 'gu', gujarati: 'gu', e: 'en', en: 'en', english: 'en' };
+
 export function SmsSim({ t }) {
   const [log, setLog] = useState([
     { from: 'sys', text: 'Send: AGRI <CROP> <pH> <N> <P> <K> <hectares>' },
   ]);
   const [input, setInput] = useState('AGRI WHEAT 6.8 220 18 240 2');
   const [busy, setBusy] = useState(false);
+  const [smsLang, setSmsLang] = useState('en');
+  const [lastQuery, setLastQuery] = useState(null);
 
   const send = async () => {
     const text = input.trim();
     if (!text || busy) return;
     setLog((l) => [...l, { from: 'me', text }]);
     setBusy(true);
+
+    // A bare "H"/"G"/"E" reply switches the language of the last query,
+    // matching what the reply text itself invites the farmer to do — it
+    // is not a new AGRI command, so replay the stored one in that language.
+    const langCode = SMS_LANG_CODES[text.toLowerCase()];
+    const isLangSwitch = langCode && lastQuery;
+    const queryText = isLangSwitch ? lastQuery : text;
+    const queryLang = isLangSwitch ? langCode : smsLang;
+
     try {
-      const r = await smsSim({ text });
+      const r = await smsSim({ text: queryText, lang: queryLang });
       setLog((l) => [...l, { from: 'sys', text: r.reply, segments: r.segments }]);
+      if (r.ok) {
+        setLastQuery(queryText);
+        setSmsLang(queryLang);
+      }
     } catch (e) {
       setLog((l) => [...l, { from: 'sys', text: String(e.message) }]);
     } finally { setBusy(false); }

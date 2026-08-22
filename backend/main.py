@@ -383,18 +383,57 @@ async def chat_route(body: dict):
 
 # ------------------------------------------------------------ SMS / IVR sim
 
+_SMS_STRINGS = {
+    "help": {
+        "en": "Send: AGRI <CROP> <pH> <N> <P> <K> <hectares>\nExample: AGRI WHEAT 6.8 220 18 240 2",
+        "hi": "भेजें: AGRI <फसल> <pH> <N> <P> <K> <हेक्टेयर>\nउदाहरण: AGRI WHEAT 6.8 220 18 240 2",
+        "gu": "મોકલો: AGRI <પાક> <pH> <N> <P> <K> <હેક્ટર>\nઉદાહરણ: AGRI WHEAT 6.8 220 18 240 2",
+    },
+    "cropUnknown": {
+        "en": "Crop not recognised. Reply with one of: WHEAT, COTTON, GROUNDNUT, BAJRA.",
+        "hi": "फ़सल पहचानी नहीं गई। इनमें से एक भेजें: WHEAT, COTTON, GROUNDNUT, BAJRA.",
+        "gu": "પાક ઓળખાયો નથી. આમાંથી એક મોકલો: WHEAT, COTTON, GROUNDNUT, BAJRA.",
+    },
+    "noFertilizer": {
+        "en": "No fertilizer needed.",
+        "hi": "किसी उर्वरक की आवश्यकता नहीं है।",
+        "gu": "કોઈ ખાતરની જરૂર નથી.",
+    },
+    "costSaved": {
+        "en": "Cost Rs {cost} (save Rs {saved}).",
+        "hi": "लागत Rs {cost} (बचत Rs {saved})।",
+        "gu": "ખર્ચ Rs {cost} (બચત Rs {saved}).",
+    },
+    "costMore": {
+        "en": "Cost Rs {cost} (Rs {extra} more than the usual blanket dose — your soil needs more here).",
+        "hi": "लागत Rs {cost} (सामान्य खुराक से Rs {extra} ज़्यादा — आपकी मिट्टी को यहाँ ज़्यादा चाहिए)।",
+        "gu": "ખર્ચ Rs {cost} (સામાન્ય માત્રા કરતાં Rs {extra} વધુ — તમારી જમીનને અહીં વધુ જરૂર છે).",
+    },
+    "switchLang": {
+        "en": "Reply H for Hindi, G for Gujarati, E for English.",
+        "hi": "हिंदी के लिए H, गुजराती के लिए G, अंग्रेज़ी के लिए E भेजें।",
+        "gu": "હિન્દી માટે H, ગુજરાતી માટે G, અંગ્રેજી માટે E મોકલો.",
+    },
+}
+
+_SMS_LANG_CODES = {"h": "hi", "hi": "hi", "hindi": "hi", "g": "gu", "gu": "gu", "gujarati": "gu", "e": "en", "en": "en", "english": "en"}
+
+
 @app.post("/api/sms-sim")
 async def sms_sim(body: dict):
     text = (body.get("text") or "").strip()
+    lang = (body.get("lang") or "en").lower()
+    if lang not in ("en", "hi", "gu"):
+        lang = "en"
     parts = text.split()
 
     if not parts or parts[0].upper() != "AGRI":
-        return {"reply": "Send: AGRI <CROP> <pH> <N> <P> <K> <hectares>\nExample: AGRI WHEAT 6.8 220 18 240 2", "ok": False}
+        return {"reply": _SMS_STRINGS["help"][lang], "ok": False, "lang": lang}
 
     crop_word = parts[1] if len(parts) > 1 else ""
     crop = next((c for c in crops if c["id"] == crop_word.lower() or c["name"]["en"].lower().startswith(crop_word.lower())), None)
     if not crop:
-        return {"reply": "Crop not recognised. Reply with one of: WHEAT, COTTON, GROUNDNUT, BAJRA.", "ok": False}
+        return {"reply": _SMS_STRINGS["cropUnknown"][lang], "ok": False, "lang": lang}
 
     ph = parts[2] if len(parts) > 2 else None
     n = parts[3] if len(parts) > 3 else None
@@ -411,15 +450,23 @@ async def sms_sim(body: dict):
     blanket_plan = allocate_blanket(d["blanket"], {"areaHa": area_ha})
     cmp = comparison(plan, blanket_plan)
 
-    bags = ", ".join(f"{i['name']['en']} {i['bags']} bag" for i in plan["items"])
+    crop_name = crop["name"].get(lang) or crop["name"]["en"]
+    bags = ", ".join(f"{(i['name'].get(lang) or i['name']['en'])} {i['bags']} bag" for i in plan["items"])
+    bags_text = bags or _SMS_STRINGS["noFertilizer"][lang]
+
+    if cmp["savedTotal"] >= 0:
+        cost_text = _SMS_STRINGS["costSaved"][lang].format(cost=cmp["planCost"], saved=cmp["savedTotal"])
+    else:
+        cost_text = _SMS_STRINGS["costMore"][lang].format(cost=cmp["planCost"], extra=-cmp["savedTotal"])
+
     reply = " ".join([
-        f"{crop['name']['en'].upper()} {area_ha}ha:",
-        bags or "No fertilizer needed.",
-        f"Cost Rs {cmp['planCost']} (save Rs {cmp['savedTotal']}).",
-        "Reply H for Hindi, G for Gujarati.",
+        f"{crop_name.upper()} {area_ha}ha:",
+        bags_text,
+        cost_text,
+        _SMS_STRINGS["switchLang"][lang],
     ])
 
-    return {"reply": reply, "ok": True, "chars": len(reply), "segments": -(-len(reply) // 160)}
+    return {"reply": reply, "ok": True, "chars": len(reply), "segments": -(-len(reply) // 160), "lang": lang}
 
 
 # ---------------------------------------------------- soil report extraction

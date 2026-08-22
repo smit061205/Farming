@@ -95,6 +95,39 @@ export default function App() {
       }));
   }, []);
 
+  // AI-generated text (crop-suggestion reasons, the budget-constraint notice)
+  // is written once, in whichever language was active at request time, and
+  // cached on the result — it does not retroactively translate on its own.
+  // Everything else on the page re-renders from the same i18n dictionary on
+  // every language switch, so refresh these two AI fields the same way.
+  useEffect(() => {
+    if (!rec) return;
+    const recId = rec.id;
+
+    if (rec.cropRecommendations?.recommendations?.length) {
+      cropRecommend(cropPayloadFor(rec, lang))
+        .then((suggestions) => setRec((current) => {
+          if (!current || current.id !== recId) return current;
+          const next = { ...current, cropRecommendations: suggestions };
+          cacheLast(next);
+          return next;
+        }))
+        .catch(() => {});
+    }
+
+    if (rec.cropRecommendationInput && rec.budgetNotice) {
+      recommend({ ...rec.cropRecommendationInput, lang })
+        .then((fresh) => setRec((current) => {
+          if (!current || current.id !== recId) return current;
+          const next = { ...current, budgetNotice: fresh.budgetNotice };
+          cacheLast(next);
+          return next;
+        }))
+        .catch(() => {});
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lang]);
+
   const submit = async (payload) => {
     setBusy(true); setError('');
     try {
