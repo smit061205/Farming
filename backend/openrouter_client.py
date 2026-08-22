@@ -75,8 +75,11 @@ async def openrouter_generate(
             payload_messages.append({"role": m["role"], "content": m["content"]})
 
     last_reason = "unknown"
+    ATTEMPTS = 3  # a single failed call (timeout, transient 5xx) shouldn't drop
+    # straight to the deterministic fallback — verified live that identical
+    # requests seconds apart can go either way.
     async with httpx.AsyncClient(timeout=45.0) as client:
-        for attempt in range(2):
+        for attempt in range(ATTEMPTS):
             try:
                 resp = await client.post(
                     ENDPOINT,
@@ -93,7 +96,7 @@ async def openrouter_generate(
 
                 if resp.status_code != 200:
                     last_reason = (data.get("error") or {}).get("message") or f"HTTP {resp.status_code}"
-                    if _is_retryable(resp.status_code) and attempt == 0:
+                    if _is_retryable(resp.status_code) and attempt < ATTEMPTS - 1:
                         continue
                     return {"ok": False, "reason": last_reason}
 
@@ -101,7 +104,7 @@ async def openrouter_generate(
                 text = ((choices[0] or {}).get("message") or {}).get("content") if choices else None
                 if not text:
                     last_reason = "empty response"
-                    if attempt == 0:
+                    if attempt < ATTEMPTS - 1:
                         continue
                     return {"ok": False, "reason": last_reason}
 
