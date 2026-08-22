@@ -33,8 +33,8 @@ export default function CropRecommendations({ rec, t, lang, placement = 'plan' }
     <Section
       title={title}
       sub={t('cropSuggestionsSub')}
-      right={<Badge tone={data.provider === 'groq' ? 'leaf' : 'slate'}>
-        {data.provider === 'groq' ? 'AI · Groq' : t('cropSuggestionsCatalog')}
+      right={<Badge tone={data.provider === 'catalog' ? 'slate' : 'leaf'}>
+        {data.provider === 'catalog' ? t('cropSuggestionsCatalog') : t('cropSuggestionsAI')}
       </Badge>}
     >
       <div className="grid md:grid-cols-3 gap-3">

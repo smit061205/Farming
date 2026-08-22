@@ -211,6 +211,7 @@ const S = {
     cropSuggestionsLoading: 'Finding crops that fit your field…',
     cropSuggestionsUnavailable: 'Crop suggestions are unavailable right now.',
     cropSuggestionsCatalog: 'Catalog suggestions',
+    cropSuggestionsAI: 'AI suggestions',
     cropSuggestionsNote: 'These are suggestions, not a guarantee. Confirm seed, water, and market conditions with a local advisor.',
 
     // trust
@@ -365,6 +366,7 @@ const S = {
     cropSuggestionsLoading: 'आपके खेत के लिए फसलें देखी जा रही हैं…',
     cropSuggestionsUnavailable: 'अभी फसल सुझाव उपलब्ध नहीं हैं।',
     cropSuggestionsCatalog: 'कैटलॉग सुझाव',
+    cropSuggestionsAI: 'AI सुझाव',
     cropSuggestionsNote: 'ये सुझाव हैं, गारंटी नहीं। बीज, पानी और बाजार की स्थिति स्थानीय सलाहकार से पक्की करें।',
 
     warnings: 'ध्यान देने योग्य', confidence: 'विश्वसनीयता',
@@ -517,6 +519,7 @@ const S = {
     cropSuggestionsLoading: 'તમારા ખેતર માટે યોગ્ય પાકો શોધી રહ્યા છીએ…',
     cropSuggestionsUnavailable: 'હાલ પાકના સૂચનો ઉપલબ્ધ નથી.',
     cropSuggestionsCatalog: 'કેટલોગ સૂચનો',
+    cropSuggestionsAI: 'AI સૂચનો',
     cropSuggestionsNote: 'આ સૂચનો છે, ગેરંટી નથી. બીજ, પાણી અને બજારની સ્થિતિ સ્થાનિક સલાહકાર પાસે તપાસો.',
 
     warnings: 'ધ્યાન રાખવા જેવું', confidence: 'વિશ્વસનીયતા',

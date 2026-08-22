@@ -94,8 +94,8 @@ export default function Plan({ rec, t, lang }) {
       {rec.budgetNotice && (
         <Section
           title={t('budgetAlert')}
-          right={<Badge tone={rec.budgetNotice.provider === 'groq' ? 'leaf' : 'slate'}>
-            {rec.budgetNotice.provider === 'groq' ? 'AI · Groq' : t('budgetRuleBased')}
+          right={<Badge tone={rec.budgetNotice.provider === 'template' ? 'slate' : 'leaf'}>
+            {rec.budgetNotice.provider === 'template' ? t('budgetRuleBased') : t('cropSuggestionsAI')}
           </Badge>}
         >
           <Card className="p-5 border-earth-300 bg-earth-50">
