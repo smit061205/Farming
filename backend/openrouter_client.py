@@ -13,15 +13,17 @@ import httpx
 
 ENDPOINT = "https://openrouter.ai/api/v1/chat/completions"
 
-# Cheapest real-time (non-batch) tier of each family, verified against
-# OpenRouter's live /models pricing and a real test call — DeepSeek has no
-# model literally named "v4 lite"; v4-flash is its equivalent smallest/
-# cheapest tier (v4-pro costs ~6-15x more per token). The leading "~" is
-# part of the actual model id: an alias that always points at the current
-# V4 Flash release, same self-updating pattern as Gemini's own "-latest".
+# deepseek/deepseek-chat (DeepSeek-V3, 163840 context) — not the reasoning
+# "v4-flash-latest" alias tried first: that one spends real completion
+# tokens on invisible chain-of-thought before the visible answer (one live
+# test burned all 50 budget tokens on reasoning alone, content: null), and
+# routes across multiple third-party inference backends (CoreWeave,
+# OpenInference) with inconsistent latency — 5 back-to-back calls to it hit
+# 30s+ hangs on 4 of 5. deepseek-chat answered all 5 in 11-13s each, with
+# zero reasoning-token overhead, verified against a live test call.
 # gemini-2.5-flash-lite is the cheapest vision-capable Gemini that isn't a
-# batch (delayed, async) model.
-TEXT_MODEL = "~deepseek/deepseek-v4-flash-latest"
+# batch (delayed, async) model, also verified fast in testing.
+TEXT_MODEL = "deepseek/deepseek-chat"
 VISION_MODEL = "google/gemini-2.5-flash-lite"
 
 
@@ -73,7 +75,7 @@ async def openrouter_generate(
             payload_messages.append({"role": m["role"], "content": m["content"]})
 
     last_reason = "unknown"
-    async with httpx.AsyncClient(timeout=30.0) as client:
+    async with httpx.AsyncClient(timeout=45.0) as client:
         for attempt in range(2):
             try:
                 resp = await client.post(
