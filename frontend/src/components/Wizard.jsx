@@ -355,7 +355,6 @@ export default function Wizard({ meta, t, lang, onSubmit, busy, error }) {
                 </select>
               </div>
               {targetError && <FieldError message={targetError} />}
-              {tier !== 'A' && <p className="hint mt-1">{t('targetYieldInfoOnly')}</p>}
             </Field>
 
             <Field label={t('sowingDate')} hint={form.alreadySown ? t('sownHintPast') : t('sownHintFuture')}>
