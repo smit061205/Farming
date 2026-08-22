@@ -300,8 +300,8 @@
       },
       "target": {
         "default": 50,
-        "min": 50,
-        "max": 60
+        "min": 20,
+        "max": 65
       },
       "stcr": {
         "N": {
