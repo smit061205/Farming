@@ -13,7 +13,8 @@ goes to a review screen the farmer must confirm before it reaches the engine.
 import re
 from typing import Optional
 
-from gemini_client import gemini_generate, gemini_available, parse_json_loose
+from gemini_client import parse_json_loose
+from openrouter_client import openrouter_generate, openrouter_available, VISION_MODEL
 
 FIELDS = ["ph", "oc", "n", "p", "k", "ec", "s", "zn"]
 
@@ -161,17 +162,18 @@ def sanitise(values: Optional[dict] = None) -> dict:
 # ------------------------------------------------------------------- vision
 
 def vision_available() -> bool:
-    return gemini_available()
+    return openrouter_available()
 
 
 async def extract_from_image(base64: str, mime: str) -> dict:
-    if not gemini_available():
+    if not openrouter_available():
         return {"ok": False, "reason": "no-vision-key"}
 
     try:
-        out = await gemini_generate(
+        out = await openrouter_generate(
             messages=[{"role": "user", "content": VISION_PROMPT}],
             image={"base64": base64, "mime": mime},
+            model=VISION_MODEL,
             max_tokens=1500,
             temperature=0,
         )

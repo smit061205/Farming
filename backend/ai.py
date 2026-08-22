@@ -6,9 +6,11 @@ and may only explain it in the farmer's language. With no API key
 configured the template explainer below covers every branch, so the app is
 fully demoable without any AI provider.
 
-Provider chain: Groq first (fast, generous per-key limits), then Gemini as a
-genuine second attempt if Groq's own quota is the one that's out, then the
-deterministic template. Both providers support a primary+fallback key pair.
+Provider: DeepSeek via OpenRouter (a paid key with real headroom, replacing
+Groq and Gemini's free-tier limits that this session kept hitting), then the
+deterministic template if that's unavailable or fails. The soil-card vision
+reader in extract.py goes through the same OpenRouter key, just a different
+(Gemini Flash) model — see openrouter_client.py.
 """
 import os
 import re as _re
@@ -16,8 +18,7 @@ from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
 from typing import Optional
 
-from groq_client import groq_generate, groq_available
-from gemini_client import gemini_generate, gemini_available
+from openrouter_client import openrouter_generate, openrouter_available, TEXT_MODEL
 
 _IST = ZoneInfo("Asia/Kolkata")
 
@@ -222,10 +223,8 @@ def no_info(lang: str) -> str:
 # --------------------------------------------------------- provider calls
 
 def ai_status() -> dict:
-    if groq_available():
-        return {"enabled": True, "provider": "groq", "mode": "llm"}
-    if gemini_available():
-        return {"enabled": True, "provider": "gemini", "mode": "llm"}
+    if openrouter_available():
+        return {"enabled": True, "provider": "deepseek", "mode": "llm"}
     return {"enabled": False, "provider": "template", "mode": "rule-based fallback"}
 
 
@@ -252,7 +251,7 @@ async def explain_budget_constraint(facts: dict, lang: str = "en") -> dict:
             f"To complete the full plan, raise the fertilizer budget to ₹{full_cost} or phase the remaining nutrients after advice from your local Krishi Vigyan Kendra."
         )
 
-    if not groq_available() and not gemini_available():
+    if not openrouter_available():
         return {"text": template_text(), "provider": "template"}
 
     language = _LANG_NAME.get(lang, "English")
@@ -265,25 +264,14 @@ avoid the shortfall: increase the budget to fullCost or phase the remaining
 nutrients after advice from a local Krishi Vigyan Kendra. Keep all rupee values
 exactly as supplied. Plain text only, 2–3 sentences."""
     facts_json = __import__("json").dumps(facts, ensure_ascii=False, separators=(",", ":"))
-    last_reason = None
 
-    if groq_available():
-        out = await groq_generate(
-            system=system, messages=[{"role": "user", "content": facts_json}], max_tokens=220, temperature=0.2,
-        )
-        if out.get("ok"):
-            return {"text": out["text"], "provider": "groq", "model": out.get("model")}
-        last_reason = out.get("reason")
+    out = await openrouter_generate(
+        system=system, messages=[{"role": "user", "content": facts_json}], model=TEXT_MODEL, max_tokens=400, temperature=0.2,
+    )
+    if out.get("ok"):
+        return {"text": out["text"], "provider": "deepseek", "model": out.get("model")}
 
-    if gemini_available():
-        out = await gemini_generate(
-            system=system, messages=[{"role": "user", "content": facts_json}], max_tokens=700, temperature=0.2,
-        )
-        if out.get("ok"):
-            return {"text": out["text"], "provider": "gemini", "model": out.get("model")}
-        last_reason = out.get("reason")
-
-    return {"text": template_text(), "provider": "template", "degraded": last_reason}
+    return {"text": template_text(), "provider": "template", "degraded": out.get("reason")}
 
 
 _LANG_NAME = {"en": "English", "hi": "Hindi", "gu": "Gujarati"}
@@ -291,13 +279,10 @@ _LANG_TAG = {"en": "(Reply in English.)", "hi": "(उत्तर हिन्�
 
 
 async def chat(messages: list, recommendation: dict, lang: str = "en") -> dict:
-    if not groq_available() and not gemini_available():
+    if not openrouter_available():
         return {"text": _fallback_answer(messages, recommendation, lang), "provider": "template"}
 
     lang_name = _LANG_NAME.get(lang, "English")
-    # Compact, not pretty-printed — Groq's per-minute token budget is tight
-    # enough (12k TPM on this tier) that indent whitespace alone can burn a
-    # few hundred tokens for nothing.
     context = (
         "RECOMMENDATION JSON (the only source of numbers you may use):\n"
         f"{__import__('json').dumps(recommendation, separators=(',', ':'))}\n\n"
@@ -309,34 +294,19 @@ async def chat(messages: list, recommendation: dict, lang: str = "en") -> dict:
     # directive is repeated on the final user turn — the position models weight most.
     # Older turns are dropped: the full grounding JSON is resent every call, so the
     # model doesn't need the whole conversation history to answer, just enough to
-    # follow a "what about that" — and every extra turn is TPM budget spent for free.
+    # follow a "what about that".
     tagged = list(messages)[-6:]
     if tagged and tagged[-1]["role"] == "user":
         tag = _LANG_TAG.get(lang, _LANG_TAG["en"])
         tagged[-1] = {**tagged[-1], "content": f"{tagged[-1]['content']}\n\n{tag}"}
 
     system_prompt = f"{SYSTEM}\n\n{context}"
-    last_reason = None
 
-    # The system prompt itself asks for 2-5 sentences; 2000 was pure headroom
-    # that Groq's rate limiter pre-charges against the per-minute budget before
-    # a single token is generated, which is what was actually exhausting it.
-    if groq_available():
-        out = await groq_generate(system=system_prompt, messages=tagged, max_tokens=500, temperature=0.4)
-        if out["ok"]:
-            return {"text": out["text"], "provider": "groq", "model": out.get("model")}
-        last_reason = out.get("reason")
+    out = await openrouter_generate(system=system_prompt, messages=tagged, model=TEXT_MODEL, max_tokens=800, temperature=0.4)
+    if out["ok"]:
+        return {"text": out["text"], "provider": "deepseek", "model": out.get("model")}
 
-    if gemini_available():
-        # Flash models spend some of this budget on internal reasoning before
-        # the visible answer, so this needs more headroom than Groq's — an
-        # 800-token budget cut one real answer off mid-sentence in testing.
-        out = await gemini_generate(system=system_prompt, messages=tagged, max_tokens=1500, temperature=0.4)
-        if out["ok"]:
-            return {"text": out["text"], "provider": "gemini", "model": out.get("model")}
-        last_reason = out.get("reason")
-
-    return {"text": _fallback_answer(messages, recommendation, lang), "provider": "template", "degraded": last_reason}
+    return {"text": _fallback_answer(messages, recommendation, lang), "provider": "template", "degraded": out.get("reason")}
 
 
 # --------------------------------------------- keyword fallback answering

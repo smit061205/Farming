@@ -1,16 +1,17 @@
 """Crop suggestions grounded only in the wizard's field details.
 
 The fertilizer recommendation remains deterministic and independent. This module
-is a secondary advisory layer: Groq chooses and explains three crop candidates
-from the local crop catalog, while the server validates every returned crop id.
-If Groq is unavailable or returns an invalid shape, a small catalog-based
-fallback keeps the Plan and Soil tabs useful without blocking the main result.
+is a secondary advisory layer: DeepSeek (via OpenRouter) chooses and explains
+three crop candidates from the local crop catalog, while the server validates
+every returned crop id. If it's unavailable or returns an invalid shape, a
+small catalog-based fallback keeps the Plan and Soil tabs useful without
+blocking the main result.
 """
 import json
 import re
 
 from data import crops
-from groq_client import groq_available, groq_generate
+from openrouter_client import openrouter_available, openrouter_generate, TEXT_MODEL
 
 
 _LANG_NAME = {"en": "English", "hi": "Hindi", "gu": "Gujarati"}
@@ -112,7 +113,7 @@ async def recommend_crops(details: dict, lang: str = "en") -> dict:
     by_id = {item["id"]: item for item in catalog}
     fallback = _fallback(context, lang, catalog)
 
-    if not groq_available():
+    if not openrouter_available():
         return {"status": "ready", "provider": "catalog", "recommendations": fallback}
 
     language = _LANG_NAME.get(lang, "English")
@@ -128,9 +129,10 @@ Return JSON only, with this exact shape:
 {{"recommendations":[{{"cropId":"catalog id","reason":"one or two short sentences"}}]}}
 """
     user = json.dumps({"wizardDetails": context, "cropCatalog": catalog}, ensure_ascii=False)
-    out = await groq_generate(
+    out = await openrouter_generate(
         system=system,
         messages=[{"role": "user", "content": user}],
+        model=TEXT_MODEL,
         max_tokens=900,
         temperature=0.2,
     )
@@ -159,4 +161,4 @@ Return JSON only, with this exact shape:
         valid.extend(row for row in fallback if row["cropId"] not in existing)
         valid = valid[:3]
 
-    return {"status": "ready", "provider": "groq", "model": out.get("model"), "recommendations": valid}
+    return {"status": "ready", "provider": "deepseek", "model": out.get("model"), "recommendations": valid}
