@@ -1,0 +1,15 @@
+name: Keep Render backend warm
+
+on:
+  schedule:
+    # Every 5 minutes — comfortably under Render free tier's 15-minute idle
+    # spin-down, with slack for GitHub Actions' own scheduling jitter.
+    - cron: "*/5 * * * *"
+  workflow_dispatch: {}
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping health endpoint
+        run: curl -fsS --max-time 60 https://agrisense-api-tzx8.onrender.com/api/health
