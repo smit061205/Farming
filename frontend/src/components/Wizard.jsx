@@ -339,25 +339,24 @@ export default function Wizard({ meta, t, lang, onSubmit, busy, error }) {
               </select>
             </Field>
 
-            {tier === 'A' && (
-              <Field label={t('targetYield')} hint={crop ? yieldRange(crop.target.min, crop.target.max) : ''}>
-                <div className="flex gap-2">
-                  <input type="number" step="0.01"
-                    min={targetMin}
-                    max={targetMax}
-                    aria-invalid={!!targetError}
-                    className={`field tabular-nums flex-1 ${targetError ? 'border-earth-500 focus:border-earth-500' : ''}`}
-                    placeholder={crop ? String(Math.round((crop.target.default / QUINTAL_PER_UNIT[yieldUnit]) * 100) / 100) : ''}
-                    value={yieldText} onChange={(e) => onYieldTextChange(e.target.value)} />
-                  <select className="field w-28" value={yieldUnit} onChange={(e) => onYieldUnitChange(e.target.value)}>
-                    <option value="quintal">{t('unitQuintal')}</option>
-                    <option value="tonne">{t('unitTonne')}</option>
-                    <option value="kg">{t('unitKg')}</option>
-                  </select>
-                </div>
-                {targetError && <FieldError message={targetError} />}
-              </Field>
-            )}
+            <Field label={t('targetYield')} hint={crop ? yieldRange(crop.target.min, crop.target.max) : ''}>
+              <div className="flex gap-2">
+                <input type="number" step="0.01"
+                  min={targetMin}
+                  max={targetMax}
+                  aria-invalid={!!targetError}
+                  className={`field tabular-nums flex-1 ${targetError ? 'border-earth-500 focus:border-earth-500' : ''}`}
+                  placeholder={crop ? String(Math.round((crop.target.default / QUINTAL_PER_UNIT[yieldUnit]) * 100) / 100) : ''}
+                  value={yieldText} onChange={(e) => onYieldTextChange(e.target.value)} />
+                <select className="field w-28" value={yieldUnit} onChange={(e) => onYieldUnitChange(e.target.value)}>
+                  <option value="quintal">{t('unitQuintal')}</option>
+                  <option value="tonne">{t('unitTonne')}</option>
+                  <option value="kg">{t('unitKg')}</option>
+                </select>
+              </div>
+              {targetError && <FieldError message={targetError} />}
+              {tier !== 'A' && <p className="hint mt-1">{t('targetYieldInfoOnly')}</p>}
+            </Field>
 
             <Field label={t('sowingDate')} hint={form.alreadySown ? t('sownHintPast') : t('sownHintFuture')}>
               <input
