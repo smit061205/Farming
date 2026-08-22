@@ -56,10 +56,10 @@ def opt_num(v):
 r1 = lambda n: round(n * 10) / 10
 
 # STCR (Tier A) equations only exist where a university has actually run the
-# calibration trials — Gujarat's 3 zones here. Everywhere else falls back to
-# Tier B (ICAR published base-dose x soil-class), which is real, nationally
-# applicable data — not a Gujarat-specific label stretched over a place it
-# was never calibrated for.
+# calibration trials — wheat at Ranchi, Jharkhand here. Everywhere else falls
+# back to Tier B (ICAR published base-dose x soil-class), which is real,
+# nationally applicable data — not a single zone's label stretched over a
+# place it was never calibrated for.
 GENERIC_ZONE_NAME = {"en": "Your area", "hi": "आपका क्षेत्र", "gu": "તમારો વિસ્તાર"}
 
 
@@ -169,13 +169,15 @@ async def recommend(body: dict):
             }
 
         full_total = full_plan["costTotal"] + organic_cost
-        # Keep a genuine price comparison: do not label a plan as cheaper than
-        # the blanket dose if it is not. The normal budget, when supplied, is
-        # also honoured after any selected organic input has been costed.
-        blanket_ceiling = max(0, blanket_plan["costTotal"] - 1)
-        requested_ceiling = budget_num if budget_num is not None else float("inf")
-        total_ceiling = min(requested_ceiling, blanket_ceiling) if blanket_plan["costTotal"] > 0 else requested_ceiling
-        needs_cap = full_total > total_ceiling
+        # Only cap spending when the farmer explicitly sets a budget. Capping
+        # against the blanket-dose cost by default used to make sense when
+        # STCR coefficients were tuned to roughly reproduce blanket cost —
+        # real calibrated data can legitimately need more than blanket when
+        # the soil is genuinely more deficient than blanket assumes, and
+        # silently discarding that need is worse than just showing the real
+        # cost and letting the comparison say "costs more, here's why".
+        total_ceiling = budget_num
+        needs_cap = total_ceiling is not None and full_total > total_ceiling
         budget_plan = None
         budget_notice = None
         active_dose = dict(d["dose"])
@@ -190,19 +192,18 @@ async def recommend(body: dict):
                 "organicCost": organic_cost,
                 "totalCost": budget_plan["cost"] + organic_cost,
                 "fullTotalCost": full_total,
-                "limitedBy": (["budget"] if budget_num is not None and full_total > budget_num else []) + (["blanketComparison"] if full_total >= blanket_plan["costTotal"] else []),
+                "limitedBy": ["budget"],
             })
-            if budget_num is not None and full_total > budget_num:
-                partial = [row["nutrient"] for row in budget_plan["dropped"] if row.get("partial")]
-                missing = [row["nutrient"] for row in budget_plan["dropped"] if not row.get("partial")]
-                budget_notice = await explain_budget_constraint({
-                    "requestedBudget": budget_num,
-                    "cap": total_ceiling,
-                    "fullCost": full_total,
-                    "planCost": budget_plan["totalCost"],
-                    "partial": partial,
-                    "missing": missing,
-                }, lang)
+            partial = [row["nutrient"] for row in budget_plan["dropped"] if row.get("partial")]
+            missing = [row["nutrient"] for row in budget_plan["dropped"] if not row.get("partial")]
+            budget_notice = await explain_budget_constraint({
+                "requestedBudget": budget_num,
+                "cap": total_ceiling,
+                "fullCost": full_total,
+                "planCost": budget_plan["totalCost"],
+                "partial": partial,
+                "missing": missing,
+            }, lang)
         elif budget_num is not None:
             budget_plan = {
                 "budget": budget_num, "requestedBudget": budget_num, "spendLimit": budget_num,
@@ -404,7 +405,7 @@ async def sms_sim(body: dict):
     area_ha = num(ha, 1)
     soil_num = {"ph": num(ph, 7.5), "n": num(n, 200), "p": num(p, 15), "k": num(k, 200), "oc": None, "ec": None, "s": None, "zn": None}
     # No location on an SMS reply — always the generic ICAR tier, never a
-    # guessed Gujarat zone.
+    # guessed zone.
     d = compute_dose(crop, slopes, None, soil_num, crop["target"]["default"], None)
     plan = allocate(d["dose"], {"sDeficient": d["sDeficient"], "phBand": d["phBand"], "areaHa": area_ha})
     blanket_plan = allocate_blanket(d["blanket"], {"areaHa": area_ha})

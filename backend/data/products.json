@@ -1,5 +1,5 @@
 {
-  "_note": "Prices are indicative Gujarat retail (subsidised MRP where applicable), Aug 2026. Editable in one place. If a data.gov.in key is configured the server refreshes these; otherwise these static values are used and the UI says so.",
+  "_note": "Prices are indicative Indian retail (subsidised MRP where applicable — urea, DAP and MOP MRPs are centrally fixed and largely uniform nationwide; SSP and others vary more by state/dealer), Aug 2026. Editable in one place. If a data.gov.in key is configured the server refreshes these; otherwise these static values are used and the UI says so.",
   "_priceSource": "STATIC_TABLE",
   "products": [
     {

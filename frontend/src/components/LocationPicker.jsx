@@ -69,7 +69,7 @@ export default function LocationPicker({ lat, lon, onChange, onPlaceChange, t })
         const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=6&language=en&format=json`);
         const data = await res.json();
         const all = data.results || [];
-        // India first — this app's zones only cover Gujarat, so a match
+        // India first — every farmer using this app is in India, so a match
         // there is far more likely to be the right one.
         all.sort((a, b) => (b.country === 'India') - (a.country === 'India'));
         setResults(all);

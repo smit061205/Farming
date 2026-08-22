@@ -1,14 +1,12 @@
 {
-  "_note": "Tier A stcr coefficients are calibrated so that FX = a*T - b*Sx reproduces the Gujarat package-of-practices dose at reference soil fertility, and responds correctly to soil test value. Source status: PENDING_VERIFICATION against ICAR/AAU STCR bulletins. Tier B uses base dose x soil-test class factor. Zinc doses are expressed as kg Zn/ha, not kg zinc sulphate/ha.",
+  "_note": "Tier A stcr coefficients are the real published equations for Wheat (cv. K1006) on acid Alfisol soil at Birsa Agricultural University, Ranchi, Jharkhand (Kumar et al. 2024, Intl J Advanced Biochemistry Research SP-8(2):186-189, https://doi.org/10.33545/26174693.2024.v8.i2Sc.535) — genuinely sourced and cited, not reverse-engineered. Every other crop has no verified Jharkhand STCR equation yet and is Tier B (ICAR base dose x soil-test class factor) everywhere by design, not by omission. Tier B uses base dose x soil-test class factor. Zinc doses are expressed as kg Zn/ha, not kg zinc sulphate/ha.",
   "_referenceSoil": {
-    "N": 220,
-    "P": 18,
-    "K": 240
+    "_source": "Kumar et al. 2024 (wheat, Jharkhand) Table 3 — CS/CF-derived slopes, not a reference soil point."
   },
   "_slopes": {
-    "N": 0.35,
-    "P": 1.2,
-    "K": 0.2
+    "N": 0.52,
+    "P": 2.46,
+    "K": 0.36
   },
   "splitPatterns": {
     "cereal3": [
@@ -298,24 +296,22 @@
         "gu": "ઘઉં"
       },
       "tier": {
-        "middle": "A",
-        "north": "A",
-        "saurashtra": "A"
+        "jharkhand": "A"
       },
       "target": {
-        "default": 45,
-        "min": 20,
-        "max": 70
+        "default": 50,
+        "min": 50,
+        "max": 60
       },
       "stcr": {
         "N": {
-          "a": 3.578
+          "a": 4.15
         },
         "P": {
-          "a": 1.413
+          "a": 2.23
         },
         "K": {
-          "a": 1.556
+          "a": 1.9
         }
       },
       "base": {
@@ -341,11 +337,7 @@
         "hi": "बाजरा",
         "gu": "બાજરી"
       },
-      "tier": {
-        "middle": "A",
-        "north": "A",
-        "saurashtra": "A"
-      },
+      "tier": {},
       "target": {
         "default": 25,
         "min": 10,
@@ -385,11 +377,7 @@
         "hi": "मूंगफली",
         "gu": "મગફળી"
       },
-      "tier": {
-        "middle": "A",
-        "north": "A",
-        "saurashtra": "A"
-      },
+      "tier": {},
       "target": {
         "default": 22,
         "min": 8,
@@ -429,11 +417,7 @@
         "hi": "कपास",
         "gu": "કપાસ"
       },
-      "tier": {
-        "middle": "A",
-        "north": "A",
-        "saurashtra": "A"
-      },
+      "tier": {},
       "target": {
         "default": 22,
         "min": 10,
@@ -473,11 +457,7 @@
         "hi": "अरंडी",
         "gu": "દિવેલા"
       },
-      "tier": {
-        "middle": "A",
-        "north": "A",
-        "saurashtra": "B"
-      },
+      "tier": {},
       "target": {
         "default": 25,
         "min": 12,
@@ -517,11 +497,7 @@
         "hi": "धान",
         "gu": "ડાંગર"
       },
-      "tier": {
-        "middle": "A",
-        "north": "B",
-        "saurashtra": "B"
-      },
+      "tier": {},
       "target": {
         "default": 50,
         "min": 20,
@@ -561,11 +537,7 @@
         "hi": "मक्का",
         "gu": "મકાઈ"
       },
-      "tier": {
-        "middle": "A",
-        "north": "B",
-        "saurashtra": "B"
-      },
+      "tier": {},
       "target": {
         "default": 50,
         "min": 20,
@@ -605,11 +577,7 @@
         "hi": "सरसों",
         "gu": "રાઈ"
       },
-      "tier": {
-        "middle": "A",
-        "north": "A",
-        "saurashtra": "B"
-      },
+      "tier": {},
       "target": {
         "default": 20,
         "min": 8,
@@ -649,11 +617,7 @@
         "hi": "ज्वार",
         "gu": "જુવાર"
       },
-      "tier": {
-        "middle": "B",
-        "north": "B",
-        "saurashtra": "B"
-      },
+      "tier": {},
       "target": {
         "default": 30,
         "min": 12,
@@ -682,11 +646,7 @@
         "hi": "रागी",
         "gu": "નાગલી"
       },
-      "tier": {
-        "middle": "B",
-        "north": "B",
-        "saurashtra": "B"
-      },
+      "tier": {},
       "target": {
         "default": 20,
         "min": 8,
@@ -715,11 +675,7 @@
         "hi": "तिल",
         "gu": "તલ"
       },
-      "tier": {
-        "middle": "B",
-        "north": "B",
-        "saurashtra": "B"
-      },
+      "tier": {},
       "target": {
         "default": 8,
         "min": 3,
@@ -748,11 +704,7 @@
         "hi": "सोयाबीन",
         "gu": "સોયાબીન"
       },
-      "tier": {
-        "middle": "B",
-        "north": "B",
-        "saurashtra": "B"
-      },
+      "tier": {},
       "target": {
         "default": 25,
         "min": 10,
@@ -781,11 +733,7 @@
         "hi": "सूरजमुखी",
         "gu": "સૂરજમુખી"
       },
-      "tier": {
-        "middle": "B",
-        "north": "B",
-        "saurashtra": "B"
-      },
+      "tier": {},
       "target": {
         "default": 18,
         "min": 7,
@@ -814,11 +762,7 @@
         "hi": "तंबाकू",
         "gu": "તમાકુ"
       },
-      "tier": {
-        "middle": "B",
-        "north": "B",
-        "saurashtra": "B"
-      },
+      "tier": {},
       "target": {
         "default": 20,
         "min": 8,
@@ -847,11 +791,7 @@
         "hi": "गन्ना",
         "gu": "શેરડી"
       },
-      "tier": {
-        "middle": "B",
-        "north": "B",
-        "saurashtra": "B"
-      },
+      "tier": {},
       "target": {
         "default": 800,
         "min": 400,
@@ -880,11 +820,7 @@
         "hi": "इसबगोल",
         "gu": "ઈસબગુલ"
       },
-      "tier": {
-        "middle": "B",
-        "north": "B",
-        "saurashtra": "B"
-      },
+      "tier": {},
       "target": {
         "default": 10,
         "min": 4,
@@ -913,11 +849,7 @@
         "hi": "जीरा",
         "gu": "જીરું"
       },
-      "tier": {
-        "middle": "B",
-        "north": "B",
-        "saurashtra": "B"
-      },
+      "tier": {},
       "target": {
         "default": 8,
         "min": 3,
@@ -946,11 +878,7 @@
         "hi": "सौंफ",
         "gu": "વરિયાળી"
       },
-      "tier": {
-        "middle": "B",
-        "north": "B",
-        "saurashtra": "B"
-      },
+      "tier": {},
       "target": {
         "default": 18,
         "min": 7,
@@ -979,11 +907,7 @@
         "hi": "अरहर",
         "gu": "તુવેર"
       },
-      "tier": {
-        "middle": "B",
-        "north": "B",
-        "saurashtra": "B"
-      },
+      "tier": {},
       "target": {
         "default": 15,
         "min": 6,
@@ -1012,11 +936,7 @@
         "hi": "मूंग",
         "gu": "મગ"
       },
-      "tier": {
-        "middle": "B",
-        "north": "B",
-        "saurashtra": "B"
-      },
+      "tier": {},
       "target": {
         "default": 10,
         "min": 4,
@@ -1045,11 +965,7 @@
         "hi": "उड़द",
         "gu": "અડદ"
       },
-      "tier": {
-        "middle": "B",
-        "north": "B",
-        "saurashtra": "B"
-      },
+      "tier": {},
       "target": {
         "default": 10,
         "min": 4,
@@ -1078,11 +994,7 @@
         "hi": "चना",
         "gu": "ચણા"
       },
-      "tier": {
-        "middle": "B",
-        "north": "B",
-        "saurashtra": "B"
-      },
+      "tier": {},
       "target": {
         "default": 20,
         "min": 8,
@@ -1111,11 +1023,7 @@
         "hi": "आलू",
         "gu": "બટાટા"
       },
-      "tier": {
-        "middle": "B",
-        "north": "B",
-        "saurashtra": "B"
-      },
+      "tier": {},
       "target": {
         "default": 300,
         "min": 120,
@@ -1144,11 +1052,7 @@
         "hi": "प्याज",
         "gu": "ડુંગળી"
       },
-      "tier": {
-        "middle": "B",
-        "north": "B",
-        "saurashtra": "B"
-      },
+      "tier": {},
       "target": {
         "default": 300,
         "min": 120,
@@ -1177,11 +1081,7 @@
         "hi": "टमाटर",
         "gu": "ટામેટા"
       },
-      "tier": {
-        "middle": "B",
-        "north": "B",
-        "saurashtra": "B"
-      },
+      "tier": {},
       "target": {
         "default": 400,
         "min": 150,
@@ -1210,11 +1110,7 @@
         "hi": "बैंगन",
         "gu": "રીંગણ"
       },
-      "tier": {
-        "middle": "B",
-        "north": "B",
-        "saurashtra": "B"
-      },
+      "tier": {},
       "target": {
         "default": 350,
         "min": 140,
@@ -1243,11 +1139,7 @@
         "hi": "भिंडी",
         "gu": "ભીંડા"
       },
-      "tier": {
-        "middle": "B",
-        "north": "B",
-        "saurashtra": "B"
-      },
+      "tier": {},
       "target": {
         "default": 150,
         "min": 60,
@@ -1276,11 +1168,7 @@
         "hi": "मिर्च",
         "gu": "મરચાં"
       },
-      "tier": {
-        "middle": "B",
-        "north": "B",
-        "saurashtra": "B"
-      },
+      "tier": {},
       "target": {
         "default": 150,
         "min": 60,
@@ -1309,11 +1197,7 @@
         "hi": "केला",
         "gu": "કેળા"
       },
-      "tier": {
-        "middle": "B",
-        "north": "B",
-        "saurashtra": "B"
-      },
+      "tier": {},
       "target": {
         "default": 600,
         "min": 250,
@@ -1342,11 +1226,7 @@
         "hi": "आम",
         "gu": "કેરી"
       },
-      "tier": {
-        "middle": "B",
-        "north": "B",
-        "saurashtra": "B"
-      },
+      "tier": {},
       "target": {
         "default": 100,
         "min": 40,
