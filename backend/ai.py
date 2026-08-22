@@ -290,23 +290,32 @@ async def chat(messages: list, recommendation: dict, lang: str = "en") -> dict:
         return {"text": _fallback_answer(messages, recommendation, lang), "provider": "template"}
 
     lang_name = _LANG_NAME.get(lang, "English")
+    # Compact, not pretty-printed — Groq's per-minute token budget is tight
+    # enough (12k TPM on this tier) that indent whitespace alone can burn a
+    # few hundred tokens for nothing.
     context = (
         "RECOMMENDATION JSON (the only source of numbers you may use):\n"
-        f"{__import__('json').dumps(recommendation, indent=1)}\n\n"
+        f"{__import__('json').dumps(recommendation, separators=(',', ':'))}\n\n"
         f"LANGUAGE: write your whole answer in {lang_name}, and only in {lang_name} — "
         "whatever language the question or the data above happens to be in."
     )
 
     # A system-prompt instruction still drifted against a large JSON payload, so the
     # directive is repeated on the final user turn — the position models weight most.
-    tagged = list(messages)
+    # Older turns are dropped: the full grounding JSON is resent every call, so the
+    # model doesn't need the whole conversation history to answer, just enough to
+    # follow a "what about that" — and every extra turn is TPM budget spent for free.
+    tagged = list(messages)[-6:]
     if tagged and tagged[-1]["role"] == "user":
         tag = _LANG_TAG.get(lang, _LANG_TAG["en"])
         tagged[-1] = {**tagged[-1], "content": f"{tagged[-1]['content']}\n\n{tag}"}
 
     system_prompt = f"{SYSTEM}\n\n{context}"
 
-    out = await groq_generate(system=system_prompt, messages=tagged, max_tokens=2000, temperature=0.4)
+    # The system prompt itself asks for 2-5 sentences; 2000 was pure headroom
+    # that Groq's rate limiter pre-charges against the per-minute budget before
+    # a single token is generated, which is what was actually exhausting it.
+    out = await groq_generate(system=system_prompt, messages=tagged, max_tokens=500, temperature=0.4)
     if out["ok"]:
         return {"text": out["text"], "provider": "groq", "model": out.get("model")}
 
