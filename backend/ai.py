@@ -6,11 +6,9 @@ and may only explain it in the farmer's language. With no API key
 configured the template explainer below covers every branch, so the app is
 fully demoable without any AI provider.
 
-Provider: Groq only. Gemini text chat was dropped — the project is on a
-monthly spend cap that has already been exceeded for this billing cycle,
-so it added latency on every failed Groq call without ever being able to
-answer. (Gemini's vision model is still used separately in extract.py for
-reading soil-card photos — that's a different feature and unaffected.)
+Provider chain: Groq first (fast, generous per-key limits), then Gemini as a
+genuine second attempt if Groq's own quota is the one that's out, then the
+deterministic template. Both providers support a primary+fallback key pair.
 """
 import os
 import re as _re
@@ -19,6 +17,7 @@ from zoneinfo import ZoneInfo
 from typing import Optional
 
 from groq_client import groq_generate, groq_available
+from gemini_client import gemini_generate, gemini_available
 
 _IST = ZoneInfo("Asia/Kolkata")
 
@@ -225,15 +224,18 @@ def no_info(lang: str) -> str:
 def ai_status() -> dict:
     if groq_available():
         return {"enabled": True, "provider": "groq", "mode": "llm"}
+    if gemini_available():
+        return {"enabled": True, "provider": "gemini", "mode": "llm"}
     return {"enabled": False, "provider": "template", "mode": "rule-based fallback"}
 
 
 async def explain_budget_constraint(facts: dict, lang: str = "en") -> dict:
     """Explain an already-computed budget shortfall without inventing advice.
 
-    The allocation engine decides every quantity and rupee value first. Groq
-    may only translate those facts into a short farmer-facing warning; a
-    deterministic fallback keeps the budget safeguard available without a key.
+    The allocation engine decides every quantity and rupee value first. The
+    model may only translate those facts into a short farmer-facing warning;
+    a deterministic fallback keeps the budget safeguard available without
+    any key configured, or if both providers are out of quota.
     """
     missing = facts.get("missing") or []
     partial = facts.get("partial") or []
@@ -242,14 +244,16 @@ async def explain_budget_constraint(facts: dict, lang: str = "en") -> dict:
     plan_cost = facts.get("planCost")
     requested = facts.get("requestedBudget")
 
-    if not groq_available():
+    def template_text():
         missing_text = ", ".join(missing + partial) or "part of the required nutrient dose"
-        text = (
+        return (
             f"The complete plan costs ₹{full_cost}, above your ₹{requested} budget. "
             f"This purchase list is capped at ₹{plan_cost} and leaves out or reduces {missing_text}. "
             f"To complete the full plan, raise the fertilizer budget to ₹{full_cost} or phase the remaining nutrients after advice from your local Krishi Vigyan Kendra."
         )
-        return {"text": text, "provider": "template"}
+
+    if not groq_available() and not gemini_available():
+        return {"text": template_text(), "provider": "template"}
 
     language = _LANG_NAME.get(lang, "English")
     system = f"""You are AgriSense's budget advisor for an Indian farmer.
@@ -260,25 +264,26 @@ full plan does not fit, what was reduced or omitted, and one practical way to
 avoid the shortfall: increase the budget to fullCost or phase the remaining
 nutrients after advice from a local Krishi Vigyan Kendra. Keep all rupee values
 exactly as supplied. Plain text only, 2–3 sentences."""
-    out = await groq_generate(
-        system=system,
-        messages=[{"role": "user", "content": __import__("json").dumps(facts, ensure_ascii=False)}],
-        max_tokens=220,
-        temperature=0.2,
-    )
-    if out.get("ok"):
-        return {"text": out["text"], "provider": "groq", "model": out.get("model")}
+    facts_json = __import__("json").dumps(facts, ensure_ascii=False, separators=(",", ":"))
+    last_reason = None
 
-    missing_text = ", ".join(missing + partial) or "part of the required nutrient dose"
-    return {
-        "text": (
-            f"The complete plan costs ₹{full_cost}, above your ₹{requested} budget. "
-            f"This purchase list is capped at ₹{plan_cost} and leaves out or reduces {missing_text}. "
-            f"To complete the full plan, raise the fertilizer budget to ₹{full_cost} or phase the remaining nutrients after advice from your local Krishi Vigyan Kendra."
-        ),
-        "provider": "template",
-        "degraded": out.get("reason"),
-    }
+    if groq_available():
+        out = await groq_generate(
+            system=system, messages=[{"role": "user", "content": facts_json}], max_tokens=220, temperature=0.2,
+        )
+        if out.get("ok"):
+            return {"text": out["text"], "provider": "groq", "model": out.get("model")}
+        last_reason = out.get("reason")
+
+    if gemini_available():
+        out = await gemini_generate(
+            system=system, messages=[{"role": "user", "content": facts_json}], max_tokens=400, temperature=0.2,
+        )
+        if out.get("ok"):
+            return {"text": out["text"], "provider": "gemini", "model": out.get("model")}
+        last_reason = out.get("reason")
+
+    return {"text": template_text(), "provider": "template", "degraded": last_reason}
 
 
 _LANG_NAME = {"en": "English", "hi": "Hindi", "gu": "Gujarati"}
@@ -286,7 +291,7 @@ _LANG_TAG = {"en": "(Reply in English.)", "hi": "(उत्तर हिन्�
 
 
 async def chat(messages: list, recommendation: dict, lang: str = "en") -> dict:
-    if not groq_available():
+    if not groq_available() and not gemini_available():
         return {"text": _fallback_answer(messages, recommendation, lang), "provider": "template"}
 
     lang_name = _LANG_NAME.get(lang, "English")
@@ -311,15 +316,24 @@ async def chat(messages: list, recommendation: dict, lang: str = "en") -> dict:
         tagged[-1] = {**tagged[-1], "content": f"{tagged[-1]['content']}\n\n{tag}"}
 
     system_prompt = f"{SYSTEM}\n\n{context}"
+    last_reason = None
 
     # The system prompt itself asks for 2-5 sentences; 2000 was pure headroom
     # that Groq's rate limiter pre-charges against the per-minute budget before
     # a single token is generated, which is what was actually exhausting it.
-    out = await groq_generate(system=system_prompt, messages=tagged, max_tokens=500, temperature=0.4)
-    if out["ok"]:
-        return {"text": out["text"], "provider": "groq", "model": out.get("model")}
+    if groq_available():
+        out = await groq_generate(system=system_prompt, messages=tagged, max_tokens=500, temperature=0.4)
+        if out["ok"]:
+            return {"text": out["text"], "provider": "groq", "model": out.get("model")}
+        last_reason = out.get("reason")
 
-    return {"text": _fallback_answer(messages, recommendation, lang), "provider": "template", "degraded": out.get("reason")}
+    if gemini_available():
+        out = await gemini_generate(system=system_prompt, messages=tagged, max_tokens=800, temperature=0.4)
+        if out["ok"]:
+            return {"text": out["text"], "provider": "gemini", "model": out.get("model")}
+        last_reason = out.get("reason")
+
+    return {"text": _fallback_answer(messages, recommendation, lang), "provider": "template", "degraded": last_reason}
 
 
 # --------------------------------------------- keyword fallback answering

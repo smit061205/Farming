@@ -13,7 +13,7 @@ goes to a review screen the farmer must confirm before it reaches the engine.
 import re
 from typing import Optional
 
-from gemini_client import gemini_generate, gemini_key, parse_json_loose
+from gemini_client import gemini_generate, gemini_available, parse_json_loose
 
 FIELDS = ["ph", "oc", "n", "p", "k", "ec", "s", "zn"]
 
@@ -161,11 +161,11 @@ def sanitise(values: Optional[dict] = None) -> dict:
 # ------------------------------------------------------------------- vision
 
 def vision_available() -> bool:
-    return bool(gemini_key())
+    return gemini_available()
 
 
 async def extract_from_image(base64: str, mime: str) -> dict:
-    if not gemini_key():
+    if not gemini_available():
         return {"ok": False, "reason": "no-vision-key"}
 
     try:
