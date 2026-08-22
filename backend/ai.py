@@ -277,7 +277,7 @@ exactly as supplied. Plain text only, 2–3 sentences."""
 
     if gemini_available():
         out = await gemini_generate(
-            system=system, messages=[{"role": "user", "content": facts_json}], max_tokens=400, temperature=0.2,
+            system=system, messages=[{"role": "user", "content": facts_json}], max_tokens=700, temperature=0.2,
         )
         if out.get("ok"):
             return {"text": out["text"], "provider": "gemini", "model": out.get("model")}
@@ -328,7 +328,10 @@ async def chat(messages: list, recommendation: dict, lang: str = "en") -> dict:
         last_reason = out.get("reason")
 
     if gemini_available():
-        out = await gemini_generate(system=system_prompt, messages=tagged, max_tokens=800, temperature=0.4)
+        # Flash models spend some of this budget on internal reasoning before
+        # the visible answer, so this needs more headroom than Groq's — an
+        # 800-token budget cut one real answer off mid-sentence in testing.
+        out = await gemini_generate(system=system_prompt, messages=tagged, max_tokens=1500, temperature=0.4)
         if out["ok"]:
             return {"text": out["text"], "provider": "gemini", "model": out.get("model")}
         last_reason = out.get("reason")
